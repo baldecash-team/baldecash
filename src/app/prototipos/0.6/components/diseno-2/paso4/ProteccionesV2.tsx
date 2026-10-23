@@ -11,7 +11,7 @@
  * el proveedor de cada tipo.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Check, HeartPulse, Lock, RotateCw, ShieldCheck } from 'lucide-react';
 import { InsuranceDetailModal } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal';
 import { getDescription } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceCards';
@@ -45,11 +45,24 @@ export interface ProteccionesV2Props
     Partial<Pick<PlanesDeSeguro, 'error' | 'reintentar'>> {
   landing: string;
   frecuencia?: string | null;
+  /**
+   * Avisa cuando se abre o se cierra la hoja "¿Qué cubre?". El paso esconde
+   * con esto la barra fija de abajo ("Enviar…"): con la hoja abierta no se
+   * puede enviar (QA en celular, BAL-4969, bug 1).
+   */
+  onDetalleAbiertoChange?: (abierto: boolean) => void;
 }
 
-export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia }: ProteccionesV2Props) {
+export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange }: ProteccionesV2Props) {
   const [detalle, setDetalle] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
+
+  const detalleAbierto = detalle !== null;
+  useEffect(() => {
+    onDetalleAbiertoChange?.(detalleAbierto);
+  }, [detalleAbierto, onDetalleAbiertoChange]);
+  // Si la sección se desmonta con la hoja abierta, la barra vuelve.
+  useEffect(() => () => onDetalleAbiertoChange?.(false), [onDetalleAbiertoChange]);
 
   // Sin planes (la landing no tiene, o es seminuevo) la sección no existe.
   // Con error sí: hay que avisar y dejar reintentar (sin esqueleto infinito).

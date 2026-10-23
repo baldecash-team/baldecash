@@ -22,6 +22,8 @@ import {
   minimoDeLetras,
   MAX_SUGERENCIAS_V2,
 } from '@/app/prototipos/0.6/components/diseno-2/campos/busquedaV2';
+import { useBuscadorSobreElTeclado } from '@/app/prototipos/0.6/components/diseno-2/campos/useBuscadorSobreElTeclado';
+import { ZONA_TACTIL_44 } from '@/app/prototipos/0.6/components/diseno-2/zonaTactil';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -146,6 +148,15 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   const vioBuscandoRef = useRef(false);
   const elegirAlLlegarRef = useRef<string | null>(null);
 
+  // Diseño 2, celular: el buscador sube arriba al abrirse y la lista mide lo
+  // que queda visible sobre el teclado (QA en celular, BAL-4969, bug 2).
+  const listaRef = useRef<HTMLDivElement>(null);
+  const altoListaV2 = useBuscadorSobreElTeclado({
+    activo: v2 && searchable && isOpen,
+    campoRef: contenedorRef,
+    listaRef,
+  });
+
   // Una búsqueda nueva (o abrir otra vez) deja sin efecto la decisión
   // pendiente de antes: no se elige con un término viejo.
   const olvidarPendiente = () => {
@@ -220,6 +231,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       {...(v2
         ? {
             ref: contenedorRef,
+            // Al subir el buscador, que no quede bajo la cabecera fija.
+            // (62 px = `ALTO_CABECERA_MOVIL` de `PanelSolicitudV2`, + 8 de aire).
+            style: { scrollMarginTop: 70 },
             onPointerDownCapture: () => {
               punteroDentroRef.current = true;
               window.setTimeout(() => {
@@ -313,7 +327,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   e.stopPropagation();
                   handleClear();
                 }}
-                className="w-5 h-5 rounded-full hover:bg-neutral-200 flex items-center justify-center cursor-pointer"
+                aria-label={v2 ? `Limpiar ${label}` : undefined}
+                className={`${v2 ? ZONA_TACTIL_44 : ''} w-5 h-5 rounded-full hover:bg-neutral-200 flex items-center justify-center cursor-pointer`}
               >
                 <X className="w-3 h-3 text-neutral-500" />
               </button>
@@ -365,7 +380,12 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 
             {/* Options list — extra pb on mobile so the last options stay
                 visible above the iOS virtual keyboard when it is open. */}
-            <div className="max-h-[min(15rem,50vh)] overflow-y-auto p-1 pb-16 sm:pb-1 overscroll-contain">
+            <div
+              ref={listaRef}
+              data-lista-buscador
+              className={`max-h-[min(15rem,50vh)] overflow-y-auto p-1 ${altoListaV2 !== null ? 'pb-1' : 'pb-16 sm:pb-1'} overscroll-contain`}
+              style={altoListaV2 !== null ? { maxHeight: altoListaV2 } : undefined}
+            >
               {needsMoreChars ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   {searchPrompt || `Escribe al menos ${minSearchLength} caracteres para buscar`}

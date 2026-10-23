@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Check, AlertCircle, Loader2, MapPin, Navigation } from 'lucide-react';
 import { LocationModal } from './LocationModal';
 import { FieldTooltip } from './FieldTooltip';
@@ -22,6 +23,13 @@ import { WizardField, resolveGeoUnits } from '../../../../../services/wizardApi'
 import { useWizard } from '../../../context/WizardContext';
 import { useGooglePlacesAutocomplete } from '../../../hooks/useGooglePlacesAutocomplete';
 import { ParsedAddress } from '../../../../../types/googleMaps';
+
+/**
+ * Lo que ve la persona si Google Maps no carga (sin llave, red, cuota…).
+ * El motivo técnico va a Sentry, nunca a la pantalla (QA en celular,
+ * BAL-4969, bug 7 del reporte). El campo queda para escribir a mano.
+ */
+export const AVISO_SIN_MAPA = 'No pudimos cargar el mapa. Escribe tu dirección.';
 
 interface AddressAutocompleteFieldProps {
   field: WizardField;
@@ -129,10 +137,10 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     [field.code, autoFillFields, updateField, updateFieldBatch]
   );
 
-  // Handle errors
+  // Errores de carga/inicio de Google Maps: ya los muestra `googleError`
+  // (como aviso amable) y van a Sentry; no se repiten como error local.
   const handleError = useCallback((errorMsg: string) => {
-    setLocationError(errorMsg);
-    console.error('[AddressAutocomplete]', errorMsg);
+    console.warn('[AddressAutocomplete]', errorMsg);
   }, []);
 
   // Initialize Google Places Autocomplete
@@ -147,6 +155,16 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   // `formData`), para que oculte la pista aunque el validador del campo no
   // sepa de este error.
   const hayErrorLocal = !!locationError || !!googleError;
+
+  // Sin Maps: el motivo técnico a Sentry (una vez por motivo), no a la pantalla.
+  useEffect(() => {
+    if (!googleError) return;
+    Sentry.captureException(new Error(`[AddressAutocomplete] ${googleError}`), {
+      level: 'warning',
+      tags: { modulo: 'direccion_autocompletado', accion: 'cargar_google_maps' },
+      extra: { field_code: field.code },
+    });
+  }, [googleError, field.code]);
   useEffect(() => {
     onLocalErrorChange?.(hayErrorLocal);
   }, [hayErrorLocal, onLocalErrorChange]);
@@ -348,8 +366,10 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     setIsFocused(true);
   };
 
-  // Determine display error
-  const displayError = error || locationError || googleError;
+  // Determine display error. El de Google Maps no es un error de la persona:
+  // sale aparte, como aviso, y el campo se puede escribir a mano.
+  const sinMapa = !!googleError;
+  const displayError = error || locationError;
   const showDisplayError = !!displayError;
   const showSuccess = !showDisplayError && !!value;
   // Diseño 2 (BAL-4960): mismo autocompletado, otro vestido.
@@ -410,9 +430,12 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           onFocus={handleFocus}
           onBlur={() => setIsFocused(false)}
           placeholder={field.placeholder || 'Escribe tu dirección...'}
-          disabled={field.readonly || !isLoaded}
+          // Sin Maps se escribe a mano: el campo nunca queda trabado.
+          disabled={field.readonly || (!isLoaded && !sinMapa)}
           aria-invalid={v2 && showDisplayError ? true : undefined}
-          aria-describedby={v2 && displayError ? `${field.code}-error` : undefined}
+          aria-describedby={
+            [v2 && displayError ? `${field.code}-error` : null, sinMapa ? `${field.code}-sin-mapa` : null].filter(Boolean).join(' ') || undefined
+          }
           style={{ fontSize: '16px' }}
           className={`
             flex-1 bg-transparent outline-none ${v2 ? `min-w-0 text-[#1E2230] ${PLACEHOLDER_V2}` : 'text-neutral-800'}
@@ -456,6 +479,18 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           )}
           {isRequestingLocation ? 'Obteniendo ubicación...' : 'Usar mi ubicación'}
         </button>
+      )}
+
+      {sinMapa && (
+        <p
+          id={`${field.code}-sin-mapa`}
+          role="status"
+          data-aviso-sin-mapa
+          className={v2 ? 'flex items-center gap-1.5 text-[13px] leading-snug text-[#5B6275]' : 'flex items-center gap-1 text-xs text-neutral-500'}
+        >
+          <MapPin className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+          {AVISO_SIN_MAPA}
+        </p>
       )}
 
       {v2 && displayError && <ErrorCampoV2 id={`${field.code}-error`}>{displayError}</ErrorCampoV2>}

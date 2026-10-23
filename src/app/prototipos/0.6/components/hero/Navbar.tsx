@@ -5,6 +5,7 @@
  * Estilo: Banner colorido arriba del navbar, con botón para cerrar
  */
 
+import { ZONA_TACTIL_44 } from '@/app/prototipos/0.6/components/diseno-2/zonaTactil';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
@@ -753,7 +754,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, hidePor
             {!minimal && (
               <div className="flex lg:hidden items-center gap-2">
                 <button
-                  className="p-2 rounded-lg hover:bg-[var(--surface-2,#f5f5f5)] cursor-pointer"
+                  className={`${ZONA_TACTIL_44} p-2 rounded-lg hover:bg-[var(--surface-2,#f5f5f5)] cursor-pointer`}
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                 >
                   {isMenuOpen ? (

@@ -796,11 +796,15 @@ function LoQuieroModalContent({
                               <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400 truncate">{categoria}</span>
                             )}
                             <p className="text-sm font-semibold text-neutral-800 line-clamp-2 md:min-h-[2.5rem] leading-snug">{nombre}</p>
-                            <p className="mt-0.5 flex items-center gap-1.5 min-w-0 md:hidden">
+                            {/* Si no entra al lado del precio (con "Agregado ✓", más
+                                ancho, a 360 px), "Ver detalle" baja entero a la
+                                línea de abajo en vez de cortarse en "Ver det"
+                                (QA en celular, BAL-4969). */}
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-1 min-w-0 md:hidden">
                               <span className="text-sm font-bold text-[var(--color-primary-text)] whitespace-nowrap">
                                 +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
                               </span>
-                              <span className="text-xs text-neutral-400 inline-flex items-center min-w-0 whitespace-nowrap overflow-hidden">
+                              <span data-ver-detalle className="text-xs text-neutral-400 inline-flex shrink-0 items-center whitespace-nowrap">
                                 Ver detalle <ChevronRight className="w-3 h-3" aria-hidden />
                               </span>
                             </p>
@@ -814,7 +818,7 @@ function LoQuieroModalContent({
                               onClick={() => alternarAccesorio(acc)}
                               aria-pressed={elegido}
                               aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
-                              className={`relative z-[1] shrink-0 min-h-[44px] md:min-h-[36px] px-4 md:px-3 rounded-full border-2 text-sm font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                              className={`relative z-[1] shrink-0 min-h-[44px] md:min-h-[36px] px-3.5 md:px-3 rounded-full border-2 text-sm font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                                 elegido
                                   ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
                                   : 'bg-white border-[var(--color-primary)] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
@@ -850,7 +854,11 @@ function LoQuieroModalContent({
         </div>
 
         {/* Pie fijo */}
-        <div className="shrink-0 border-t border-neutral-100 px-4 md:px-6 pt-2 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-white rounded-b-2xl">
+        {/* Celular (QA a 360 px, BAL-4969): pie compacto para que los
+            accesorios tengan más alto —filas de 40 px pegadas (la fila entera
+            es la zona táctil), la leyenda en una línea arriba y el precio al
+            lado del botón—. Escritorio, igual que antes. */}
+        <div data-pie-lo-quiero className="shrink-0 border-t border-neutral-100 px-4 md:px-6 pt-1 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-white rounded-b-2xl">
           {/* Lista simple (BAL-4958, aprobado por Emilio): tres filas iguales,
               sin cajas, alineadas a la izquierda, igual en celular y escritorio.
               - Términos: los enlaces van DENTRO de la frase. Tocar la frase o la
@@ -864,7 +872,7 @@ function LoQuieroModalContent({
                 if ((e.target as HTMLElement).closest('a')) return;
                 alternarTerminos();
               }}
-              className="flex items-start gap-2.5 min-h-[44px] py-2.5 cursor-pointer select-none"
+              className="flex items-start gap-2.5 min-h-[40px] py-[9px] md:min-h-[44px] md:py-2.5 cursor-pointer select-none"
             >
               <button
                 ref={terminosRef}
@@ -917,7 +925,7 @@ function LoQuieroModalContent({
 
             <div
               onClick={() => setAceptaPromos((v) => !v)}
-              className="flex items-start gap-2.5 min-h-[44px] py-2.5 cursor-pointer select-none"
+              className="flex items-start gap-2.5 min-h-[40px] py-[9px] md:min-h-[44px] md:py-2.5 cursor-pointer select-none"
             >
               <button
                 type="button"
@@ -937,7 +945,7 @@ function LoQuieroModalContent({
 
             {cuponVisible && (
               appliedCoupon ? (
-                <div className="flex items-center gap-2.5 min-h-[44px] text-sm leading-[22px] text-neutral-800">
+                <div className="flex items-center gap-2.5 min-h-[40px] md:min-h-[44px] text-sm leading-[22px] text-neutral-800">
                   <Tag className="w-5 h-5 shrink-0 text-[#0B6B5C]" aria-hidden />
                   <span className="min-w-0">
                     Cupón <strong className="font-semibold">{appliedCoupon.code}</strong> aplicado
@@ -967,7 +975,7 @@ function LoQuieroModalContent({
                   type="button"
                   onClick={abrirCupon}
                   aria-haspopup="dialog"
-                  className="self-start flex items-center gap-2.5 min-h-[44px] pr-2 rounded-md text-left text-sm leading-[22px] text-neutral-800 hover:text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  className="self-start flex items-center gap-2.5 min-h-[40px] md:min-h-[44px] pr-2 rounded-md text-left text-sm leading-[22px] text-neutral-800 hover:text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
                   <Tag className="w-5 h-5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
                   <span>
@@ -990,13 +998,21 @@ function LoQuieroModalContent({
             </div>
           )}
 
+          {/* Celular: plazo, inicial y 1.ª cuota en UNA línea, sobre el total */}
+          <p className="md:hidden mt-1 truncate text-xs text-neutral-500">
+            {leyenda}
+            {esDiferida && mesPrimeraCuota && (
+              <span className="font-semibold text-[#0B6B5C]"> · 1.ª cuota en {mesPrimeraCuota}</span>
+            )}
+          </p>
+
           {/* Total + botón principal en una fila */}
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-1 md:mt-2 flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="leading-none" aria-live="polite">
                 <span
                   ref={totalRef}
-                  className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[28px] md:text-3xl font-bold text-[var(--color-primary-text)]"
+                  className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[26px] md:text-3xl font-bold text-[var(--color-primary-text)]"
                 >
                   S/{totalVisible}
                 </span>
@@ -1004,10 +1020,11 @@ function LoQuieroModalContent({
               </p>
               {n > 0 && (
                 <p className="text-xs text-neutral-600 mt-0.5 truncate">
-                  Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}
+                  <span className="md:hidden">S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}</span>
+                  <span className="hidden md:inline">Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}</span>
                 </p>
               )}
-              <p className="text-xs text-neutral-500 mt-0.5">
+              <p className="hidden md:block text-xs text-neutral-500 mt-0.5">
                 {leyenda}
                 {esDiferida && mesPrimeraCuota && (
                   <span className="font-semibold text-[#0B6B5C]"> · 1.ª cuota en {mesPrimeraCuota}</span>
@@ -1018,7 +1035,7 @@ function LoQuieroModalContent({
               type="button"
               onClick={continuar}
               disabled={botonDeshabilitado}
-              className={`shrink-0 min-h-[48px] px-5 md:px-6 rounded-xl font-semibold inline-flex items-center justify-center gap-2 shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+              className={`shrink-0 min-h-[44px] md:min-h-[48px] px-5 md:px-6 rounded-xl font-semibold inline-flex items-center justify-center gap-2 shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                 botonDeshabilitado
                   ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none'
                   : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'

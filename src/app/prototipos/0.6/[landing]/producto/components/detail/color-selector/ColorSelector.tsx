@@ -6,6 +6,7 @@
  * Nombre visible debajo en mobile
  */
 
+import { ZONA_TACTIL_44 } from '@/app/prototipos/0.6/components/diseno-2/zonaTactil';
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { Tooltip } from '@nextui-org/react';
@@ -54,8 +55,8 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
                 onClick={() => onColorSelect(color.id)}
                 onTouchEnd={(e) => { e.preventDefault(); handleTouch(color.id); }}
                 className={`
-                  w-8 h-8 rounded-md border-2 transition-all flex-shrink-0
-                  flex items-center justify-center cursor-pointer relative
+                  ${ZONA_TACTIL_44} w-8 h-8 rounded-md border-2 transition-all flex-shrink-0
+                  flex items-center justify-center cursor-pointer
                   ${isSelected
                     ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.2)]'
                     : 'border-[var(--border-soft,#e5e7eb)] hover:border-neutral-400'}

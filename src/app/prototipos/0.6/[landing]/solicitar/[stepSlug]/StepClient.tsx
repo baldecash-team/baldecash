@@ -124,6 +124,8 @@ function StepContent() {
   // elegidos. Enviar pide confirmar "Enviar sin protecciones".
   const [confirmarSinProtecciones, setConfirmarSinProtecciones] = useState(false);
   const sinProteccionesConfirmadoRef = useRef(false);
+  // Diseño 2 · Paso 4: la hoja "¿Qué cubre?" está abierta → sin barra fija.
+  const [detalleSeguroAbierto, setDetalleSeguroAbierto] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
@@ -1099,6 +1101,9 @@ function StepContent() {
             textoEnviar={paso4.textoEnviar}
             accionMovil={accionMovil}
             atrasMovil={atrasMovil}
+            // Con la hoja "¿Qué cubre?" abierta no hay "Enviar" abajo (QA en
+            // celular, BAL-4969, bug 1).
+            ocultarBarraInferior={detalleSeguroAbierto}
           >
             {(camposTocados) => (
               <div className="space-y-4">
@@ -1113,7 +1118,7 @@ function StepContent() {
                 )}
                 {segurosEnPaso4 && (
                   <div data-vista-paso4="2" className={paso4.hayVista2 && paso4.vista === 1 ? 'hidden lg:block' : undefined}>
-                    <ProteccionesV2 {...paso4.seguros} landing={landing} frecuencia={frecuencia} />
+                    <ProteccionesV2 {...paso4.seguros} landing={landing} frecuencia={frecuencia} onDetalleAbiertoChange={setDetalleSeguroAbierto} />
                   </div>
                 )}
                 <ConfirmarSinProteccionesV2

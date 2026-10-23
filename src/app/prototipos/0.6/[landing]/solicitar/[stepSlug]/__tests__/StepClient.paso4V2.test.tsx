@@ -235,8 +235,13 @@ jest.mock('@/app/prototipos/0.6/components/hero/Footer', () => ({ Footer: () => 
 jest.mock('@/app/prototipos/0.6/components/hero/Navbar', () => ({ Navbar: () => null }));
 // El detalle de Diseño 1 (NextUI) reducido a lo que importa: qué plan abre.
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal', () => ({
-  InsuranceDetailModal: ({ plan, isOpen }: { plan: { name: string } | null; isOpen: boolean }) =>
-    isOpen && plan ? <div role="dialog">Detalle de {plan.name}</div> : null,
+  InsuranceDetailModal: ({ plan, isOpen, onClose }: { plan: { name: string } | null; isOpen: boolean; onClose: () => void }) =>
+    isOpen && plan ? (
+      <div role="dialog">
+        Detalle de {plan.name}
+        <button type="button" onClick={onClose}>Cerrar detalle</button>
+      </div>
+    ) : null,
 }));
 
 // El Modal de NextUI necesita framer-motion de verdad (jest.setup lo mockea):
@@ -260,6 +265,7 @@ type PropsShell = {
   textoEnviar?: string;
   accionMovil?: { texto: string; onPrimary: () => void } | null;
   atrasMovil?: { texto: string; onClick: () => void } | null;
+  ocultarBarraInferior?: boolean;
   children: (t: ReadonlySet<string>) => React.ReactNode;
 };
 jest.mock('@/app/prototipos/0.6/components/diseno-2', () => ({
@@ -275,9 +281,12 @@ jest.mock('@/app/prototipos/0.6/components/diseno-2', () => ({
         <button type="button" data-testid="escritorio" onClick={principal}>
           {p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar'}
         </button>
-        <button type="button" data-testid="celular" onClick={p.accionMovil?.onPrimary ?? principal}>
-          {p.accionMovil?.texto ?? (p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar')}
-        </button>
+        {/* Como `BarraInferiorV2`: con `ocultarBarraInferior` no hay barra. */}
+        {!p.ocultarBarraInferior && (
+          <button type="button" data-testid="celular" onClick={p.accionMovil?.onPrimary ?? principal}>
+            {p.accionMovil?.texto ?? (p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar')}
+          </button>
+        )}
         {p.atrasMovil && (
           <button type="button" data-testid="atras-celular" onClick={p.atrasMovil.onClick}>
             {p.atrasMovil.texto}
@@ -391,6 +400,20 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: '¿Qué cubre?' })[1]);
     expect(screen.getByRole('dialog')).toHaveTextContent('Detalle de Seguro Contra Robo Laptop 24M');
+  });
+
+  it('QA en celular (BAL-4969, bug 1): con "¿Qué cubre?" abierto no hay barra de "Enviar"; al cerrar vuelve', async () => {
+    render(<StepClient />);
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(screen.getByTestId('celular')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: '¿Qué cubre?' })[0]);
+    expect(screen.getByRole('dialog')).toHaveTextContent('Detalle de Garantía Extendida Laptop 24M');
+    await waitFor(() => expect(screen.queryByTestId('celular')).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar detalle' }));
+    await waitFor(() => expect(screen.getByTestId('celular')).toBeInTheDocument());
+    expect(mockSubmit).not.toHaveBeenCalled();
   });
 
   it('el submit lleva los insurance_ids elegidos y NO salta a /complementos', async () => {
