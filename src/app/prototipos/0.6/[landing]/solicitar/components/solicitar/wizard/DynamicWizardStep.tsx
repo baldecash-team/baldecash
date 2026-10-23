@@ -15,8 +15,7 @@ import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { formatearFechaIso, obtenerPrimeraFechaPago } from '../../../utils/primeraFechaPago';
 import { CamposV2Provider, PISTA_V2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
-import { ResumenPrellenadoV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/ResumenPrellenadoV2';
-import { ayudaDelNumero, camposDelResumen, nombreDelSaludo, textoDelResumen } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { ayudaDelNumero, camposPrellenadosEscondidos, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
 import { armarBloques, camposPegados, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
 
@@ -279,7 +278,11 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         // Skip cleanup if the value was just set programmatically (prefill):
         // if the value changed in the same render that visibility changed,
         // it was likely set by prefill — don't clear it.
-        if (currentValue && currentValue === prevValue) {
+        // Un campo bloqueado por el lead de un socio nunca se vacía: el lead
+        // es la fuente de verdad (BAL-4963). En Diseño 2 los prellenados se
+        // ven (BAL-4961), así que "Corrige tu DNI" los esconde y pasarían por acá.
+        const bloqueadoPorLead = formData[leadLockKey(field.code)]?.value === 'true';
+        if (currentValue && currentValue === prevValue && !bloqueadoPorLead) {
           updateField(field.code, '');
         }
       }
@@ -315,14 +318,23 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     campo?.querySelector<HTMLElement>(ENFOCABLE_DEL_CAMPO)?.focus();
     setPorEnfocar(null);
   }, [porEnfocar]);
-  // Diseño 2 (BAL-4963): "Corregir" en el resumen de lo que llenó el
-  // prefill. Marca esos campos como `_prefill_empty_`, la misma marca de un
-  // prefill que vino vacío: la regla de visibilidad de siempre los destapa
-  // como inputs, y la validación y el resumen final los tratan igual.
-  const corregirPrellenado = (codigos: string[]) => {
-    for (const codigo of codigos) updateField(`_prefill_empty_${codigo}`, 'true');
-    if (codigos[0]) setPorEnfocar(codigos[0]);
-  };
+  // Diseño 2 (BAL-4961): lo que trajo la precarga se ve en campos normales,
+  // ya llenos y editables (el prototipo de Brenda no tiene tarjeta de
+  // resumen). Se destapan con la misma marca de un prefill que vino vacío
+  // (`_prefill_empty_`): la regla de visibilidad de siempre los muestra como
+  // inputs y la validación y el resumen final los tratan igual. La precarga
+  // y la validación no cambian. Diseño 1 los sigue escondiendo.
+  const porDestapar = esV2
+    ? step.fields
+      .filter((f) => f.prefill_config)
+      .flatMap((f) => camposPrellenadosEscondidos(step, f, formValues))
+      .map((f) => f.code)
+      .join(',')
+    : '';
+  useEffect(() => {
+    if (!porDestapar) return;
+    for (const codigo of porDestapar.split(',')) updateField(`_prefill_empty_${codigo}`, 'true');
+  }, [porDestapar, updateField]);
   const abrirPlegado = (codigo: string) => {
     setAbiertos((prev) => new Set(prev).add(codigo));
     setPorEnfocar(codigo);
@@ -396,9 +408,6 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         ? 'error'
         : conValor ? 'ok' : undefined;
 
-    // Diseño 2: los campos que llenó el prefill de ESTE documento, en una
-    // línea bajo el campo (punto 2 del brief). Vacío en Diseño 1.
-    const resumen = esV2 && field.prefill_config ? camposDelResumen(step, field, formValues) : [];
     // Con el saludo bajo el documento, la pista sobra.
     const conSaludo = esV2 && field.type === 'document_number' && !!nombreDelSaludo(field, formValues);
     // Pista: el `hint` de la BD gana. Sin él, el número de documento dice
@@ -449,14 +458,6 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
             </EntradaDelCampo>
           )}
         </div>
-        {resumen.length > 0 && (
-          <div className="col-span-12">
-            <ResumenPrellenadoV2
-              texto={textoDelResumen(resumen, formValues)}
-              onCorregir={() => corregirPrellenado(resumen.map((f) => f.code))}
-            />
-          </div>
-        )}
         {field.code === 'payment_day' && paymentDayValue && (
           <div className="col-span-12 -mt-1 mb-2">
             {/* Diseño 2 (I5, BAL-4969): el color de la landing; Diseño 1 igual que siempre. */}

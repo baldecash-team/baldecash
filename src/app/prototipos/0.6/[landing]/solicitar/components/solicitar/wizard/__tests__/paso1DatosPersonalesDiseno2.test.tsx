@@ -254,53 +254,52 @@ describe('Saludo por prefill (Diseño 2)', () => {
   });
 });
 
-describe('Campos prellenados (Diseño 2)', () => {
-  it('found: resumen en una línea, sin inputs de nombres', () => {
+describe('Campos prellenados (Diseño 2, BAL-4961: sin tarjeta "Tus datos")', () => {
+  it('found: los campos se ven normales, ya llenos y editables; no hay tarjeta de resumen', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
 
-    const resumen = document.querySelector('[data-resumen-prellenado-v2]')!;
-    expect(resumen).toHaveTextContent('María José Pérez Gómez · 12/03/2002 · Femenino');
-    expect(screen.queryByText('Nombres')).not.toBeInTheDocument();
-    // Los valores siguen en el formulario, tal cual vinieron.
+    expect(document.querySelector('[data-resumen-prellenado-v2]')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Corregir' })).not.toBeInTheDocument();
+    expect(screen.getByText('Nombres')).toBeInTheDocument();
+    expect(screen.getByText('Apellido Paterno')).toBeInTheDocument();
+    const nombre = document.getElementById('first_name-input') as HTMLInputElement;
+    expect(nombre.value).toBe('MARÍA JOSÉ');
+    expect(nombre).not.toBeDisabled();
+    // Se destapan con la marca de siempre; los valores quedan tal cual vinieron.
+    expect(valores()._prefill_empty_first_name).toBe('true');
     expect(valores().first_name).toBe('MARÍA JOSÉ');
   });
 
-  it('"Corregir" los abre como inputs, enfoca el primero y la validación los cuenta', () => {
+  it('editar un dato precargado y borrarlo: la validación lo vuelve a pedir', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Corregir' }));
+    fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
+    expect(valores().first_name).toBe('Mariana');
 
-    expect(document.querySelector('[data-resumen-prellenado-v2]')).toBeNull();
-    expect(screen.getByText('Nombres')).toBeInTheDocument();
-    expect(screen.getByText('Apellido Paterno')).toBeInTheDocument();
-    expect(document.activeElement).toBe(document.getElementById('first_name-input'));
-
-    // Abierto y borrado, el nombre vuelve a ser obligatorio al continuar.
     poner('first_name', '');
     const errores: Record<string, string | null> = {};
     const primero = validateStep(PASO, { ...valores(), phone: '987654321' }, (c, e) => { errores[c] = e; });
     expect(primero).toBe('first_name');
   });
 
-  it('un dato que el prefill dejó vacío sale como input (no en el resumen)', () => {
+  it('un dato que el prefill dejó vacío sale como input vacío, junto a los llenos', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!({ ...RENIEC, birth_date: null } as unknown as PrefillData));
 
-    expect(document.querySelector('[data-resumen-prellenado-v2]')).toHaveTextContent('María José Pérez Gómez · Femenino');
     expect(screen.getByText('Fecha de Nacimiento')).toBeInTheDocument();
+    expect((document.getElementById('first_name-input') as HTMLInputElement).value).toBe('MARÍA JOSÉ');
   });
 
-  it('not_found: inputs normales, sin resumen ni saludo', () => {
+  it('not_found: inputs normales, sin saludo', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onNoPrefillData!());
 
-    expect(document.querySelector('[data-resumen-prellenado-v2]')).toBeNull();
     expect(document.querySelector('[data-saludo-v2]')).toBeNull();
     expect(screen.getByText('Nombres')).toBeInTheDocument();
     expect(screen.getByText('Sexo')).toBeInTheDocument();
@@ -555,12 +554,11 @@ describe('Revisión 2 y 3 · celular del titular vs otros celulares', () => {
 });
 
 describe('Revisión 4 · área de toque de 44px', () => {
-  it('"Corrige tu DNI" y "Corregir" tienen min-h de 44px', () => {
+  it('"Corrige tu DNI" tiene min-h de 44px', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
     expect(screen.getByRole('button', { name: 'Corrige tu DNI' })).toHaveClass('min-h-[44px]');
-    expect(screen.getByRole('button', { name: 'Corregir' })).toHaveClass('min-h-[44px]');
   });
 });
 
@@ -569,7 +567,6 @@ describe('Revisión 5 · lo corregido no se pierde al volver al Paso 1', () => {
     poner('document_number', '12345678');
     const primera = montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-    fireEvent.click(screen.getByRole('button', { name: 'Corregir' }));
     fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
     expect(valores().first_name).toBe('Mariana');
     primera.unmount();
@@ -591,7 +588,6 @@ describe('Revisión 5 · lo corregido no se pierde al volver al Paso 1', () => {
     poner('document_number', '12345678');
     const primera = montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-    fireEvent.click(screen.getByRole('button', { name: 'Corregir' }));
     fireEvent.change(document.getElementById('first_name-input')!, { target: { value: 'Mariana' } });
     primera.unmount();
 

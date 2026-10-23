@@ -95,16 +95,16 @@ export function nombreDelSaludoDelPaso(step: WizardStep | null | undefined, valo
 }
 
 // ---------------------------------------------------------------------------
-// Resumen de los campos que llenó el prefill
+// Campos que llenó el prefill
 // ---------------------------------------------------------------------------
 
 /**
  * Los campos que el prefill llenó y hoy están escondidos (`found`, con valor,
- * sin la marca `_prefill_empty_`). Son los que Diseño 2 muestra como resumen.
- * En `not_found` (o CE/pasaporte sin datos) no hay ninguno: esos campos se ven
- * como inputs normales por la regla de visibilidad de siempre.
+ * sin la marca `_prefill_empty_`). Diseño 2 los destapa como campos normales,
+ * llenos y editables (BAL-4961). En `not_found` (o CE/pasaporte sin datos) no
+ * hay ninguno: esos campos ya se ven como inputs por la regla de siempre.
  */
-export function camposDelResumen(step: WizardStep, docField: WizardField, valores: Valores): WizardField[] {
+export function camposPrellenadosEscondidos(step: WizardStep, docField: WizardField, valores: Valores): WizardField[] {
   if (valores[`_prefill_status_${docField.code}`] !== 'found') return [];
   const destinos = new Set(getPrefillTargetFieldCodes(docField.prefill_config));
   return step.fields.filter(
@@ -114,39 +114,6 @@ export function camposDelResumen(step: WizardStep, docField: WizardField, valore
       valores[`_prefill_empty_${f.code}`] !== 'true' &&
       texto(valores[f.code]).trim() !== '',
   );
-}
-
-function tituloDeNombre(valor: string): string {
-  return valor
-    .trim()
-    .split(/\s+/)
-    .map((p) => p.charAt(0).toLocaleUpperCase('es-PE') + p.slice(1).toLocaleLowerCase('es-PE'))
-    .join(' ');
-}
-
-/** "2002-03-12" → "12/03/2002". Otro formato se deja tal cual. */
-function fechaCorta(valor: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor.trim());
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : valor;
-}
-
-/**
- * El texto del resumen: los campos de texto (nombres, apellidos) van juntos
- * con espacio; el resto (fecha, listas) separado por " · ". Las listas
- * muestran la etiqueta de la opción, no el valor.
- */
-export function textoDelResumen(campos: WizardField[], valores: Valores): string {
-  const nombre: string[] = [];
-  const otros: string[] = [];
-  for (const f of campos) {
-    const v = texto(valores[f.code]).trim();
-    if (!v) continue;
-    if (f.type === 'text') nombre.push(tituloDeNombre(v));
-    else if (f.type === 'date') otros.push(fechaCorta(v));
-    else if (f.options?.length) otros.push(f.options.find((o) => String(o.value) === v)?.label ?? v);
-    else otros.push(v);
-  }
-  return [nombre.join(' '), ...otros].filter(Boolean).join(' · ');
 }
 
 // ---------------------------------------------------------------------------
