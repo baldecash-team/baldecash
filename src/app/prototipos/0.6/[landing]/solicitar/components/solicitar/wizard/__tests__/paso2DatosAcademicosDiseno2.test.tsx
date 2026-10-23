@@ -610,3 +610,51 @@ describe('Diseño 1: el Paso 2 no cambia', () => {
     expect(despues).not.toContain('data-campo');
   });
 });
+
+describe('QA F10 · Falla 2: un campo fuera de toda sección y la navegación entre pasos', () => {
+  const TIPO = campo({
+    id: 16,
+    code: 'institution_type',
+    label: 'Tipo de Institución',
+    type: 'select',
+    display_mode: 'buttons',
+    options: [
+      { value: 'university', label: 'Universidad' },
+      { value: 'institute', label: 'Instituto' },
+    ],
+  } as Partial<WizardField>);
+  const NOMBRE = campo({ id: 1, code: 'first_name', label: 'Nombres' });
+  const PASO1 = paso([NOMBRE], { id: 1, code: 'personal_data', url_slug: 'datos-personales' });
+
+  it('al pasar del Paso 1 al 2 sin recargar (mismo componente, otro `step`), el campo sin sección se pinta', () => {
+    const { container, rerender } = pintarV2(PASO1);
+    expect(ordenDeCampos(container)).toEqual(['first_name']);
+    const paso2 = paso([SITUACION, CICLO, MONTO, PAGO, TIPO], { groups: GRUPOS });
+    rerender(<DynamicWizardStep step={paso2} showErrors={false} camposTocados={NADA_TOCADO} />);
+    expect(ordenDeCampos(container)).toContain('institution_type');
+    expect(screen.getByRole('radio', { name: 'Universidad' })).toBeInTheDocument();
+    // Va después de las secciones, fuera de ellas.
+    expect(container.querySelector('[data-campo="institution_type"]')?.closest('[data-seccion]')).toBeNull();
+  });
+
+  it('con las secciones completas (cerradas), el campo sin sección sigue en pantalla', async () => {
+    formData = {
+      situacion_actual: { value: 'estoy_estudiando' },
+      semester: { value: '3' },
+      tuition_amount: { value: '500' },
+      tuition_payer: { value: 'lo_pago_yo' },
+    };
+    const { container } = pintarV2(paso([SITUACION, CICLO, MONTO, PAGO, CORREO, TIPO], { groups: GRUPOS }));
+    await salirAlCorreo(container);
+    expect(container.querySelector('[data-campo="institution_type"]')).not.toBeNull();
+    expect(screen.getByRole('radio', { name: 'Universidad' })).toBeInTheDocument();
+  });
+
+  it('dentro de su sección, antes de la institución, sale en ese orden (forma corregida del form 44)', () => {
+    const INSTITUCION = campo({ id: 17, code: 'institution', label: 'Institución Educativa', type: 'text' });
+    const grupos = [{ ...GRUPOS[1], field_codes: ['situacion_actual', 'institution_type', 'institution', 'semester'] }, GRUPOS[0]];
+    const { container } = pintarV2(paso([SITUACION, TIPO, INSTITUCION, CICLO, MONTO, PAGO], { groups: grupos }));
+    const enEstudios = Array.from(seccion(container, 'tus_estudios').querySelectorAll<HTMLElement>('[data-campo]')).map((e) => e.dataset.campo);
+    expect(enEstudios).toEqual(['situacion_actual', 'institution_type', 'institution', 'semester']);
+  });
+});
