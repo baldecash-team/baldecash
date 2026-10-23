@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { PanelSolicitudV2, CabeceraSolicitudV2 } from '../PanelSolicitudV2';
+import { PanelSolicitudV2, CabeceraSolicitudV2, textoDelDiaDePago } from '../PanelSolicitudV2';
 import { BarraInferiorV2 } from '../BarraInferiorV2';
 
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/hooks/useTecladoVirtualAbierto', () => ({
@@ -122,5 +122,40 @@ describe('BarraInferiorV2 — texto del Paso 4', () => {
   it('sin texto propio, lo de siempre', () => {
     render(<BarraInferiorV2 onPrimary={jest.fn()} isLastStep />);
     expect(screen.getByRole('button')).toHaveTextContent('Enviar solicitud');
+  });
+});
+
+describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
+  it('muestra "Cuota mensual total", el día de pago y su propio "Enviar solicitud"; sin "Cambiar plazo o inicial"', () => {
+    const onEnviar = jest.fn();
+    const { rerender } = render(
+      <PanelSolicitudV2
+        datos={datos({ hayQueElegir: true })}
+        detalle={REPASO}
+        envio={{ texto: 'Enviar solicitud', onEnviar, deshabilitado: false, ocupado: false, diaDePago: null }}
+      />,
+    );
+    expect(screen.getByText(/Cuota mensual total/)).toBeInTheDocument();
+    expect(screen.getByText('Por elegir')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Cambiar plazo o inicial/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+    expect(onEnviar).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <PanelSolicitudV2
+        datos={datos({ hayQueElegir: true })}
+        detalle={REPASO}
+        envio={{ texto: 'Enviar solicitud', onEnviar, deshabilitado: true, ocupado: false, diaDePago: 'Día 3 de cada mes' }}
+      />,
+    );
+    expect(screen.getByText('Día 3 de cada mes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar solicitud' })).toBeDisabled();
+  });
+
+  it('textoDelDiaDePago: "Día N de cada mes" o null', () => {
+    expect(textoDelDiaDePago('3')).toBe('Día 3 de cada mes');
+    expect(textoDelDiaDePago(['15'])).toBe('Día 15 de cada mes');
+    expect(textoDelDiaDePago('')).toBeNull();
+    expect(textoDelDiaDePago(undefined)).toBeNull();
   });
 });

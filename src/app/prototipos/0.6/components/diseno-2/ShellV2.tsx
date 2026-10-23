@@ -42,7 +42,7 @@ import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
 import { TARJETA_V2, TARJETA_V2_ESTILO } from './campos/estilosV2';
 import { ProgresoV2, etiquetaDelPaso, type PasoDelProgreso } from './ProgresoV2';
-import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL, useDatosDelPanel } from './PanelSolicitudV2';
+import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL, useDatosDelPanel, textoDelDiaDePago } from './PanelSolicitudV2';
 import { BarraInferiorV2 } from './BarraInferiorV2';
 import { useGuiaDeCampos } from './useGuiaDeCampos';
 import { useErroresAlSalir } from './useErroresAlSalir';
@@ -337,7 +337,22 @@ export function ShellV2({
 
           <div className="hidden lg:block">
             <div className="sticky d2-pop-lento" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
-              <PanelSolicitudV2 datos={datosDelPanel} detalle={detalle} />
+              <PanelSolicitudV2
+                datos={datosDelPanel}
+                detalle={detalle}
+                // El paso que envía lleva su "Enviar" también en el panel (prototipo).
+                envio={
+                  isLastStep && accionPrincipal && !sinNavegacion
+                    ? {
+                        texto: textoPrincipal,
+                        onEnviar: accionPrincipal,
+                        deshabilitado: ocupado || !canProceed,
+                        ocupado,
+                        diaDePago: textoDelDiaDePago(formData.payment_day?.value),
+                      }
+                    : null
+                }
+              />
             </div>
           </div>
         </div>

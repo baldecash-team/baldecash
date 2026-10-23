@@ -287,7 +287,27 @@ function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; cl
 
 // ─── Escritorio ─────────────────────────────────────────────────────────────
 
-export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; detalle?: React.ReactNode }) {
+/** "Día 3 de cada mes" para el panel del paso que envía; `null` sin elegir. */
+export function textoDelDiaDePago(valor: unknown): string | null {
+  const dia = Number(Array.isArray(valor) ? valor[0] : valor);
+  return Number.isInteger(dia) && dia > 0 ? `Día ${dia} de cada mes` : null;
+}
+
+/**
+ * Paso que envía (prototipo de Brenda, Paso 4): el panel cierra como un
+ * ticket —línea punteada con muescas—, muestra la cuota mensual total y el
+ * día de pago, y lleva su propio "Enviar solicitud".
+ */
+export interface EnvioDelPanel {
+  texto: string;
+  onEnviar: () => void;
+  deshabilitado: boolean;
+  ocupado: boolean;
+  /** "Día 3 de cada mes", o `null` mientras no lo elige. */
+  diaDePago: string | null;
+}
+
+export function PanelSolicitudV2({ datos, detalle, envio }: { datos: DatosDelPanel; detalle?: React.ReactNode; envio?: EnvioDelPanel | null }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
   // La cuota cambió (plazo, inicial): pulso como el total del modal (`bcPulse`).
@@ -331,9 +351,16 @@ export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; det
           <p className="mt-1 text-[13px] text-[#5B6275]">{datos.leyenda}</p>
           <ChipsDelPanel datos={datos} />
         </div>
+        {envio && (
+          // Línea de ticket con muescas a los lados (prototipo, Paso 4).
+          <div className="relative h-0 border-t-2 border-dashed border-[#C9CEF0]" aria-hidden>
+            <span className="absolute -left-[9px] -top-[9px] h-4 w-4 rounded-full border border-[#AEB6EE] bg-[#F4F5F8] [clip-path:inset(0_0_0_50%)]" />
+            <span className="absolute -right-[9px] -top-[9px] h-4 w-4 rounded-full border border-[#AEB6EE] bg-[#F4F5F8] [clip-path:inset(0_50%_0_0)]" />
+          </div>
+        )}
         <div className="px-5 pt-4 pb-5">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}</span>
+            <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}{envio ? ' total' : ''}</span>
             <span className={`inline-block origin-right font-['Baloo_2',_sans-serif] text-2xl font-bold ${pulso} ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary-text)]'}`}>
               {datos.precio(datos.total)}
               <span className="text-sm font-semibold">{sufijoDeFrecuencia(datos.frecuencia)}</span>
@@ -345,7 +372,33 @@ export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; det
             </p>
           )}
           <AvisoTope datos={datos} />
-          {datos.hayQueElegir && (
+          {envio && (
+            <>
+              <div className="mt-1 flex items-baseline justify-between gap-2 text-sm">
+                <span className="text-[#3A4052]">Día de pago</span>
+                {envio.diaDePago ? (
+                  <span className="font-semibold text-[#1E2230]">{envio.diaDePago}</span>
+                ) : (
+                  <span className="italic text-[#8A90A2]">Por elegir</span>
+                )}
+              </div>
+              <button
+                type="button"
+                data-enviar-panel-v2
+                onClick={envio.onEnviar}
+                disabled={envio.deshabilitado}
+                className={`mt-4 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl text-[17px] font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+                  envio.deshabilitado
+                    ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed'
+                    : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
+                }`}
+              >
+                {envio.ocupado && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+                {envio.texto}
+              </button>
+            </>
+          )}
+          {!envio && datos.hayQueElegir && (
             <>
               <button
                 type="button"
