@@ -143,6 +143,7 @@ import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { cuponConBanner, landingMuestraBannerDeCupon } from '@/app/prototipos/0.6/utils/couponBanner';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { LoQuieroModal, type RegaloDelCombo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
+import { avisosDelEquipo, type AvisoDelEquipo } from '@/app/prototipos/0.6/components/lo-quiero/avisoDelEquipo';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
@@ -1031,6 +1032,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   const [isLoQuieroOpen, setIsLoQuieroOpen] = useState(false);
   // Regalos del combo de la card elegida: el modal no los ofrece para agregar.
   const [loQuieroRegalos, setLoQuieroRegalos] = useState<RegaloDelCombo[]>([]);
+  const [loQuieroAvisos, setLoQuieroAvisos] = useState<AvisoDelEquipo[]>([]);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1667,6 +1669,9 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
         setLoQuieroRegalos(
           (target.comboAccessories ?? []).map((a) => ({ id: String(a.productId), name: a.name, gratis: a.price === 0 })),
         );
+        // Reacondicionado / entrega programada: el aviso va dentro del modal
+        // (prototipo de Brenda), con el grado y la fecha reales.
+        setLoQuieroAvisos(avisosDelEquipo(target));
         setIsLoQuieroOpen(true);
         return;
       }
@@ -2009,6 +2014,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
                 compact={isReacondicionadosLanding(landing)}
                 addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
+                avisoDeEntregaEnElModal={!!loQuieroModal}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar.
                   // El aviso nombra el equipo, asi que tiene que nombrar el GRADO
@@ -2017,7 +2023,8 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
                   // ya trae el id resuelto, asi que resolver aca da el mismo target
                   // que usara `proceedAddToCart` despues de confirmar.
                   const elegido = resolveWizardTarget(product, cartItem.productId);
-                  if (pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
+                  // Diseño 2 (modal "Lo quiero"): sin el aviso aparte; va dentro del modal.
+                  if (!loQuieroModal && pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
                     setPendingRefurb({ cartItem, product: elegido });
                     return;
                   }
@@ -2647,6 +2654,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
         onClose={() => setIsLoQuieroOpen(false)}
         origen="catalogo"
         regalos={loQuieroRegalos}
+        avisos={loQuieroAvisos}
       />
 
       {/* Toast para alertas de comparación */}

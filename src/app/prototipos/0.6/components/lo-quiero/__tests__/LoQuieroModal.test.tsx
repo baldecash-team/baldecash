@@ -420,3 +420,33 @@ describe('LoQuieroModal · formato de la cuota (I6)', () => {
     expect(screen.getByText(/Equipo S\/70\.50 \+ accesorios S\/10\.25/)).toBeInTheDocument();
   });
 });
+
+describe('LoQuieroModal · aviso del equipo y sin accesorios (BAL-4958)', () => {
+  it('reacondicionado: la caja de Brenda va dentro del modal con el grado real', async () => {
+    render(<LoQuieroModal isOpen onClose={mockOnClose} origen="catalogo" avisos={[{ tipo: 'reacondicionado', grado: 'A' }]} />);
+    const aviso = await screen.findByRole('note');
+    expect(aviso).toHaveTextContent('Equipo reacondicionado · Grado A');
+    expect(aviso).toHaveTextContent('Revisado, probado y reparado por técnicos certificados. Puede tener señales mínimas de uso.');
+  });
+
+  it('entrega programada: "Este equipo llega a partir del {fecha}."', async () => {
+    render(<LoQuieroModal isOpen onClose={mockOnClose} origen="ficha" avisos={[{ tipo: 'entrega', desde: '20 de noviembre' }]} />);
+    const aviso = await screen.findByRole('note');
+    expect(aviso).toHaveTextContent('Entrega programada');
+    expect(aviso).toHaveTextContent('Este equipo llega a partir del 20 de noviembre.');
+  });
+
+  it('sin accesorios: la tarjeta del equipo y el subtítulo nuevo, sin franja vacía', async () => {
+    mockProducto = producto({ specs: { processor: 'Ryzen 3', ram: '8GB', storage: '256GB' } });
+    pintar();
+    const tarjeta = await waitFor(() => {
+      const t = document.querySelector('[data-tarjeta-equipo]');
+      expect(t).not.toBeNull();
+      return t as HTMLElement;
+    });
+    expect(tarjeta).toHaveTextContent('Laptop Lenovo V15');
+    expect(tarjeta).toHaveTextContent('Ryzen 3 · 8GB · 256GB');
+    expect(screen.getByText('Un paso más y empiezas tu solicitud')).toBeInTheDocument();
+    expect(screen.getByText('Revisa tu equipo y acepta los términos para continuar.')).toBeInTheDocument();
+  });
+});

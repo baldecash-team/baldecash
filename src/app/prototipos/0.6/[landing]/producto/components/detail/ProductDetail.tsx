@@ -53,6 +53,7 @@ import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipo
 import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition';
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 import { LoQuieroModal } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
+import { avisosDelEquipo } from '@/app/prototipos/0.6/components/lo-quiero/avisoDelEquipo';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -578,6 +579,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Gate: en reacondicionados, primero confirmar el aviso; luego (si aplica) el
   // aviso de entrega diferida; luego proceder.
   const handleSolicitar = () => {
+    // Diseño 2 (modal "Lo quiero"): sin los avisos aparte de reacondicionado y
+    // entrega; van dentro del modal (prototipo de Brenda, BAL-4958).
+    if (loQuieroModal) {
+      proceedToSolicitar();
+      return;
+    }
     if (confirmaSemiNuevo) {
       setShowRefurbModal(true);
       return;
@@ -1088,6 +1095,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           isOpen={isLoQuieroOpen}
           onClose={() => setIsLoQuieroOpen(false)}
           origen="ficha"
+          avisos={avisosDelEquipo({ condition: product.condition, grade: product.grade, deferredDelivery: product.deferredDelivery })}
           regalos={(combo?.accessories ?? []).map((a) => ({
             id: String(a.productId),
             name: a.productName,

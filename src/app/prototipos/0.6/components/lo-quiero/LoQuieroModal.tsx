@@ -52,6 +52,7 @@ import { useMesPrimeraCuota } from './useMesPrimeraCuota';
 import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { prefiereMenosMovimiento, useSalidaAnimada } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
 import { datosUtiles, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
+import { CajaAvisoDelEquipo, type AvisoDelEquipo } from './avisoDelEquipo';
 
 export type LoQuieroOrigen = 'catalogo' | 'ficha';
 
@@ -74,6 +75,11 @@ interface LoQuieroModalProps {
   origen: LoQuieroOrigen;
   /** Regalos del combo de la card o la ficha. Sin combo: vacío. */
   regalos?: RegaloDelCombo[];
+  /**
+   * Reacondicionado / entrega programada del equipo (BAL-4958): en Diseño 2
+   * el aviso va dentro del modal, sin el modal de confirmación de Diseño 1.
+   */
+  avisos?: AvisoDelEquipo[];
 }
 
 /** Arrastrar la hoja hacia abajo más de esto (px) la cierra, en celular. */
@@ -141,6 +147,37 @@ function ImagenAccesorio({ src, className = '' }: { src?: string | null; classNa
 }
 
 /**
+ * El equipo elegido, cuando el modal no ofrece accesorios (landing con
+ * accesorios apagados o sin accesorios para el equipo): foto, nombre, specs
+ * cortas y los regalos del combo. Tarjeta con el borde estándar del kit.
+ */
+function TarjetaDelEquipo({ producto, regalos }: { producto: SelectedProduct; regalos: RegaloDelCombo[] }) {
+  const specs = [producto.specs?.processor, producto.specs?.ram, producto.specs?.storage]
+    .map((s) => (s ?? '').trim())
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <div data-tarjeta-equipo className="flex items-center gap-3 rounded-[10px] border-[1.5px] border-[#C9CEF0] bg-white p-3 md:gap-4 md:p-4">
+      <ImagenAccesorio src={producto.image} className="h-[72px] w-[72px] rounded-[10px] md:h-24 md:w-24" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <p className="text-[15px] font-bold leading-snug text-[#1E2230] line-clamp-2">{producto.name}</p>
+        {specs && <p className="text-[13px] text-[#5B6275]">{specs}</p>}
+        {regalos.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {regalos.map((r) => (
+              <span key={r.id} className="inline-flex items-center gap-1 rounded-full bg-[#E3F5F1] px-2 py-0.5 text-[11.5px] font-semibold text-[#0B6B5C]">
+                <Gift className="h-3 w-3" aria-hidden />
+                {r.gratis ? 'Incluye' : 'Con'} {nombreParaMostrar(r.name)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Monta el modal solo cuando está abierto: así el producto que la card o la
  * ficha acaban de guardar ya está en storage cuando arrancan los providers.
  *
@@ -148,7 +185,7 @@ function ImagenAccesorio({ src, className = '' }: { src?: string | null; classNa
  * campaña y el producto elegido sean los mismos que ve la página. La ficha no
  * tiene uno: el modal monta el suyo, que lee lo que la ficha guardó.
  */
-export function LoQuieroModal({ isOpen, onClose, origen, regalos }: LoQuieroModalProps) {
+export function LoQuieroModal({ isOpen, onClose, origen, regalos, avisos }: LoQuieroModalProps) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const productoExterno = useProductOptional();
@@ -157,7 +194,7 @@ export function LoQuieroModal({ isOpen, onClose, origen, regalos }: LoQuieroModa
 
   const contenido = (
     <WizardConfigProvider slug={landing}>
-      <LoQuieroModalContent onClose={onClose} origen={origen} landing={landing} regalos={regalos ?? []} />
+      <LoQuieroModalContent onClose={onClose} origen={origen} landing={landing} regalos={regalos ?? []} avisos={avisos ?? []} />
     </WizardConfigProvider>
   );
 
@@ -171,11 +208,13 @@ function LoQuieroModalContent({
   origen,
   landing,
   regalos,
+  avisos,
 }: {
   onClose: () => void;
   origen: LoQuieroOrigen;
   landing: string;
   regalos: RegaloDelCombo[];
+  avisos: AvisoDelEquipo[];
 }) {
   const router = useRouter();
   const analytics = useAnalytics();
@@ -697,7 +736,7 @@ function LoQuieroModalContent({
               <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[#5B6275] mt-0.5">
                 {hayAccesorios
                   ? 'Es opcional. Lo que agregues se suma a tu cuota mensual.'
-                  : 'Acepta los términos para continuar con tus datos.'}
+                  : 'Revisa tu equipo y acepta los términos para continuar.'}
               </p>
             </div>
             <button
@@ -712,10 +751,18 @@ function LoQuieroModalContent({
 
         </div>
 
-        {/* Cuerpo con scroll */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-3 md:py-4">
+        {/* Cuerpo con scroll. Siempre trae algo: el aviso del equipo, los
+            accesorios o, sin accesorios, la tarjeta del equipo elegido (sin
+            la franja vacía de antes). */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-3 md:py-4 flex flex-col gap-3">
+          {avisos.map((a) => (
+            <CajaAvisoDelEquipo key={a.tipo} aviso={a} />
+          ))}
+          {!hayAccesorios && !flujo.isLoading && selectedProduct && (
+            <TarjetaDelEquipo producto={selectedProduct} regalos={regalosVisibles} />
+          )}
           {estadoAcc === 'error' && accesoriosHabilitados && (
-            <div role="status" className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div role="status" className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
               <span>No pudimos cargar los accesorios. Puedes continuar sin ellos.</span>
             </div>
@@ -969,12 +1016,18 @@ function LoQuieroModalContent({
                   </span>
                   <span className="ml-0.5 text-[15px] font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
                 </p>
-                <p className="truncate text-xs text-[#5B6275]">
-                  {leyenda}
-                  {esDiferida && mesPrimeraCuota && (
-                    <span className="font-semibold text-[#0B6B5C]"> · 1.ª cuota en {mesPrimeraCuota}</span>
-                  )}
-                </p>
+                <p className="truncate text-xs text-[#5B6275]">{leyenda}</p>
+                {/* Cuota diferida (prototipo, `prod.diferida`): pastilla verde
+                    con el mes real de la primera cuota (ws2). */}
+                {esDiferida && mesPrimeraCuota && (
+                  <span data-diferida-v2 className="self-start inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-[#E3F5F1] px-[9px] py-[3px] text-xs font-bold text-[#0B6B5C]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="5" width="18" height="16" rx="2" />
+                      <path d="M16 3v4M8 3v4M3 10h18" />
+                    </svg>
+                    1.ª cuota en {mesPrimeraCuota}
+                  </span>
+                )}
                 {n > 0 && (
                   <p className="truncate text-xs text-neutral-600">
                     Equipo S/{formatCuotaDeLanding(cuotaEquipo, landing)} + accesorios S/{formatCuotaDeLanding(cuotaAccesorios, landing)}

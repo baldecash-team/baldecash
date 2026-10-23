@@ -100,6 +100,12 @@ export interface ProductCardPricingSnapshot {
 
 interface ProductCardProps {
   product: CatalogProduct;
+  /**
+   * Diseño 2 (modal "Lo quiero", BAL-4958): el aviso de entrega programada va
+   * dentro del modal, así que la card no abre el suyo. Sin esto (Diseño 1),
+   * igual que siempre.
+   */
+  avisoDeEntregaEnElModal?: boolean;
   /** Callback con CartItem completo incluyendo configuración y color */
   onAddToCart?: (item: CartItem) => void;
   /** Callback con WishlistItem completo incluyendo color seleccionado */
@@ -170,6 +176,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
+  avisoDeEntregaEnElModal = false,
   onAddToCart,
   onFavorite,
   onViewDetail,
@@ -566,7 +573,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // "Lo quiero": si el producto tiene entrega diferida, primero el aviso de fecha;
   // al confirmar se agrega al carrito.
   const handleQuieroClick = () => {
-    if (displayIsDeferred) {
+    if (displayIsDeferred && !avisoDeEntregaEnElModal) {
       setShowDeferredModal(true);
       return;
     }
