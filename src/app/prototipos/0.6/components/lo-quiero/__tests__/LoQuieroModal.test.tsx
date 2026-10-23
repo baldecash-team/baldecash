@@ -246,6 +246,18 @@ describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () =>
     });
   });
 
+  it('después de Continuar, un clic en Volver (doble clic) no registra un cierre falso', async () => {
+    pintar();
+    await screen.findByRole('checkbox', { name: FRASE });
+    fireEvent.click(screen.getByText(/Acepto los/));
+    fireEvent.click(screen.getByRole('button', { name: /Continuar a mis datos/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
+    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+    const eventos = mockTrackModal.mock.calls.map((c) => c[0]);
+    expect(eventos).toContain('lo_quiero_modal_continue');
+    expect(eventos).not.toContain('lo_quiero_modal_close');
+  });
+
   it('caja de Términos de Brenda: ámbar con brillo, naranja con sacudida que se repite, verde al marcar', async () => {
     pintar();
     const casilla = await screen.findByRole('checkbox', { name: FRASE });

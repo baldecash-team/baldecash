@@ -629,8 +629,14 @@ function LoQuieroModalContent({
   const [navegando, setNavegando] = useState(false);
   const preparando = isConfigLoading || flujo.isLoading;
 
+  // Ya se eligió «Continuar»: un cierre que llegue después no es un abandono.
+  // Con doble clic en escritorio, el botón se angosta (ruedita) y el segundo
+  // clic cae en «Volver», que registraba un `close` falso (E2E 3 capas).
+  const continuandoRef = useRef(false);
+
   const cerrar = useCallback(
     (motivo: string) => {
+      if (continuandoRef.current) return;
       // Una sola salida: un segundo cierre mientras se va no cuenta dos veces.
       if (!salirModal(() => onClose())) return;
       analytics.track('lo_quiero_modal_close', {
@@ -664,6 +670,7 @@ function LoQuieroModalContent({
     }
     if (isOverQuotaLimit) return;
     if (!tomarCandado()) return;
+    continuandoRef.current = true;
 
     saveConsentStorage(landing, { acceptTerms: true, acceptPrivacy: true, acceptPromos: aceptaPromos });
 
