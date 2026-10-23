@@ -179,7 +179,7 @@ export function useGuiaDeCampos({ contenedorRef, step, activa = true }: Opciones
           obligatorio: !!f.required,
           vacio: valorVacio(valor),
           // El campo está en pantalla: la visibilidad ya se resolvió.
-          valido: validateField(f, valor, valores, opciones, true).isValid,
+          valido: validateField(f, valor, valores, opciones, true, { diseno2: true }).isValid,
         };
       });
   }, [contenedorRef, camposPorCodigo, getAllDynamicOptions]);

@@ -191,8 +191,9 @@ export interface WizardField {
    */
   hint?: string;
   /**
-   * Texto propio cuando el campo obligatorio queda vacío; reemplaza al
-   * genérico «Este campo es requerido». Solo viene si tiene valor.
+   * Diseño 2: texto propio cuando el campo obligatorio queda vacío; reemplaza
+   * al genérico «Este campo es requerido». Solo viene si tiene valor. Diseño 1
+   * lo ignora (decisión de Emilio, BAL-4969): ver `OpcionesDeValidacion`.
    */
   required_message?: string;
   /**
@@ -952,19 +953,31 @@ export interface FieldValidationResult {
   error: string | null;
 }
 
+/** Cómo valida quien llama, según el diseño de la solicitud. */
+export interface OpcionesDeValidacion {
+  /**
+   * Diseño 2: el campo vacío dice su `required_message` (si la BD lo trae).
+   * Sin esto —Diseño 1— sale siempre el texto genérico de siempre, aunque el
+   * campo tenga mensaje configurado (decisión de Emilio, BAL-4969 · I1).
+   */
+  diseno2?: boolean;
+}
+
 /**
  * Valida un campo individual usando la configuración del API
  * @param field - Configuración del campo
  * @param value - Valor actual del campo
  * @param formValues - Valores de todos los campos del formulario
  * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación por opción
+ * @param opciones - `diseno2` prende `required_message`; ver `OpcionesDeValidacion`
  */
 export function validateField(
   field: WizardField,
   value: string | string[] | undefined,
   formValues: Record<string, string | string[]>,
   dynamicOptionsCache?: Record<string, CascadingOption[]>,
-  skipVisibilityCheck?: boolean
+  skipVisibilityCheck?: boolean,
+  opciones: OpcionesDeValidacion = {}
 ): FieldValidationResult {
   // Si el campo no es visible, es válido (no validar campos ocultos)
   // Skip when caller already handled visibility (e.g., validateStep with prefill logic)
@@ -978,14 +991,16 @@ export function validateField(
   const isEmpty = !trimmedValue || (Array.isArray(value) && value.length === 0);
 
   // 1. Validación de requerido
+  // `required_message` (BAL-4960) aplica SOLO en Diseño 2 (decisión de Emilio,
+  // BAL-4969): el mensaje vive en el banco y se hereda a todos los formularios,
+  // así que en Diseño 1 se ignora y sale el genérico de siempre.
+  const mensajeRequerido = opciones.diseno2 ? field.required_message : undefined;
   // Para checkbox simple, "false" cuenta como no marcado → requerido debe fallar
   if (field.required && field.type === 'checkbox' && !Array.isArray(value) && trimmedValue === 'false') {
-    return { isValid: false, error: field.required_message || 'Debes marcar esta casilla para continuar' };
+    return { isValid: false, error: mensajeRequerido || 'Debes marcar esta casilla para continuar' };
   }
-  // `required_message` (BAL-4960) vale en los dos diseños: es el mismo
-  // validador, y un campo sin mensaje propio sigue con el genérico de siempre.
   if (field.required && isEmpty) {
-    return { isValid: false, error: field.required_message || 'Este campo es requerido' };
+    return { isValid: false, error: mensajeRequerido || 'Este campo es requerido' };
   }
 
   // Si está vacío y no es requerido, es válido
@@ -1266,12 +1281,14 @@ export function validateField(
  * @param formValues - Valores de todos los campos
  * @param setFieldError - Función para setear error en un campo
  * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación
+ * @param opciones - se pasan tal cual a `validateField` (Diseño 2: `required_message`)
  */
 export function validateStep(
   step: WizardStep,
   formValues: Record<string, string | string[]>,
   setFieldError: (fieldCode: string, error: string | null) => void,
-  dynamicOptionsCache?: Record<string, CascadingOption[]>
+  dynamicOptionsCache?: Record<string, CascadingOption[]>,
+  opciones: OpcionesDeValidacion = {}
 ): string | null {
   let firstErrorField: string | null = null;
 
@@ -1304,7 +1321,7 @@ export function validateStep(
     }
 
     const value = formValues[field.code];
-    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache, true);
+    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache, true, opciones);
 
     // Siempre actualizar el error (limpiar si es válido, setear si hay error)
     setFieldError(field.code, result.error);

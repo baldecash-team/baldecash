@@ -73,7 +73,7 @@ export function useErroresAlSalir(step: WizardStep | null) {
       if (!document.querySelector(`[data-campo="${CSS.escape(codigo)}"]`)) continue;
       // El campo se tocó, así que estaba en pantalla: no se repite la regla de
       // visibilidad (que con el prellenado no es la simple).
-      const { error } = validateField(field, valores[codigo], valores, opciones, true);
+      const { error } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
       const actual = formData[codigo]?.error ?? null;
       if ((error ?? null) !== actual) setFieldError(codigo, error);
     }

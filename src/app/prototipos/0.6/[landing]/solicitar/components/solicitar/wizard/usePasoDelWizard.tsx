@@ -362,8 +362,8 @@ export function usePasoDelWizard(opciones: {
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
-    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions());
-  }, [step, formValues, setFieldError, getAllDynamicOptions]);
+    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2 });
+  }, [step, formValues, setFieldError, getAllDynamicOptions, diseno2]);
 
   // Navigation handlers
   const handleNext = () => {

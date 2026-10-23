@@ -453,8 +453,8 @@ function StepContent() {
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
-    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions());
-  }, [step, formValues, setFieldError, getAllDynamicOptions]);
+    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2: usarDiseno2 });
+  }, [step, formValues, setFieldError, getAllDynamicOptions, usarDiseno2]);
 
   // Get display value for a field in summary
   const getFieldDisplayValue = (field: WizardField, value: string | string[] | undefined, savedLabel?: string): string => {
@@ -594,7 +594,7 @@ function StepContent() {
   // Validate all regular steps (cross-step validation before submit)
   const validateAllSteps = useCallback((): { stepTitle: string; stepSlug: string } | null => {
     for (const s of regularSteps) {
-      const firstError = validateStepFields(s, formValues, setFieldError, getAllDynamicOptions());
+      const firstError = validateStepFields(s, formValues, setFieldError, getAllDynamicOptions(), { diseno2: usarDiseno2 });
       if (firstError) {
         return {
           stepTitle: s.title || s.name,
@@ -603,7 +603,7 @@ function StepContent() {
       }
     }
     return null;
-  }, [regularSteps, formValues, setFieldError, getAllDynamicOptions]);
+  }, [regularSteps, formValues, setFieldError, getAllDynamicOptions, usarDiseno2]);
 
   // Summary specific handlers
   // Reacondicionado: ¿la selección (producto único o carrito) incluye un equipo reacondicionado?

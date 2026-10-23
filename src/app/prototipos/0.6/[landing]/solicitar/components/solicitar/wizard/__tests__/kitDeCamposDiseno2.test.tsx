@@ -10,7 +10,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { validateField, type WizardField, type WizardStep } from '../../../../../../services/wizardApi';
+import { validateField, validateStep, type WizardField, type WizardStep } from '../../../../../../services/wizardApi';
 
 type Valor = string | string[];
 let formData: Record<string, { value: Valor; error?: string | null }> = {};
@@ -206,20 +206,42 @@ describe('Pista (hint)', () => {
 });
 
 describe('Mensaje de obligatorio (required_message)', () => {
-  it('reemplaza al genérico cuando el obligatorio está vacío', () => {
+  // I1 (BAL-4969, decisión de Emilio): el mensaje propio aplica SOLO en Diseño 2.
+  const D2 = { diseno2: true };
+
+  it('Diseño 2: reemplaza al genérico cuando el obligatorio está vacío', () => {
     const conMensaje = { ...CORREO, required_message: 'Ingresa tu correo para enviarte el contrato.' } as WizardField;
-    expect(validateField(conMensaje, '', {}, undefined, true).error).toBe('Ingresa tu correo para enviarte el contrato.');
+    expect(validateField(conMensaje, '', {}, undefined, true, D2).error).toBe('Ingresa tu correo para enviarte el contrato.');
   });
 
-  it('sin mensaje propio sigue el genérico de siempre', () => {
+  it('Diseño 1: aunque el campo tenga mensaje propio, sale el genérico de siempre', () => {
+    const conMensaje = { ...CORREO, required_message: 'Ingresa tu correo para enviarte el contrato.' } as WizardField;
+    expect(validateField(conMensaje, '', {}, undefined, true).error).toBe('Este campo es requerido');
+    expect(validateField(conMensaje, '', {}, undefined, true, { diseno2: false }).error).toBe('Este campo es requerido');
+  });
+
+  it('sin mensaje propio sigue el genérico de siempre (los dos diseños)', () => {
     expect(validateField(CORREO, '', {}, undefined, true).error).toBe('Este campo es requerido');
+    expect(validateField(CORREO, '', {}, undefined, true, D2).error).toBe('Este campo es requerido');
   });
 
-  it('también en la casilla obligatoria', () => {
+  it('también en la casilla obligatoria: Diseño 2 con mensaje, Diseño 1 genérico', () => {
     const casilla = campo({ code: 'consent', type: 'checkbox', required: true });
-    expect(validateField(casilla, 'false', {}, undefined, true).error).toBe('Debes marcar esta casilla para continuar');
+    expect(validateField(casilla, 'false', {}, undefined, true, D2).error).toBe('Debes marcar esta casilla para continuar');
     const conMensaje = { ...casilla, required_message: 'Marca la casilla para continuar.' } as WizardField;
-    expect(validateField(conMensaje, 'false', {}, undefined, true).error).toBe('Marca la casilla para continuar.');
+    expect(validateField(conMensaje, 'false', {}, undefined, true, D2).error).toBe('Marca la casilla para continuar.');
+    expect(validateField(conMensaje, 'false', {}, undefined, true).error).toBe('Debes marcar esta casilla para continuar');
+  });
+
+  it('validateStep pasa el diseño: Diseño 1 genérico, Diseño 2 el mensaje propio', () => {
+    const conMensaje = { ...CORREO, required_message: 'Ingresa tu correo.' } as WizardField;
+    const step = paso([conMensaje]);
+    const errores: Record<string, string | null> = {};
+    const set = (c: string, e: string | null) => { errores[c] = e; };
+    validateStep(step, {}, set);
+    expect(errores[conMensaje.code]).toBe('Este campo es requerido');
+    validateStep(step, {}, set, undefined, D2);
+    expect(errores[conMensaje.code]).toBe('Ingresa tu correo.');
   });
 
   it('no toca otros errores (formato) aunque el campo tenga mensaje propio', () => {
@@ -228,7 +250,7 @@ describe('Mensaje de obligatorio (required_message)', () => {
       required_message: 'Ingresa tu correo.',
       validations: [{ type: 'email', value: null, message: 'Correo inválido' }],
     } as unknown as WizardField;
-    expect(validateField(conMensaje, 'no-es-correo', {}, undefined, true).error).not.toBe('Ingresa tu correo.');
+    expect(validateField(conMensaje, 'no-es-correo', {}, undefined, true, D2).error).not.toBe('Ingresa tu correo.');
   });
 });
 
