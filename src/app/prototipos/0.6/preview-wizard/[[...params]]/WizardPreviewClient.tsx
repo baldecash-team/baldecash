@@ -23,6 +23,9 @@ import {
   getStepSlug,
 } from '../../services/wizardApi';
 import { getLandingHeroDataById } from '../../services/landingApi';
+import { fetchLandingConfig } from '../../services/landingConfigApi';
+import { resolveDisenoSolicitud } from '../../[landing]/context/LayoutContext';
+import { rotuloDeDisenoDelPreview } from '../rotuloDiseno';
 
 // Components
 import { Navbar } from '../../components/hero/Navbar';
@@ -104,6 +107,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
     activeSections?: string[];
   } | null>(null);
   const [footerData, setFooterData] = useState<FooterData | null>(null);
+  const [disenoDeLaLanding, setDisenoDeLaLanding] = useState<1 | 2 | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -140,6 +144,14 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
         }
 
         setWizardConfig(wizardData);
+
+        // El diseño de la solicitud de la landing (para el rótulo del banner).
+        const slugDeLaLanding = wizardData.landing?.slug ?? wizardData.landing_slug;
+        if (slugDeLaLanding) {
+          fetchLandingConfig(slugDeLaLanding)
+            .then((cfg) => setDisenoDeLaLanding(resolveDisenoSolicitud(cfg.features?.solicitud_design)))
+            .catch(() => setDisenoDeLaLanding(null));
+        }
 
         // Transform landing data for navbar/footer
         if (landingData) {
@@ -220,7 +232,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
     return (
       <div className="min-h-screen bg-neutral-50">
         {/* Preview Banner */}
-        <PreviewBanner landingId={landingId} stepName={currentStep.title} />
+        <PreviewBanner landingId={landingId} stepName={currentStep.title} rotulo={rotuloDeDisenoDelPreview(disenoDeLaLanding)} />
 
         {/* Navbar */}
         <Navbar {...navbarProps} />
@@ -293,7 +305,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Preview Banner */}
-      <PreviewBanner landingId={landingId} />
+      <PreviewBanner landingId={landingId} rotulo={rotuloDeDisenoDelPreview(disenoDeLaLanding)} />
 
       {/* Navbar */}
       <Navbar {...navbarProps} />
@@ -351,12 +363,13 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
 }
 
 // Preview Banner Component
-function PreviewBanner({ landingId, stepName }: { landingId: number | null; stepName?: string }) {
+function PreviewBanner({ landingId, stepName, rotulo }: { landingId: number | null; stepName?: string; rotulo?: string | null }) {
   return (
     <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-400 text-amber-900 text-center py-1 text-sm font-medium">
       <Eye className="w-4 h-4 inline-block mr-2" />
       Modo Preview - Wizard (ID: {landingId})
       {stepName && <span className="ml-1">- {stepName}</span>}
+      {rotulo && <strong data-rotulo-diseno className="ml-2">· {rotulo}</strong>}
     </div>
   );
 }
