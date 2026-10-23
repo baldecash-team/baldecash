@@ -11,12 +11,13 @@
  * en `StepClient` / `usePasoDelWizard`, tal cual.
  *
  * Escritorio: progreso arriba; título y tarjeta con borde de color a la
- * izquierda; "Tu solicitud" fijo a la derecha; abajo "‹ Atrás", "Continuar →"
- * y el aviso de confidencialidad.
+ * izquierda; "Tu solicitud" fijo a la derecha; abajo "‹ Atrás" (botón
+ * secundario), "Continuar →" y el aviso de confidencialidad.
  *
- * Celular: cabecera fija con el equipo desplegable y "Paso X de N"; la acción
- * principal fija abajo a todo lo ancho; "Atrás" como enlace. Quien monta el
- * shell pone `BarraInferiorV2Spacer` al final de la página (después del footer).
+ * Celular: cabecera fija con el equipo desplegable y "Paso X de N"; "Atrás" y
+ * "Continuar" en línea bajo la tarjeta, en la misma fila (prototipo). Solo el
+ * Paso 4 (`pasoResumen`) lleva la barra fija de abajo con la cuota total, y
+ * quien lo monta pone `BarraInferiorV2Spacer` al final de la página.
  *
  * Lo que agrega sobre el contenido del paso: la guía de campos
  * (`useGuiaDeCampos`) y los errores al salir del campo (`useErroresAlSalir`).
@@ -40,7 +41,7 @@ import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/u
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
-import { TARJETA_V2, TARJETA_V2_ESTILO } from './campos/estilosV2';
+import { TARJETA_V2, TARJETA_V2_ESTILO, BOTON_ATRAS_V2 } from './campos/estilosV2';
 import { ProgresoV2, etiquetaDelPaso, type PasoDelProgreso } from './ProgresoV2';
 import { PanelSolicitudV2, CabeceraSolicitudV2, ALTO_CABECERA_MOVIL, useDatosDelPanel, textoDelDiaDePago } from './PanelSolicitudV2';
 import { BarraInferiorV2 } from './BarraInferiorV2';
@@ -102,8 +103,14 @@ export interface ShellV2Props {
    * vista 1 dice "Continuar" aunque el paso sea el que envía).
    */
   accionMovil?: { texto: string; onPrimary: () => void } | null;
-  /** Solo celular: el enlace de abajo hace otra cosa ("‹ Volver" a la vista 1). */
+  /** Solo celular: el Atrás de la barra hace otra cosa ("‹ Volver" a la vista 1). */
   atrasMovil?: { texto: string; onClick: () => void } | null;
+  /**
+   * Paso resumen (Paso 4): en celular la acción va en la barra fija de abajo
+   * con Atrás, la cuota total y Enviar (prototipo); sin candado de
+   * confidencialidad. Los demás pasos llevan Atrás y Continuar en línea.
+   */
+  pasoResumen?: boolean;
 }
 
 /**
@@ -161,6 +168,7 @@ export function ShellV2({
   textoEnviar,
   accionMovil,
   atrasMovil,
+  pasoResumen = false,
 }: ShellV2Props) {
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
@@ -219,8 +227,15 @@ export function ShellV2({
   const ocupado = isSubmitting || isBusy;
   const textoDelEnvio = textoEnviar || 'Enviar solicitud';
   const textoPrincipal = isSubmitting ? submitMessage || 'Enviando…' : isLastStep ? textoDelEnvio : 'Continuar';
-  // Celular: el enlace de abajo. En la vista 2 del Paso 4 vuelve a la vista 1.
-  const atrasCelular = atrasMovil ?? (irAtras ? { texto: 'Atrás', onClick: irAtras } : null);
+  // La fila de botones bajo la tarjeta (escritorio y celular).
+  const atrasDeLaFila = irAtras ? { texto: 'Atrás', onClick: irAtras } : null;
+  const accionDeLaFila = accionPrincipal ? { texto: textoPrincipal, onPrimary: accionPrincipal } : null;
+  // Celular del Paso 4: el Atrás de la barra fija. En la vista 2 vuelve a la vista 1.
+  const atrasCelular = atrasMovil ?? atrasDeLaFila;
+  const barraFijaMovil = pasoResumen;
+  // Candado de confidencialidad (prototipo): bajo el título si el paso no
+  // trae descripción (Pasos 2 y 3); si la trae, bajo los botones (Paso 1).
+  const candado: 'arriba' | 'abajo' | null = pasoResumen || sinNavegacion ? null : description ? 'abajo' : 'arriba';
   const frecuencia = getAllProducts()[0]?.paymentFrequency;
   const totalTexto = `S/${formatCuotaDeLanding(getTotalMonthlyPayment(), landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
@@ -259,6 +274,14 @@ export function ShellV2({
               {title}
             </h1>
             {description && <p className="mt-1 text-sm lg:text-base text-[#5B6275]">{description}</p>}
+            {candado === 'arriba' && (
+              <p className="mt-1 flex items-center gap-2 text-sm lg:text-base text-[#5B6275]">
+                <Lock className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
+                <span>
+                  Tu información es confidencial<span className="hidden lg:inline"> y la usamos para evaluar tu solicitud</span>.
+                </span>
+              </p>
+            )}
 
             <div
               ref={tarjetaRef}
@@ -273,63 +296,54 @@ export function ShellV2({
 
             {!sinNavegacion && (
               // `data-zona-acciones-v2`: a dónde cae `goFin` cuando ningún
-              // Continuar está visible (celular con el teclado abierto, que
-              // esconde la barra fija) en vez del botón de escritorio oculto.
+              // Continuar está visible.
               <div data-zona-acciones-v2>
-                {/* Escritorio */}
-                <div className="mt-5 hidden lg:flex items-center justify-between">
-                  {irAtras ? (
+                {/* Atrás (botón secundario) y Continuar en la misma fila, en
+                    escritorio y en celular (prototipo de Brenda + pedido de
+                    Emilio, BAL-4959). En celular van en línea bajo la tarjeta;
+                    solo el paso con `barraFijaMovil` (Paso 4) usa la barra fija. */}
+                <div className={`mt-5 flex items-center gap-3 lg:justify-between ${barraFijaMovil ? 'hidden lg:flex' : ''}`}>
+                  {atrasDeLaFila ? (
                     <button
                       type="button"
-                      onClick={irAtras}
+                      data-atras-v2
+                      onClick={atrasDeLaFila.onClick}
                       disabled={ocupado}
-                      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-2 text-[15px] font-bold text-[var(--color-primary-text)] cursor-pointer hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                      className={`${BOTON_ATRAS_V2} px-4 lg:px-5`}
                     >
-                      <ChevronLeft className="h-4 w-4" aria-hidden />
-                      Atrás
+                      <ChevronLeft className="h-5 w-5" aria-hidden />
+                      {atrasDeLaFila.texto}
                     </button>
-                  ) : <span />}
-                  {accionPrincipal && (
+                  ) : <span className="hidden lg:block" />}
+                  {accionDeLaFila && (
                     <button
                       type="button"
                       data-continuar-v2
-                      onClick={accionPrincipal}
+                      onClick={accionDeLaFila.onPrimary}
                       disabled={ocupado || !canProceed}
-                      className={`inline-flex min-h-[52px] items-center gap-2 rounded-xl px-7 text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+                      className={`inline-flex min-h-[52px] min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 lg:flex-none lg:px-7 ${
                         ocupado || !canProceed ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
                       }`}
                     >
-                      {/* La misma regla que la barra fija de celular (`BarraInferiorV2`):
-                          la ruedita también con `isBusy` (solo navega, ej. a
-                          complementos), no solo mientras se crea la solicitud
-                          de verdad (BAL-4959, hallazgo de la revisión). */}
+                      {/* La ruedita también con `isBusy` (solo navega, ej. a
+                          complementos), no solo mientras se crea la solicitud. */}
                       {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
-                      {textoPrincipal}
-                      {!isSubmitting && <ArrowRight className="h-5 w-5" aria-hidden />}
+                      <span className="truncate">{accionDeLaFila.texto}</span>
+                      {!isSubmitting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
                     </button>
                   )}
                 </div>
 
-                <p className="mt-4 flex items-center gap-2 text-[13px] text-[#5B6275]">
-                  <Lock className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
-                  <span>
-                    Tu información es confidencial<span className="hidden lg:inline"> y la usamos para evaluar tu solicitud</span>.
-                  </span>
-                </p>
-
-                {/* Celular: Atrás como enlace; Continuar va en la barra fija */}
-                {atrasCelular && (
-                  <div className="mt-3 flex justify-center lg:hidden">
-                    <button
-                      type="button"
-                      onClick={atrasCelular.onClick}
-                      disabled={ocupado}
-                      className="inline-flex min-h-[44px] items-center gap-1 px-3 text-[15px] font-bold text-[var(--color-primary-text)] cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-lg"
-                    >
-                      <ChevronLeft className="h-4 w-4" aria-hidden />
-                      {atrasCelular.texto}
-                    </button>
-                  </div>
+                {/* Candado: en el paso con descripción va bajo los botones
+                    (Paso 1 del prototipo); sin descripción va bajo el título
+                    (Pasos 2 y 3). El resumen no lo lleva. */}
+                {candado === 'abajo' && (
+                  <p className="mt-4 flex items-center gap-2 text-[13px] text-[#5B6275]">
+                    <Lock className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
+                    <span>
+                      Tu información es confidencial<span className="hidden lg:inline"> y la usamos para evaluar tu solicitud</span>.
+                    </span>
+                  </p>
                 )}
               </div>
             )}
@@ -358,8 +372,9 @@ export function ShellV2({
         </div>
       </div>
 
-      {!sinNavegacion && (
+      {!sinNavegacion && barraFijaMovil && (
         <BarraInferiorV2
+          atras={atrasCelular}
           onPrimary={accionMovil?.onPrimary ?? accionPrincipal}
           texto={accionMovil?.texto ?? (isLastStep ? textoDelEnvio : undefined)}
           isLastStep={isLastStep}
@@ -369,6 +384,7 @@ export function ShellV2({
           canProceed={canProceed}
           oculto={ocultarBarraInferior}
           total={totalTexto}
+          leyendaTotal={datosDelPanel.mesPrimeraCuota ? `Desde ${datosDelPanel.mesPrimeraCuota}` : undefined}
         />
       )}
     </div>

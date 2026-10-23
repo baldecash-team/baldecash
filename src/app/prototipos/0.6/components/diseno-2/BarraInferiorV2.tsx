@@ -1,11 +1,11 @@
 'use client';
 
 /**
- * Acción principal fija abajo, solo en celular (BAL-4959).
+ * Barra fija abajo del Paso 4, solo en celular (BAL-4959, prototipo de Brenda).
  *
- * "Continuar" va a todo lo ancho; "Atrás" queda como enlace en el flujo de la
- * página (lo pone `ShellV2`). En el paso que envía, a la izquierda va la cuota
- * total, como en el Paso 4 del prototipo.
+ * Como en el prototipo: "‹" (Atrás, botón cuadrado con contorno), la cuota
+ * total y la acción ("Continuar" / "Enviar…"), en una sola fila. Los pasos 1
+ * a 3 no la usan: ahí Atrás y Continuar van en línea bajo la tarjeta.
  *
  * Se esconde mientras el teclado está abierto —mismo motivo que
  * `MobileStickyCta`: un `fixed bottom` queda detrás del teclado o tapa el
@@ -13,7 +13,8 @@
  */
 
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft } from 'lucide-react';
+import { BOTON_ATRAS_V2 } from './campos/estilosV2';
 import { useTecladoVirtualAbierto } from '@/app/prototipos/0.6/[landing]/solicitar/hooks/useTecladoVirtualAbierto';
 
 export interface BarraInferiorV2Props {
@@ -30,6 +31,10 @@ export interface BarraInferiorV2Props {
   total?: string;
   /** Texto del botón en lugar de "Continuar" / "Enviar solicitud". */
   texto?: string;
+  /** Leyenda sobre el total ("Cuota mensual total" o "Desde {mes}" con pago diferido). */
+  leyendaTotal?: string;
+  /** Atrás (o "Volver" a la vista 1 del Paso 4). */
+  atras?: { texto: string; onClick: () => void } | null;
 }
 
 /** Alto reservado para que la barra no tape el final de la página. */
@@ -47,6 +52,8 @@ export function BarraInferiorV2({
   oculto = false,
   total,
   texto: textoPropio,
+  atras,
+  leyendaTotal = 'Cuota mensual total',
 }: BarraInferiorV2Props) {
   const teclado = useTecladoVirtualAbierto();
   if (oculto || teclado || !onPrimary) return null;
@@ -59,10 +66,22 @@ export function BarraInferiorV2({
       style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-center gap-3">
-        {isLastStep && total && (
-          <div className="min-w-0 shrink-0">
-            <p className="text-[11px] text-[#5B6275]">Cuota total</p>
-            <p className="font-['Baloo_2',_sans-serif] text-lg font-bold leading-none text-[var(--color-primary-text)]">{total}</p>
+        {atras && (
+          <button
+            type="button"
+            data-atras-v2
+            onClick={atras.onClick}
+            disabled={isSubmitting || isBusy}
+            aria-label={atras.texto}
+            className={`${BOTON_ATRAS_V2} w-[52px]`}
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden />
+          </button>
+        )}
+        {total && (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-[#5B6275]">{leyendaTotal}</p>
+            <p className="truncate font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-[1.1] text-[var(--color-primary-text)]">{total}</p>
           </div>
         )}
         <button
@@ -70,7 +89,7 @@ export function BarraInferiorV2({
           data-continuar-v2
           onClick={onPrimary}
           disabled={deshabilitado}
-          className={`campo-v2-cta flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+          className={`campo-v2-cta flex min-h-[52px] ${total ? 'shrink-0 px-[18px]' : 'flex-1'} items-center justify-center gap-2 rounded-xl text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
             deshabilitado ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
           }`}
         >

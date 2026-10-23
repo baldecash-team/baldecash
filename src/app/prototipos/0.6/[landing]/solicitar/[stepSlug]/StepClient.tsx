@@ -1098,6 +1098,7 @@ function StepContent() {
             navbarProps={navbarProps || undefined}
             // `summary-off` (D3): el Paso 4 sale igual, sin "Ver detalle".
             detalle={sinResumen ? undefined : <>{repasoDeDatos()}</>}
+            pasoResumen
             textoEnviar={paso4.textoEnviar}
             accionMovil={accionMovil}
             atrasMovil={atrasMovil}
@@ -1263,9 +1264,8 @@ function StepContent() {
         >
           {(camposTocados) => <PasoDelWizard paso={paso} camposTocados={camposTocados} />}
         </ShellV2>
+        {/* Pasos 1 a 3: Atrás y Continuar van en línea (sin barra fija). */}
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
-        {/* La barra fija de celular no tapa el final del footer */}
-        <BarraInferiorV2Spacer />
       </>
     );
   }

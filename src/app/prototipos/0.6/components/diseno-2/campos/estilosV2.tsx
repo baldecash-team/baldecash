@@ -47,6 +47,14 @@ export const COLOR_V2 = {
 export const TARJETA_V2 = 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7';
 export const TARJETA_V2_ESTILO = { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' } as const;
 
+/**
+ * "‹ Atrás" del formulario como botón secundario (pedido de Emilio, BAL-4959):
+ * misma altura que "Continuar" (52px), contorno con las medidas estándar del
+ * kit (1,5px / radio 10px, como `CAJA_V2`), fondo blanco y texto de marca.
+ */
+export const BOTON_ATRAS_V2 =
+  'inline-flex min-h-[52px] flex-shrink-0 items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[#C9CEF0] bg-white text-base font-bold text-[var(--color-primary-text)] transition-colors duration-150 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+
 /** Etiqueta arriba del campo (15px, negrita). */
 export const ETIQUETA_V2 = 'flex items-center gap-1.5 text-[15px] font-bold leading-snug text-[#262C66]';
 /** "(opcional)" al lado de la etiqueta. */
