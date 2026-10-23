@@ -51,7 +51,7 @@ import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/s
 import { useMesPrimeraCuota } from './useMesPrimeraCuota';
 import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { prefiereMenosMovimiento, useSalidaAnimada } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
-import { datosUtiles, marcaVisible, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
+import { datosUtiles, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
 
 export type LoQuieroOrigen = 'catalogo' | 'ficha';
 
@@ -569,13 +569,13 @@ function LoQuieroModalContent({
   const cerrar = useCallback(
     (motivo: string) => {
       // Una sola salida: un segundo cierre mientras se va no cuenta dos veces.
-      salirModal(() => onClose()) &&
-        analytics.track('lo_quiero_modal_close', {
-          motivo,
-          product_id: productoId,
-          accessories_count: selectedAccessories.length,
-          terms_checked: aceptaTerminos,
-        });
+      if (!salirModal(() => onClose())) return;
+      analytics.track('lo_quiero_modal_close', {
+        motivo,
+        product_id: productoId,
+        accessories_count: selectedAccessories.length,
+        terms_checked: aceptaTerminos,
+      });
     },
     [analytics, productoId, selectedAccessories.length, aceptaTerminos, onClose, salirModal],
   );
@@ -660,7 +660,6 @@ function LoQuieroModalContent({
 
   const detalleElegido = detalle ? selectedAccessories.some((a) => a.id === detalle.id) : false;
   const datosDetalle = detalle ? datosUtiles(detalle) : [];
-  const marcaDetalle = detalle ? marcaVisible(detalle.brand) : null;
 
   const modal = (
     <div
@@ -788,67 +787,62 @@ function LoQuieroModalContent({
                       return (
                         <li
                           key={acc.id}
-                          className={`group relative flex md:flex-col items-center md:items-stretch gap-3 rounded-xl border p-2.5 md:p-3 transition-[border-color,box-shadow,background-color] duration-150 ${
+                          className={`relative flex md:flex-col items-center md:items-stretch gap-3 md:gap-2 rounded-xl border-[1.5px] px-3 py-2.5 md:p-2.5 transition-[border-color,background-color] duration-150 ${
                             elegido
-                              ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                              : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+                              ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.04)]'
+                              : 'border-[#E3E6EE] bg-white'
                           }`}
                         >
-                          {/* Toda la tarjeta abre el detalle (menos el botón Agregar) */}
-                          <button
-                            type="button"
-                            onClick={(e) => abrirDetalle(acc, e.currentTarget)}
-                            aria-label={`Ver detalle de ${nombre}`}
-                            className="absolute inset-0 rounded-xl cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                          />
-                          {elegido && (
-                            <span className="hidden md:flex absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--color-primary)] items-center justify-center pointer-events-none" aria-hidden>
-                              <Check className="w-4 h-4 text-[var(--color-on-primary)]" strokeWidth={3} />
-                            </span>
-                          )}
-                          <ImagenAccesorio src={acc.thumbnailUrl || acc.image} className="w-14 h-14 md:w-full md:h-20 rounded-lg pointer-events-none" />
-                          <div className="flex-1 min-w-0 flex flex-col pointer-events-none">
+                          {/* Foto con el check de "agregado" (prototipo: arriba a la derecha). */}
+                          <div className="relative shrink-0 md:w-full">
+                            <ImagenAccesorio src={acc.thumbnailUrl || acc.image} className="w-14 h-14 md:w-full md:h-16 rounded-[10px]" />
+                            {elegido && (
+                              <span className="absolute -top-1.5 -right-1.5 md:top-1.5 md:right-1.5 w-[22px] h-[22px] md:w-6 md:h-6 rounded-full bg-[var(--color-primary)] flex items-center justify-center d2-check-in" aria-hidden>
+                                <Check className="w-3 h-3 md:w-[13px] md:h-[13px] text-[var(--color-on-primary)]" strokeWidth={3} />
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col gap-px md:gap-2">
                             {categoria && (
                               <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400 truncate">{categoria}</span>
                             )}
-                            <p className="text-sm font-semibold text-neutral-800 line-clamp-2 md:min-h-[2.5rem] leading-snug">{nombre}</p>
-                            {/* Si no entra al lado del precio (con "Agregado ✓", más
-                                ancho, a 360 px), "Ver detalle" baja entero a la
-                                línea de abajo en vez de cortarse en "Ver det"
-                                (QA en celular, BAL-4969). */}
-                            <p className="mt-0.5 flex flex-wrap items-center gap-x-1 min-w-0 md:hidden">
-                              <span className="text-sm font-bold text-[var(--color-primary-text)] whitespace-nowrap">
+                            <p className="text-sm font-semibold text-[#1E2230] line-clamp-2 leading-[1.25] md:min-h-[35px]">{nombre}</p>
+                            {/* Precio y "Ver detalle" (prototipo): en celular uno debajo del
+                                otro; en escritorio en una fila, con el botón abajo. */}
+                            <div className="flex flex-col items-start md:flex-row md:items-center md:justify-between md:gap-1.5">
+                              <span className="text-[13px] md:text-sm font-bold text-[var(--color-primary-text)] md:text-[#1E2230] whitespace-nowrap">
                                 +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
                               </span>
-                              <span data-ver-detalle className="text-xs text-neutral-400 inline-flex shrink-0 items-center whitespace-nowrap">
-                                Ver detalle <ChevronRight className="w-3 h-3" aria-hidden />
-                              </span>
-                            </p>
+                              <button
+                                type="button"
+                                data-ver-detalle
+                                onClick={(e) => abrirDetalle(acc, e.currentTarget)}
+                                aria-label={`Ver detalle de ${nombre}`}
+                                className="-my-2.5 md:my-0 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-sm text-[12.5px] md:text-[13px] font-semibold text-[var(--color-primary-text)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                              >
+                                Ver detalle
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between gap-2 md:mt-auto">
-                            <span className="hidden md:inline text-sm font-bold text-neutral-800 pointer-events-none">
-                              +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => alternarAccesorio(acc)}
-                              aria-pressed={elegido}
-                              aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
-                              className={`relative z-[1] shrink-0 min-h-[44px] md:min-h-[36px] px-3.5 md:px-3 rounded-full border-2 text-sm font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
-                                elegido
-                                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
-                                  : 'bg-white border-[var(--color-primary)] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
-                              }`}
-                            >
-                              {elegido ? (
-                                <>
-                                  Agregado <Check className="w-4 h-4 d2-check-in" strokeWidth={3} aria-hidden />
-                                </>
-                              ) : (
-                                'Agregar'
-                              )}
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => alternarAccesorio(acc)}
+                            aria-pressed={elegido}
+                            aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
+                            className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-full border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                              elegido
+                                ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
+                                : 'bg-white text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
+                            }`}
+                          >
+                            {elegido ? (
+                              <>
+                                Agregado <Check className="w-4 h-4 d2-check-in" strokeWidth={3} aria-hidden />
+                              </>
+                            ) : (
+                              'Agregar'
+                            )}
+                          </button>
                         </li>
                       );
                     })}
@@ -1100,62 +1094,66 @@ function LoQuieroModalContent({
             // Hoja de detalle: `bcPop` 0,2 s en escritorio y 0,25 s desde abajo en celular.
             className={`relative w-full md:mx-4 md:max-w-[440px] bg-white rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none ${detalleSaliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'}`}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-              <div className="relative">
-                <ImagenAccesorio src={detalle.image || detalle.thumbnailUrl} className="w-full h-48 md:h-52 rounded-t-2xl p-4" />
+            {/* Hoja "Ver detalle" (prototipo de Brenda): nombre y cerrar arriba,
+                foto, la cuota en su caja gris, la descripción y las
+                características que trae el accesorio, y "Cerrar" + "Agregar". */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-5 md:px-[26px] md:pt-[26px] flex flex-col gap-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <h3 id="lo-quiero-detalle-titulo" className="text-[19px] md:text-[21px] font-bold text-[#1E2230] leading-tight pt-2">
+                  {nombreParaMostrar(detalle.name, detalle.brand?.name)}
+                </h3>
                 <button
                   type="button"
                   onClick={cerrarDetalle}
                   aria-label="Cerrar detalle"
-                  className="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/90 shadow-sm hover:bg-white flex items-center justify-center text-neutral-600 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  className="w-11 h-11 shrink-0 rounded-full bg-[#F4F5F8] hover:bg-[#E9EBF0] flex items-center justify-center text-[#1E2230] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-[18px] h-[18px]" />
                 </button>
               </div>
-              <div className="px-5 pt-4 pb-2">
-                {marcaDetalle && (
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary-text)]">{marcaDetalle}</p>
-                )}
-                <h3 id="lo-quiero-detalle-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-neutral-800 leading-tight">
-                  {nombreParaMostrar(detalle.name, detalle.brand?.name)}
-                </h3>
-                {datosDetalle.length > 0 && (
-                  <ul className="mt-3 space-y-1.5">
-                    {datosDetalle.map((d) => (
-                      <li key={d} className="flex items-start gap-2 text-sm text-neutral-600">
-                        <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
-                        <span>{d}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="mt-4 rounded-xl bg-[rgba(var(--color-primary-rgb),0.06)] px-4 py-3">
-                  <p className="leading-none">
-                    <span className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--color-primary-text)]">
-                      +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
-                    </span>
-                    <span className="text-sm font-semibold text-[var(--color-primary-text)] ml-1">{sufijo}</span>
+              <ImagenAccesorio src={detalle.image || detalle.thumbnailUrl} className="w-full h-40 rounded-xl p-3" />
+              <div className="rounded-xl bg-[#F4F5F8] px-3.5 py-3 flex flex-col gap-0.5">
+                <p className="leading-none">
+                  <span className="text-[22px] font-bold text-[var(--color-primary-text)]">
+                    +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
+                  </span>
+                  <span className="text-sm font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
+                </p>
+                {detalle.price > 0 && (
+                  <p className="text-[13px] text-[#5B6275]">
+                    S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
                   </p>
-                  {detalle.price > 0 && (
-                    <p className="text-xs text-neutral-600 mt-1">
-                      S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
-                    </p>
-                  )}
-                </div>
+                )}
               </div>
+              {detalle.description?.trim() && (detalle.specs?.length ?? 0) > 0 && (
+                <p className="text-[15px] leading-snug text-[#3A4052] whitespace-pre-line">{detalle.description.trim()}</p>
+              )}
+              {datosDetalle.length > 0 && (
+                <ul className="space-y-1.5">
+                  {datosDetalle.map((d) => (
+                    <li key={d} className="flex items-start gap-2 text-sm text-[#3A4052]">
+                      <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            <div className="shrink-0 px-5 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-5">
+            <div className="shrink-0 px-5 md:px-[26px] pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[26px] flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={cerrarDetalle}
+                className="min-h-[48px] px-5 rounded-xl border-[1.5px] border-[#C9CEF0] bg-white text-[15px] font-semibold text-[#1E2230] cursor-pointer transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+              >
+                Cerrar
+              </button>
               <button
                 type="button"
                 onClick={() => {
                   alternarAccesorio(detalle);
                   cerrarDetalle();
                 }}
-                className={`w-full min-h-[48px] rounded-xl font-semibold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
-                  detalleElegido
-                    ? 'border-2 border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50'
-                    : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md hover:brightness-90'
-                }`}
+                className="flex-1 md:flex-none min-h-[48px] px-5 rounded-xl bg-[var(--color-primary)] text-[15px] font-bold text-[var(--color-on-primary)] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors duration-150 hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
               >
                 {detalleElegido ? 'Quitar de mi solicitud' : 'Agregar a mi solicitud'}
               </button>

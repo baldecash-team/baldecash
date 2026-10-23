@@ -267,6 +267,39 @@ describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () =>
   });
 });
 
+describe('LoQuieroModal · "Ver detalle" de cada accesorio (BAL-4958)', () => {
+  it('cada tarjeta tiene su enlace "Ver detalle"; abre la hoja con cuota, descripción, Cerrar y Agregar', async () => {
+    mockAccesorios = [
+      {
+        id: 'a1',
+        name: 'Mouse Logitech M170',
+        description: 'Inalámbrico con receptor USB. Batería de 12 meses.',
+        price: 60,
+        monthlyQuota: 5,
+        image: '',
+        category: null,
+        isRecommended: true,
+        compatibleWith: [],
+        term: 12,
+      },
+    ];
+    pintar();
+    const ver = await screen.findByRole('button', { name: /Ver detalle de Mouse Logitech M170/ });
+    expect(ver).toHaveTextContent('Ver detalle');
+    expect(ver).toHaveClass('min-h-[44px]', 'underline');
+
+    fireEvent.click(ver);
+    const hoja = await screen.findByRole('dialog', { name: /Mouse Logitech M170/ });
+    expect(within(hoja).getByText(/en 12 cuotas/)).toBeInTheDocument();
+    expect(within(hoja).getByText(/Inalámbrico con receptor USB/)).toBeInTheDocument();
+    expect(within(hoja).getByRole('button', { name: 'Agregar a mi solicitud' })).toBeInTheDocument();
+
+    fireEvent.click(within(hoja).getByRole('button', { name: 'Cerrar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /Mouse Logitech M170/ })).not.toBeInTheDocument());
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+});
+
 describe('LoQuieroModal · modal del cupón (BAL-4958)', () => {
   async function abrirCupon() {
     mockTieneCupon = true;
