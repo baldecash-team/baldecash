@@ -376,6 +376,11 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   0%, 92%, 100% { transform: scaleY(1); }
   95% { transform: scaleY(0.1); }
 }
+/* Punto del hito "en curso" de la confirmación (`bcPulso`). */
+@keyframes d2Pulso {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.6); opacity: 0.55; }
+}
 @keyframes d2Chispa {
   0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
   25% { opacity: 1; }

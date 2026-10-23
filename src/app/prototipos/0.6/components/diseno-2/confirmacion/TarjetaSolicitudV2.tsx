@@ -35,7 +35,7 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
   if (!resumen) return null;
 
   return (
-    <aside aria-label="Tu solicitud" className="overflow-hidden rounded-2xl border border-[#AEB6EE] bg-white shadow-sm">
+    <aside aria-label="Tu solicitud" className="overflow-hidden rounded-[20px] border border-[#E3E6EE] bg-white shadow-[0_14px_36px_rgba(30,34,48,0.08)]">
       <div className="flex items-start gap-3 bg-gradient-to-r from-[#EAF7F2] to-[#F3F5FD] px-5 py-4">
         <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[var(--color-primary-text)] shadow-sm">
           <Laptop className="h-5 w-5" aria-hidden />

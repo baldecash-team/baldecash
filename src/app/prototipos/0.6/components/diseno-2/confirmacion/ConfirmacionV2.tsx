@@ -84,11 +84,12 @@ export function ConfirmacionV2({
     <div data-confirmacion-v2 className="bg-[#F7F8FC]">
       <CabeceraConfirmacionV2 titulo={texto.titulo} subtitulo={texto.subtitulo} numeroDeSolicitud={data.applicationId} />
 
-      <div className="mx-auto max-w-5xl px-4 pb-12 pt-6 sm:px-6 lg:pt-8">
+      {/* Las tarjetas se montan sobre la banda (prototipo: -76 px, 980 px). */}
+      <div className="relative mx-auto -mt-[76px] w-[980px] max-w-[calc(100%-32px)] pb-12 sm:max-w-[calc(100%-48px)]">
         {otpCta}
 
         {texto.mostrarLineaDeTiempo ? (
-          <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr] lg:items-start">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start">
             <LineaDeTiempoV2 horaDeEnvio={horaEnvioTexto} plazoWhatsApp={plazoWhatsApp} />
             <TarjetaSolicitudV2 data={data} landingSlug={landing ?? ''} opciones={tarjeta} />
           </div>

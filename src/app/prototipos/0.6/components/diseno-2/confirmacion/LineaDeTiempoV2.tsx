@@ -45,7 +45,7 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
       descripcion: 'Recibimos todos tus datos.',
       tiempo: horaDeEnvio,
       estado: 'completado',
-      icono: <Check className="h-4 w-4" strokeWidth={3} />,
+      icono: <Check className="h-[18px] w-[18px]" strokeWidth={3} />,
     },
     {
       titulo: 'Revisamos tu solicitud',
@@ -71,60 +71,82 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
   ];
 
   return (
-    <section aria-labelledby="linea-tiempo-v2-titulo" className="rounded-2xl border border-[#E3E6EE] bg-white p-5">
-      <h2 id="linea-tiempo-v2-titulo" className="font-['Baloo_2',_sans-serif] text-lg font-bold text-[#1E2230]">
-        ¿Qué pasa ahora?
-      </h2>
-      <p className="mt-0.5 text-sm text-[#5B6275]">Te contamos cada avance por WhatsApp.</p>
+    // Prototipo de Brenda: tarjeta de radio 20 con sombra suave; cada hito con
+    // su círculo de 36 px y la línea que lo une al siguiente (llena tras lo
+    // completado, punteada después).
+    <section
+      aria-labelledby="linea-tiempo-v2-titulo"
+      className="flex flex-col gap-[18px] rounded-[20px] border border-[#E3E6EE] bg-white px-[22px] pb-[22px] pt-6 shadow-[0_14px_36px_rgba(30,34,48,0.08)] sm:px-[26px]"
+    >
+      <div className="flex flex-col gap-0.5">
+        <h2 id="linea-tiempo-v2-titulo" className="text-[19px] font-bold text-[#1E2230]">
+          ¿Qué pasa ahora?
+        </h2>
+        <p className="text-sm text-[#5B6275]">Te contamos cada avance por WhatsApp.</p>
+      </div>
 
-      <ol className="mt-4 space-y-5">
+      <ol className="flex flex-col">
         {hitos.map((hito, i) => (
-          <li key={hito.titulo} className="relative flex gap-3 pb-1">
-            {i < hitos.length - 1 && (
+          <li key={hito.titulo} className="flex gap-3.5" aria-current={hito.estado === 'actual' ? 'step' : undefined}>
+            <span className="flex flex-shrink-0 flex-col items-center" aria-hidden>
               <span
-                aria-hidden
-                className="absolute left-[15px] top-8 h-[calc(100%+4px)] w-px border-l border-dashed border-[#D5D9E6]"
-              />
-            )}
-            <span
-              aria-hidden
-              className={`relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 ${
-                hito.estado === 'completado'
-                  ? 'border-[#12A877] bg-[#12A877] text-white'
-                  : hito.estado === 'actual'
-                    ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary-text)]'
-                    : 'border-[#D5D9E6] bg-white text-[#8A90A2]'
-              }`}
-            >
-              {hito.icono}
+                className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                  hito.estado === 'completado'
+                    ? 'bg-[#0E8C78] text-white'
+                    : hito.estado === 'actual'
+                      ? 'border-2 border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)]'
+                      : 'border-2 border-[#C9CEDB] bg-white text-[#5B6275]'
+                }`}
+              >
+                {hito.estado === 'actual' ? (
+                  <span
+                    data-punto-en-curso
+                    className="h-3 w-3 rounded-full bg-[var(--color-primary)]"
+                    style={reducido ? undefined : { animation: 'd2Pulso 1.4s ease-in-out infinite' }}
+                  />
+                ) : (
+                  hito.icono
+                )}
+              </span>
+              {i < hitos.length - 1 && (
+                <span
+                  className={`my-1 min-h-4 flex-grow ${
+                    hito.estado === 'completado' ? 'w-0.5 rounded-sm bg-[#0E8C78]' : 'w-0 border-l-2 border-dashed border-[#C9CEDB]'
+                  }`}
+                />
+              )}
             </span>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                <span className="flex items-center gap-2">
-                  <span className="text-[15px] font-bold text-[#1E2230]">{hito.titulo}</span>
+            <div className="flex min-w-0 flex-grow flex-col gap-0.5 pb-[18px] pt-1.5">
+              <div className="flex items-baseline justify-between gap-2.5">
+                <span className="inline-flex flex-wrap items-center gap-2 text-base font-bold text-[#1E2230]">
+                  {hito.titulo}
                   <span className="sr-only">{TEXTO_ESTADO[hito.estado]}</span>
                   {hito.estado === 'actual' && (
-                    <span className="rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-primary-text)]">
+                    <span className="rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] px-[9px] py-0.5 text-xs font-bold text-[var(--color-primary-text)]">
                       En curso
                     </span>
                   )}
                 </span>
-                <span className="text-xs text-[#8A90A2]">{hito.tiempo}</span>
+                <span className="whitespace-nowrap text-[13px] tabular-nums text-[#5B6275]">{hito.tiempo}</span>
               </div>
-              <p className="mt-0.5 text-[13px] text-[#5B6275]">{hito.descripcion}</p>
+              <p className="text-sm leading-[1.4] text-[#5B6275]">{hito.descripcion}</p>
               {hito.estado === 'actual' && (
                 <div
-                  className="mt-2 h-1 w-full max-w-[220px] overflow-hidden rounded-full bg-[#E3E6EE]"
+                  className="relative mt-2 h-1 w-full overflow-hidden rounded-full bg-[#E3E6EE]"
                   role="img"
                   aria-label="Revisión en curso"
                 >
                   <div
                     data-barra-en-curso
-                    className="h-full w-1/2 rounded-full bg-[var(--color-primary)]"
+                    className="absolute inset-y-0 left-0 w-2/5 rounded-full"
                     style={
                       reducido
-                        ? undefined
-                        : { animation: 'barraEnCursoV2 1.6s ease-in-out infinite' }
+                        ? { background: 'var(--color-primary)' }
+                        : {
+                            background:
+                              'linear-gradient(90deg, rgba(var(--color-primary-rgb), 0) 0%, var(--color-primary) 50%, rgba(var(--color-primary-rgb), 0) 100%)',
+                            animation: 'barraEnCursoV2 1.6s ease-in-out infinite',
+                          }
                     }
                   />
                 </div>
@@ -135,8 +157,8 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp }: LineaDeTiempoV2P
       </ol>
       <style>{`
         @keyframes barraEnCursoV2 {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(220%); }
+          0% { transform: translateX(-110%); }
+          100% { transform: translateX(260%); }
         }
       `}</style>
     </section>
