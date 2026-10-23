@@ -121,6 +121,10 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
     if (!productPrice) return;
 
     let cancelado = false;
+    // El temporizador del reintento: se limpia al desmontar o al cambiar la
+    // clave (menor 11 de la revisión final, BAL-4969). La promesa que espera
+    // queda sin resolver y se descarta; `cancelado` ya cortaba el resto.
+    let temporizadorReintento: ReturnType<typeof setTimeout> | undefined;
     async function fetchInsurancePlans() {
       const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
       const pedir = () => obtenerPlanesDeSeguro(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
@@ -131,7 +135,9 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
         } catch {
           // Un reintento automático antes de mostrar el error: la mayoría de
           // los cortes son de un instante.
-          await new Promise((r) => setTimeout(r, ESPERA_REINTENTO_PLANES_MS));
+          await new Promise((r) => {
+            temporizadorReintento = setTimeout(r, ESPERA_REINTENTO_PLANES_MS);
+          });
           if (cancelado) return;
           plans = await pedir();
         }
@@ -186,6 +192,7 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
     fetchInsurancePlans();
     return () => {
       cancelado = true;
+      clearTimeout(temporizadorReintento);
     };
   }, [activo, isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, setAvailableMultiasistencia, clave, intento]);
 

@@ -42,7 +42,7 @@ import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
-import { useToast } from '@/app/prototipos/_shared';
+import { Toast, useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -187,7 +187,10 @@ function StepContent() {
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
 
   // Toast notifications for submit
-  const { showToast } = useToast(4000);
+  // El aviso de envío ("Hay campos incompletos en…", errores del envío). Solo
+  // Diseño 2 lo pinta (QA F10 · Falla 2c, BAL-4969): Diseño 1 nunca montó el
+  // <Toast/> en esta pantalla y queda como estaba (ver prepr-web-report.md).
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
   // El mensaje de "unidad tomada" solo tuvo modal en el paso regular, que ahora
@@ -1141,6 +1144,16 @@ function StepContent() {
           {/* La barra fija de celular no tapa el final del footer */}
           <BarraInferiorV2Spacer />
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          {toast && (
+            <Toast
+              message={toast.message}
+              type={toast.type}
+              isVisible={isToastVisible}
+              onClose={hideToast}
+              duration={4000}
+              position="top"
+            />
+          )}
         </>
       );
     }

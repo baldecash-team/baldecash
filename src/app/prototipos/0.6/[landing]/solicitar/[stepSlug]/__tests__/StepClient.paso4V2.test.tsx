@@ -596,17 +596,44 @@ describe('Revisión de F7 · I-2: no se borran selecciones válidas al llegar al
     mockPlanes.falla = error;
     mockSeguros = [{ id: '14', monthlyPrice: 20 }, { id: '16', monthlyPrice: 16 }];
     const consola = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // Menor 10 (BAL-4969): reloj falso; `waitFor` lo adelanta y el reintento
+    // de 500 ms ya no depende de esperas reales.
+    jest.useFakeTimers();
     try {
       montarComoEnLaApp();
       await waitFor(() => expect(mockSentry).toHaveBeenCalledWith(error, expect.objectContaining({
         tags: expect.objectContaining({ modulo: 'seguros', accion: 'cargar_planes' }),
-      })), { timeout: 3000 });
+      })));
       // Un solo aviso a Sentry, tras el reintento automático.
       expect(mockSentry).toHaveBeenCalledTimes(1);
       await screen.findByText('No pudimos cargar las protecciones.');
       expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
     } finally {
       consola.mockRestore();
+      jest.useRealTimers();
+    }
+  });
+
+  it('menor 11: al desmontar durante la espera del reintento, el reintento no sale', async () => {
+    mockPlanes.falla = new Error('caído');
+    const consola = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.useFakeTimers();
+    try {
+      const pedidos = jest.requireMock('@/app/prototipos/0.6/services/landingApi').obtenerPlanesDeSeguro as jest.Mock;
+      const { unmount } = montarComoEnLaApp();
+      await waitFor(() => expect(pedidos).toHaveBeenCalledTimes(1));
+      const pendientes = jest.getTimerCount();
+      unmount();
+      // El temporizador del reintento se limpió con el desmontaje.
+      expect(jest.getTimerCount()).toBeLessThan(pendientes);
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+      expect(pedidos).toHaveBeenCalledTimes(1);
+      expect(mockSentry).not.toHaveBeenCalled();
+    } finally {
+      consola.mockRestore();
+      jest.useRealTimers();
     }
   });
 });
@@ -617,14 +644,19 @@ describe('Corrección · error de carga de planes (BAL-4966)', () => {
   let consola: jest.SpyInstance;
   beforeEach(() => {
     consola = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // Menor 10 (BAL-4969): reloj falso para el reintento de 500 ms.
+    jest.useFakeTimers();
   });
-  afterEach(() => consola.mockRestore());
+  afterEach(() => {
+    consola.mockRestore();
+    jest.useRealTimers();
+  });
 
   /** Monta con `/insurances` caído y espera el aviso (tras el reintento automático). */
   async function montarConError() {
     mockPlanes.falla = new Error('500');
     montarComoEnLaApp();
-    await screen.findByText('No pudimos cargar las protecciones.', undefined, { timeout: 3000 });
+    await screen.findByText('No pudimos cargar las protecciones.');
   }
 
   it('con error: aviso en vez del esqueleto, la selección sigue, y "Reintentar" (44px) vuelve a pedir', async () => {
@@ -793,6 +825,34 @@ describe('Diseño 1 no cambia', () => {
       expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/complementos');
       expect(mockSubmit).not.toHaveBeenCalled();
     } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('QA F10 · Falla 2c: falta un campo en otro paso al enviar', () => {
+  it('Diseño 2: se ve el aviso "Hay campos incompletos en…" y después lleva a ese paso', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    const nombre = PASO_REGULAR.fields[0];
+    const antes = nombre.required;
+    nombre.required = true; // obligatorio y vacío en el Paso 1
+    jest.useFakeTimers();
+    try {
+      montarComoEnLaApp();
+      await screen.findByTestId('campos-del-paso');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('escritorio'));
+      });
+      expect(screen.getByText('Hay campos incompletos en "Datos personales". Por favor, revísalos.')).toBeInTheDocument();
+      expect(mockSubmit).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1600);
+      });
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('datos-personales'));
+    } finally {
+      nombre.required = antes;
       jest.useRealTimers();
     }
   });
