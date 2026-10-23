@@ -203,8 +203,13 @@ describe('Saludo por prefill (Diseño 2)', () => {
     act(() => lookup.onPrefillReady!(RENIEC));
 
     const saludo = document.querySelector('[data-saludo-v2]')!;
-    expect(saludo).toHaveTextContent('¡Hola, María!');
-    expect(screen.getByRole('button', { name: 'Corrige tu DNI' })).toBeInTheDocument();
+    expect(saludo).toHaveTextContent('¡Hola, María! 👋');
+    expect(saludo).toHaveTextContent('Ya tenemos algunos de tus datos.');
+    // Inicial en el círculo, entrada suave y botón de texto "¿No eres tú?".
+    expect(saludo.querySelector('[aria-hidden]')).toHaveTextContent('M');
+    expect(saludo).toHaveClass('d2-saludo');
+    expect(screen.getByRole('button', { name: 'No soy yo, corregir mi DNI' })).toHaveTextContent('¿No eres tú?');
+    expect(screen.getByRole('button', { name: 'No soy yo, corregir mi DNI' })).toBeInTheDocument();
     expect(screen.queryByText('Lo usamos para validar tu identidad.')).not.toBeInTheDocument();
   });
 
@@ -230,7 +235,7 @@ describe('Saludo por prefill (Diseño 2)', () => {
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Corrige tu DNI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No soy yo, corregir mi DNI' }));
 
     const v = valores();
     expect(v.document_number).toBe('');
@@ -250,7 +255,7 @@ describe('Saludo por prefill (Diseño 2)', () => {
     poner('document_number', '001234567');
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-    expect(screen.getByRole('button', { name: 'Corrige tu documento' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'No soy yo, corregir mi documento' })).toBeInTheDocument();
   });
 });
 
@@ -455,7 +460,7 @@ describe('Revisión 1 · "Corrige tu DNI" con documento bloqueado', () => {
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
     expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, María!');
-    expect(screen.queryByRole('button', { name: /Corrige tu/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /No soy yo/ })).not.toBeInTheDocument();
     expect(document.getElementById('document_number-input')).toBeDisabled();
   });
 
@@ -465,7 +470,7 @@ describe('Revisión 1 · "Corrige tu DNI" con documento bloqueado', () => {
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
     expect(document.querySelector('[data-saludo-v2]')).toHaveTextContent('¡Hola, María!');
-    expect(screen.queryByRole('button', { name: /Corrige tu/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /No soy yo/ })).not.toBeInTheDocument();
   });
 
   it('limpiar no vacía los campos bloqueados por el lead (y el prefill tampoco los pisa)', () => {
@@ -478,7 +483,7 @@ describe('Revisión 1 · "Corrige tu DNI" con documento bloqueado', () => {
     // bloqueado — el lead es la fuente de verdad, no el lookup.
     expect(valores().first_name).toBe('NombreDelLead');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Corrige tu DNI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No soy yo, corregir mi DNI' }));
     const v = valores();
     expect(v.document_number).toBe('');
     expect(v.first_name).toBe('NombreDelLead'); // bloqueado: no se toca
@@ -558,7 +563,7 @@ describe('Revisión 4 · área de toque de 44px', () => {
     poner('document_number', '12345678');
     montar(true);
     act(() => lookup.onPrefillReady!(RENIEC));
-    expect(screen.getByRole('button', { name: 'Corrige tu DNI' })).toHaveClass('min-h-[44px]');
+    expect(screen.getByRole('button', { name: 'No soy yo, corregir mi DNI' })).toHaveClass('min-h-[44px]');
   });
 });
 
@@ -713,7 +718,7 @@ describe('Re-revisión 1 · el prefill no pisa un campo bloqueado por el lead', 
     expect(valores().first_name).toBe('NombreDelLead');
 
     // "Corrige tu DNI": limpia lo que llenó el prefill (first_name, bloqueado, no se toca).
-    fireEvent.click(screen.getByRole('button', { name: 'Corrige tu DNI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No soy yo, corregir mi DNI' }));
     expect(valores().first_name).toBe('NombreDelLead');
 
     // DNI B: no se encuentra a nadie. first_name sigue siendo el del lead.

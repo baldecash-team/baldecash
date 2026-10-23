@@ -386,6 +386,12 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 }
 .d2-fundido { animation: d2Fundido 0.2s ease-out both; }
 .d2-fundido-sale { animation: d2FundidoSale 0.16s ease-in both; pointer-events: none; }
+/* Saludo del Paso 1 (BAL-4963): fundido y 6 px hacia arriba. */
+@keyframes d2Sube {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: none; }
+}
+.d2-saludo { animation: d2Sube 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 /* Errores, desplegables y regiones que se abren. */
 .d2-aparece { animation: d2Aparece 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 /* La cuota cambió: dos nombres para poder repetir el pulso sin desmontar. */
@@ -403,7 +409,7 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   .d2-pop, .d2-pop-lento, .d2-pop-modal, .d2-pop-modal-chico, .d2-pop-hoja,
   .d2-sale, .d2-sale-hoja, .d2-fundido, .d2-fundido-sale, .d2-aparece,
   .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-check-hecho, .d2-check-actual,
-  .d2-crece, .d2-crece-movil {
+  .d2-crece, .d2-crece-movil, .d2-saludo {
     animation: none !important;
   }
 }
