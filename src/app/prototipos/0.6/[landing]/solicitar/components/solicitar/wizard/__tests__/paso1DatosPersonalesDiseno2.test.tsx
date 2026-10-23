@@ -435,8 +435,8 @@ describe('Diseño 1 no cambia', () => {
     unmount();
     render(<DniNoInvitadoModal dni="12345678" onCerrar={() => undefined} v2 />);
     expect(screen.getByRole('heading').className).toContain("font-['Baloo_2',_sans-serif]");
-    expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass('min-h-[48px]', 'rounded-[10px]', 'border-[#4654CD]');
-    expect(screen.getByRole('link', { name: 'Ver el catálogo principal' })).toHaveClass('min-h-[48px]', 'bg-[#4654CD]');
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass('min-h-[48px]', 'rounded-[10px]', 'border-[var(--color-primary)]');
+    expect(screen.getByRole('link', { name: 'Ver el catálogo principal' })).toHaveClass('min-h-[48px]', 'bg-[var(--color-primary)]');
   });
 });
 

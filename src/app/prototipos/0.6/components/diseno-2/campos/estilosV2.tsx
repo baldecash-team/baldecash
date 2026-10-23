@@ -12,7 +12,7 @@
  * valor es `false` y el DOM queda exactamente como antes.
  *
  * Valores: prototipo de Brenda (2026-10-20) y brief F2. El color de marca es
- * el del brandbook (#4654CD).
+ * el de la landing (`var(--color-primary)`, #4654CD por defecto; I5 BAL-4969).
  */
 
 import React, { createContext, useContext } from 'react';
@@ -29,7 +29,7 @@ export function useCamposV2(): boolean {
 }
 
 export const COLOR_V2 = {
-  marca: '#4654CD',
+  marca: 'var(--color-primary)',
   neutro: '#C9CEF0',
   error: '#C2410C',
   errorTexto: '#B23C0A',
@@ -51,7 +51,7 @@ export const PISTA_V2 = 'text-[13px] leading-snug text-[#5B6275]';
 export const CAJA_V2 = 'h-[50px] rounded-[10px] border-[1.5px] bg-white transition-colors duration-150';
 /** Prefijo "+51" / "S/": bloque pegado al borde izquierdo de la caja. */
 export const PREFIJO_V2 =
-  'flex h-full flex-shrink-0 select-none items-center self-stretch border-r border-[#DCE1FA] bg-[#F2F4FD] px-3 text-base font-semibold text-[#3341B8]';
+  'flex h-full flex-shrink-0 select-none items-center self-stretch border-r border-[rgba(var(--color-primary-rgb),0.18)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-base font-semibold text-[color-mix(in_srgb,var(--color-primary)_80%,black)]';
 /** Placeholder gris. */
 export const PLACEHOLDER_V2 = 'placeholder:text-[#8A90A2]';
 
@@ -64,7 +64,7 @@ export interface EstadoCajaV2 {
 /** Color del borde: error > foco > correcto > neutro. */
 export function bordeV2({ error, foco, correcto }: EstadoCajaV2): string {
   if (error) return 'border-[#C2410C]';
-  if (foco) return 'border-[#4654CD]';
+  if (foco) return 'border-[var(--color-primary)]';
   if (correcto) return 'border-[#0E8C78]';
   return 'border-[#C9CEF0]';
 }
@@ -73,10 +73,10 @@ export function bordeV2({ error, foco, correcto }: EstadoCajaV2): string {
 export function chipV2(seleccionado: boolean): string {
   return [
     'min-h-[48px] rounded-[10px] border-[1.5px] px-2 text-sm leading-tight transition-colors duration-150 cursor-pointer',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
     seleccionado
-      ? 'border-[#4654CD] bg-[#4654CD] font-bold text-white'
-      : 'border-[#4654CD] bg-white font-semibold text-[#4654CD] hover:bg-[#F2F4FD]',
+      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-white'
+      : 'border-[var(--color-primary)] bg-white font-semibold text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.07)]',
   ].join(' ');
 }
 

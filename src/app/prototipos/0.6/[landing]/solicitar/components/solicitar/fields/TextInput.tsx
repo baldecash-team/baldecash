@@ -197,7 +197,7 @@ export const TextInput: React.FC<TextInputProps> = ({
             }}
           />
           {endContent && <span className="flex-shrink-0 select-none pr-3 text-base text-[#5B6275]">{endContent}</span>}
-          {isLoading && <Loader2 className="mr-3.5 h-5 w-5 flex-shrink-0 animate-spin text-[#4654CD]" />}
+          {isLoading && <Loader2 className="mr-3.5 h-5 w-5 flex-shrink-0 animate-spin text-[var(--color-primary)]" />}
           {!isLoading && showSuccess && <Check className="mr-3.5 h-5 w-5 flex-shrink-0 text-[#0E8C78]" strokeWidth={2.6} />}
         </div>
         {error && !hideErrorText && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}

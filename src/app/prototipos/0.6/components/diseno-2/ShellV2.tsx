@@ -118,18 +118,18 @@ const ESTILOS_V2 = `
   .campo-v2[data-guia="brillo"] { animation: brilloCampoV2 1.6s ease-out; }
   [data-continuar-v2][data-guia="brillo"] { animation: brilloCtaV2 1.6s ease-out; }
   @keyframes brilloCampoV2 {
-    0% { box-shadow: 0 0 0 0 rgba(70, 84, 205, 0); background-color: rgba(70, 84, 205, 0); }
-    25% { box-shadow: 0 0 0 6px rgba(70, 84, 205, 0.18); background-color: rgba(70, 84, 205, 0.05); }
-    100% { box-shadow: 0 0 0 0 rgba(70, 84, 205, 0); background-color: rgba(70, 84, 205, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0); background-color: rgba(var(--color-primary-rgb), 0); }
+    25% { box-shadow: 0 0 0 6px rgba(var(--color-primary-rgb), 0.18); background-color: rgba(var(--color-primary-rgb), 0.05); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0); background-color: rgba(var(--color-primary-rgb), 0); }
   }
   @keyframes brilloCtaV2 {
-    0% { box-shadow: 0 0 0 0 rgba(70, 84, 205, 0.5); }
-    40% { box-shadow: 0 0 0 10px rgba(70, 84, 205, 0.15); }
-    100% { box-shadow: 0 0 0 0 rgba(70, 84, 205, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.5); }
+    40% { box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0.15); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0); }
   }
   @media (prefers-reduced-motion: reduce) {
     .campo-v2[data-guia="brillo"], [data-continuar-v2][data-guia="brillo"] {
-      animation: none; box-shadow: 0 0 0 4px rgba(70, 84, 205, 0.25);
+      animation: none; box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb), 0.25);
     }
   }
 `;

@@ -176,10 +176,10 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
                 px-3 py-2.5 min-h-[44px] rounded-xl border-2 text-sm font-medium cursor-pointer transition-colors
                 ${v2
                   ? marcado
-                    ? 'border-[#4654CD] bg-[#E9ECFB] text-[#3341B8]'
+                    ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.12)] text-[color-mix(in_srgb,var(--color-primary)_80%,black)]'
                     : hayError
                       ? 'border-[#C2410C] bg-white text-[#1E2230]'
-                      : 'border-[#C9CEF0] bg-white text-[#1E2230] hover:border-[#4654CD]'
+                      : 'border-[#C9CEF0] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
                   : marcado
                     ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.08)] text-[var(--color-primary)]'
                     : hayError
@@ -212,10 +212,10 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
                 w-full p-4 rounded-xl text-left border-2 flex items-start gap-3 cursor-pointer transition-all duration-200
                 ${v2
                   ? marcado
-                    ? 'bg-[#E9ECFB] border-[#4654CD]'
+                    ? 'bg-[rgba(var(--color-primary-rgb),0.12)] border-[var(--color-primary)]'
                     : hayError
                       ? 'bg-white border-[#C2410C]'
-                      : 'bg-white border-[#C9CEF0] hover:border-[#4654CD]'
+                      : 'bg-white border-[#C9CEF0] hover:border-[var(--color-primary)]'
                   : marcado
                     ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
                     : hayError
@@ -330,9 +330,9 @@ interface SubProps {
 function bordeDelCuadro(hayError: boolean, abierto: boolean, conValor: boolean, v2?: boolean): string {
   if (v2) {
     if (hayError) return 'border-[#C2410C] bg-[#FFF1EB]';
-    if (abierto) return 'border-[#4654CD] bg-white';
+    if (abierto) return 'border-[var(--color-primary)] bg-white';
     if (conValor) return 'border-[#0E8C78] bg-white';
-    return 'border-[#C9CEF0] hover:border-[#4654CD] bg-white';
+    return 'border-[#C9CEF0] hover:border-[var(--color-primary)] bg-white';
   }
   if (hayError) return 'border-[#ef4444] bg-[#ef4444]/5';
   if (abierto) return 'border-[var(--color-primary)] bg-white';
@@ -395,7 +395,7 @@ const Desplegable: React.FC<SubProps & { placeholder: string }> = ({
         `}
       >
         <span className={`truncate ${resumen ? (v2 ? 'text-[#1E2230]' : 'text-neutral-800') : (v2 ? 'text-[#8A90A2]' : 'text-neutral-400')}`}>{resumen || placeholder}</span>
-        <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'} ${abierto ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'} ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {abierto && (
         <div
@@ -499,7 +499,7 @@ const Buscador: React.FC<SubProps> = ({
           ${disabled ? 'opacity-50' : ''}
         `}
       >
-        <Search className={`w-4 h-4 flex-shrink-0 ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
+        <Search className={`w-4 h-4 flex-shrink-0 ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
         <input
           ref={entrada}
           type="text"

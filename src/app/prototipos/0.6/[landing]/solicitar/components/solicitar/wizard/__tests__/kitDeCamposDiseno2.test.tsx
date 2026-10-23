@@ -290,9 +290,9 @@ describe('Lista con display_mode de botones', () => {
     const ce = screen.getByRole('radio', { name: 'Carné de extranjería' });
     expect(dni).toHaveAttribute('aria-checked', 'true');
     expect(ce).toHaveAttribute('aria-checked', 'false');
-    expect(dni.className).toContain('bg-[#4654CD]');
+    expect(dni.className).toContain('bg-[var(--color-primary)]');
     expect(dni.className).toContain('text-white');
-    expect(ce.className).toContain('text-[#4654CD]');
+    expect(ce.className).toContain('text-[var(--color-primary)]');
     expect(dni.className).toContain('min-h-[48px]');
 
     fireEvent.click(ce);
@@ -317,7 +317,7 @@ describe('IMPORTANTE — foco visible en Diseño 2 (revisión F2)', () => {
     expect(tarjetas.length).toBeGreaterThan(0);
     for (const t of Array.from(tarjetas)) {
       expect(t.className).toContain('focus-visible:ring-2');
-      expect(t.className).toContain('ring-[#4654CD]');
+      expect(t.className).toContain('ring-[var(--color-primary)]');
     }
   });
 
@@ -325,7 +325,7 @@ describe('IMPORTANTE — foco visible en Diseño 2 (revisión F2)', () => {
     const { container } = pintarV2(paso([LISTA_LARGA]));
     const disparador = container.querySelector('[role="button"]');
     expect(disparador?.className).toContain('focus-visible:ring-2');
-    expect(disparador?.className).toContain('ring-[#4654CD]');
+    expect(disparador?.className).toContain('ring-[var(--color-primary)]');
   });
 
   it('SelectInput: el label lleva htmlFor apuntando al disparador', () => {
@@ -390,7 +390,7 @@ describe('Casilla obligatoria en Diseño 2', () => {
     const { container } = pintarV2(paso([CASILLA]));
     const label = container.querySelector('label');
     expect(label?.className).toContain('focus-within:ring-2');
-    expect(label?.className).toContain('ring-[#4654CD]');
+    expect(label?.className).toContain('ring-[var(--color-primary)]');
   });
 
   it('el label y el subtítulo no se anuncian dos veces: el input no lleva aria-describedby a ellos', () => {

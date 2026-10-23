@@ -145,19 +145,19 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                 className={`
                   relative w-full p-4 rounded-xl text-left
                   transition-all duration-200 cursor-pointer
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
                   ${elegida
-                    ? 'bg-[#E9ECFB] border-[1.5px] border-[#4654CD]'
-                    : `bg-white border-[1.5px] ${showError ? 'border-[#C2410C]' : 'border-[#C9CEF0]'} hover:border-[#4654CD]`}
+                    ? 'bg-[rgba(var(--color-primary-rgb),0.12)] border-[1.5px] border-[var(--color-primary)]'
+                    : `bg-white border-[1.5px] ${showError ? 'border-[#C2410C]' : 'border-[#C9CEF0]'} hover:border-[var(--color-primary)]`}
                   ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
                 <span className="block min-w-0">
-                  <span className={`block font-medium text-sm sm:text-base break-words ${elegida ? 'text-[#3341B8]' : 'text-[#1E2230]'}`}>
+                  <span className={`block font-medium text-sm sm:text-base break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary)_80%,black)]' : 'text-[#1E2230]'}`}>
                     {option.label}
                   </span>
                   {option.description && (
-                    <span className={`block text-xs sm:text-sm mt-0.5 break-words ${elegida ? 'text-[#3341B8]/80' : 'text-[#5B6275]'}`}>
+                    <span className={`block text-xs sm:text-sm mt-0.5 break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary)_80%,black)]/80' : 'text-[#5B6275]'}`}>
                       {option.description}
                     </span>
                   )}
@@ -171,25 +171,18 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
     );
   }
 
+  // Diseño 1: el markup de siempre, idéntico al de `main`.
   return (
-    <div id={id} className={v2 ? 'flex flex-col gap-2.5' : 'space-y-3'}>
+    <div id={id} className="space-y-3">
       {/* Label */}
-      {v2 ? (
-        <label id={`${id}-label`} className={ETIQUETA_V2}>
-          {label}
-          {!required && <MarcaOpcionalV2 />}
-          {tooltip && <FieldTooltip tooltip={tooltip} />}
-        </label>
-      ) : (
-        <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-          {label}
-          {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-          {tooltip && <FieldTooltip tooltip={tooltip} />}
-        </label>
-      )}
+      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+        {label}
+        {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+        {tooltip && <FieldTooltip tooltip={tooltip} />}
+      </label>
 
       {/* Cards grid */}
-      <div className="space-y-2" aria-describedby={v2 && error ? errorId : undefined}>
+      <div className="space-y-2">
         {options.map((option) => (
           <button
             key={option.value}
@@ -209,14 +202,9 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             className={`
               relative w-full p-4 rounded-xl text-left
               transition-all duration-200 cursor-pointer border-2
-              ${v2 ? 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2' : ''}
-              ${v2
-                ? value === option.value
-                  ? 'bg-[#E9ECFB] !border-[1.5px] border-[#4654CD]'
-                  : `bg-white !border-[1.5px] ${showError ? 'border-[#C2410C]' : 'border-[#C9CEF0]'} hover:border-[#4654CD]`
-                : value === option.value
-                  ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
-                  : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
+              ${value === option.value
+                ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
+                : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
               }
               ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
             `}
@@ -252,17 +240,15 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
       </div>
 
       {/* Success message */}
-      {showSuccess && !v2 && (
+      {showSuccess && (
         <p className="text-sm text-green-600 flex items-center gap-1">
           <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           Seleccionado
         </p>
       )}
 
-      {v2 && error && <ErrorCampoV2 id={errorId}>{error}</ErrorCampoV2>}
-
       {/* Error message */}
-      {error && !v2 && (
+      {error && (
         <p className="text-sm text-[#ef4444] flex items-center gap-1">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}

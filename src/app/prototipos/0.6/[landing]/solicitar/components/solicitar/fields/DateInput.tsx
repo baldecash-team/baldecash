@@ -563,7 +563,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             aria-describedby={v2 && effectiveError ? `${id}-error` : undefined}
             className={v2 ? `
               flex items-center gap-2 px-3.5 cursor-pointer
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
               ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
               ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
             ` : `
@@ -574,7 +574,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             `}
             onClick={() => !disabled && setIsOpen(true)}
           >
-            <Calendar className={v2 ? 'w-4 h-4 text-[#4654CD]' : 'w-4 h-4 text-neutral-400'} />
+            <Calendar className={v2 ? 'w-4 h-4 text-[var(--color-primary)]' : 'w-4 h-4 text-neutral-400'} />
             <span className={v2 ? `flex-1 text-base ${value ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
               {value ? formatDisplayDate(value) : placeholder}
             </span>

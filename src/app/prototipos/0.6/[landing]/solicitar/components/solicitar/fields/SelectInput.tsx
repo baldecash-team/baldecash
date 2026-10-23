@@ -290,7 +290,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
           }}
           className={v2 ? `
             w-full px-3.5 flex items-center justify-between gap-2 cursor-pointer text-left text-base
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD] focus-visible:ring-offset-2
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
             ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
             ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
           ` : `
@@ -320,7 +320,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             )}
             {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
             {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
-            <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[#4654CD]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
 

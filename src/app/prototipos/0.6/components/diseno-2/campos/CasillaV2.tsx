@@ -69,7 +69,7 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
       <label
         key={sacudidas}
         htmlFor={`${id}-casilla`}
-        className={`flex items-center gap-3 rounded-[14px] border-2 px-3 py-[11px] sm:px-4 sm:py-3 transition-colors duration-150 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#4654CD] focus-within:ring-offset-2 ${caja} ${
+        className={`flex items-center gap-3 rounded-[14px] border-2 px-3 py-[11px] sm:px-4 sm:py-3 transition-colors duration-150 focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--color-primary)] focus-within:ring-offset-2 ${caja} ${
           conError && sacudidas > 0 ? 'casilla-v2-sacudida' : ''
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
       >
@@ -83,7 +83,7 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           aria-invalid={conError || undefined}
           aria-required={required || undefined}
           className="m-0 h-6 w-6 flex-shrink-0 cursor-pointer sm:h-[22px] sm:w-[22px]"
-          style={{ accentColor: checked ? '#0E8C78' : '#4654CD' }}
+          style={{ accentColor: checked ? '#0E8C78' : 'var(--color-primary)' }}
         />
         {/*
           El label y el subtítulo NO van en `aria-describedby`: el <label>

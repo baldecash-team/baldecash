@@ -40,7 +40,7 @@ export function SaludoPrellenadoV2({
           <button
             type="button"
             onClick={onCorregir}
-            className={`${TOQUE_44} cursor-pointer rounded font-bold underline underline-offset-2 hover:text-[#08473C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4654CD]`}
+            className={`${TOQUE_44} cursor-pointer rounded font-bold underline underline-offset-2 hover:text-[#08473C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]`}
           >
             {esDni ? 'Corrige tu DNI' : 'Corrige tu documento'}
           </button>
