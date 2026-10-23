@@ -4,27 +4,24 @@
  * El estado del Paso 4 de Diseño 2 (BAL-4966) que no es del flujo de siempre:
  *
  * - los seguros (con `usePlanesDeSeguro`, la misma lógica de `/complementos`);
- * - las dos vistas de celular: (1) los campos del paso → "Continuar";
- *   (2) las protecciones → "Enviar…". En escritorio todo va junto (el CSS
- *   muestra las dos), así que esto no necesita saber el ancho de pantalla;
+ * - en celular, una sola pantalla como en el prototipo de Brenda: campos,
+ *   protecciones y "Enviar…" juntos (verificación final, BAL-4969: antes
+ *   eran dos vistas, "Continuar" → protecciones → "Enviar");
  * - los ids de seguros que viajan en el submit.
  *
  * Lo llama `StepClient` siempre (es un hook), con `activo` en `false` fuera
  * del resumen de Diseño 2: ahí no pide nada ni toca nada.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { usePlanesDeSeguro } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/sections/usePlanesDeSeguro';
 import { buildSubmitInsuranceIds } from '@/app/prototipos/0.6/[landing]/solicitar/utils/submitInsuranceIds';
 import { abrirSeccionDe } from '../SeccionPlegable';
 import { resaltar } from '../useGuiaDeCampos';
-import { prefiereMenosMovimiento } from '../movimiento';
 import { textoDelEnvio } from './paso4';
 
-export type VistaPaso4 = 1 | 2;
-
-/** Espera para que la vista 1 se pinte antes de bajar al campo. */
+/** Espera para que la sección se abra antes de bajar al campo. */
 const ESPERA_AL_CAMBIAR_VISTA_MS = 60;
 
 /**
@@ -51,19 +48,11 @@ export interface OpcionesPaso4V2 {
    * anticipado, D5): los seguros elegidos no tienen cómo llegar al backend.
    */
   creadaAntes?: boolean;
-  /** Código del paso: al cambiar, se vuelve a la vista 1. */
-  codigoPaso: string | null;
 }
 
-export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso }: OpcionesPaso4V2) {
+export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: OpcionesPaso4V2) {
   const seguros = usePlanesDeSeguro(activo && conSeguros);
   const { selectedInsurances, clearInsurance } = useProduct();
-  // La vista va atada al paso: al cambiar de paso se vuelve a la 1 sin un
-  // efecto que la resetee.
-  const [estadoVista, setEstadoVista] = useState<{ paso: string | null; vista: VistaPaso4 }>({ paso: codigoPaso, vista: 1 });
-  const vista: VistaPaso4 = estadoVista.paso === codigoPaso ? estadoVista.vista : 1;
-  const setVista = useCallback((v: VistaPaso4) => setEstadoVista({ paso: codigoPaso, vista: v }), [codigoPaso]);
-
   // Seguros elegidos que este paso no puede mandar: se sueltan para que el
   // total del panel no cobre algo que nunca llega al backend. SOLO en dos
   // casos (revisión de F7, I-2/M-3/M-4):
@@ -88,38 +77,16 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso
   const errorDeCarga = activo && conSeguros && seguros.error;
   const pideConfirmarEnvio = errorDeCarga && selectedInsurances.length > 0;
 
-  // Celular: si "Reintentar" trae los planes, aparece la vista 2. Se va a
-  // ella para que la persona vea sus protecciones donde las dejó, en vez de
-  // que la sección desaparezca detrás de un "Continuar".
-  // (Ajuste de estado durante el render, no en un efecto.)
-  const [irAVista2AlCargar, setIrAVista2AlCargar] = useState(false);
-  const { reintentar: reintentarPedido } = seguros;
-  const reintentar = useCallback(() => {
-    setIrAVista2AlCargar(true);
-    reintentarPedido();
-  }, [reintentarPedido]);
-  if (irAVista2AlCargar && (conPlanes || seguros.cargado || seguros.error || !activo)) {
-    setIrAVista2AlCargar(false);
-    if (conPlanes) setEstadoVista({ paso: codigoPaso, vista: 2 });
-  }
-
   /** Seguros que no se pudieron cargar: la persona confirmó enviar sin ellos. */
   const soltarParaEnviarSinProtecciones = useCallback(() => clearInsurance(), [clearInsurance]);
 
-  /** Pasa de la vista 1 a la 2 y sube al principio. */
-  const irAVista2 = useCallback(() => {
-    setVista(2);
-    window.scrollTo({ top: 0, behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
-  }, [setVista]);
-
-  /** Falta un campo al enviar: vuelve a la vista 1 y lleva al campo. */
+  /** Falta un campo al enviar: lleva al campo (abre su sección si hace falta). */
   const volverAlCampo = useCallback((codigo: string) => {
-    setVista(1);
     window.setTimeout(() => irAlCampoV2(codigo), ESPERA_AL_CAMBIAR_VISTA_MS);
-  }, [setVista]);
+  }, []);
 
   return {
-    seguros: { ...seguros, reintentar },
+    seguros,
     /** El pedido de planes falló (se avisa y se ofrece "Reintentar"). */
     errorDeCarga,
     /**
@@ -128,11 +95,6 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false, codigoPaso
      */
     pideConfirmarEnvio,
     soltarParaEnviarSinProtecciones,
-    /** Hay protecciones que mostrar: en celular existe la vista 2. */
-    hayVista2: conPlanes,
-    vista,
-    setVista,
-    irAVista2,
     volverAlCampo,
     protecciones,
     textoEnviar: textoDelEnvio(protecciones),

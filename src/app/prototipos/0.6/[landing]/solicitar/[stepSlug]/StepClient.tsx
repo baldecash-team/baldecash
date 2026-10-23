@@ -494,7 +494,6 @@ function StepContent() {
     activo: usarDiseno2 && isSummaryStep && !isFlowConfigLoading && !configLoadFailed,
     conSeguros: segurosEnPaso4,
     creadaAntes: esElQueEnvia && solicitudCreadaAntesDelPaso(envioAnticipadoStep, navigation.currentIndex, yaEnviada),
-    codigoPaso: step?.code ?? null,
   });
 
   /**
@@ -1188,27 +1187,8 @@ function StepContent() {
     // solicitud) van separados por lo mismo que en `MobileStickyCta`.
     if (usarDiseno2) {
       const encabezado = encabezadoDelPaso4(step, nombrePaso4);
-      // Celular en dos vistas (solo si hay protecciones que ofrecer): la 1
-      // con los campos del paso y "Continuar", la 2 con las protecciones y
-      // "Enviar…". En escritorio el CSS muestra las dos juntas.
-      const enVista2 = paso4.hayVista2 && paso4.vista === 2;
-      const continuarAVista2 = () => {
-        setSubmitted(true);
-        const firstErrorField = validateStep();
-        if (firstErrorField) {
-          paso4.volverAlCampo(firstErrorField);
-          window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
-          return;
-        }
-        paso4.irAVista2();
-      };
-      // Si hay vista 2, la vista 1 siempre lleva "Continuar" (aunque después
-      // venga `/complementos`: si no, las protecciones nunca se verían). En la
-      // vista 2 manda la acción de siempre: enviar, o ir a complementos.
-      const accionMovil = paso4.hayVista2 && paso4.vista === 1
-        ? { texto: 'Continuar', onPrimary: continuarAVista2 }
-        : null;
-      const atrasMovil = enVista2 ? { texto: 'Volver', onClick: () => paso4.setVista(1) } : null;
+      // Celular: una sola pantalla como en el prototipo de Brenda (campos,
+      // protecciones y la barra con "Enviar…"), sin "Continuar" intermedio.
       const frecuencia = getAllProducts()[0]?.paymentFrequency;
 
       return (
@@ -1238,8 +1218,6 @@ function StepContent() {
             detalle={sinResumen ? undefined : <>{repasoDeDatos()}</>}
             pasoResumen
             textoEnviar={paso4.textoEnviar}
-            accionMovil={accionMovil}
-            atrasMovil={atrasMovil}
             // Con la hoja "¿Qué cubre?" abierta no hay "Enviar" abajo (QA en
             // celular, BAL-4969, bug 1).
             ocultarBarraInferior={detalleSeguroAbierto}
@@ -1252,14 +1230,14 @@ function StepContent() {
                   <div
                     data-vista-paso4="1"
                     // Con secciones, cada una trae su tarjeta (prototipo).
-                    className={`${step.groups?.length ? '' : 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'} ${enVista2 ? 'hidden lg:block' : ''}`}
+                    className={step.groups?.length ? undefined : 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
                     style={step.groups?.length ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
                   >
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
                   </div>
                 )}
                 {segurosEnPaso4 && (
-                  <div data-vista-paso4="2" className={paso4.hayVista2 && paso4.vista === 1 ? 'hidden lg:block' : undefined}>
+                  <div data-vista-paso4="2">
                     <ProteccionesV2
                       {...paso4.seguros}
                       alternar={alternarProteccion}

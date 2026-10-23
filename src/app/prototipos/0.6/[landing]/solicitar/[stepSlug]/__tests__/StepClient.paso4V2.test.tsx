@@ -5,7 +5,7 @@
  * "Ver detalle", textos y acciones de escritorio y de celular). Lo que se
  * prueba de verdad: los seguros dentro del paso (con la lógica compartida de
  * `/complementos`), el submit con `insurance_ids`, que en Diseño 2 no se salte
- * a `/complementos`, el envío anticipado (D5), las dos vistas de celular y que
+ * a `/complementos`, el envío anticipado (D5), el celular en una sola pantalla y que
  * Diseño 1 siga igual.
  */
 import React, { useSyncExternalStore } from 'react';
@@ -434,7 +434,7 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     render(<StepClient />);
     await screen.findByText('Garantía Extendida Laptop 24M');
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
-    await screen.findByText('Enviar con 1 protección');
+    await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección'));
 
     await act(async () => {
       fireEvent.click(screen.getByTestId('escritorio'));
@@ -450,7 +450,7 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
       render(<StepClient />);
       expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
-      await screen.findByText('Enviar con 1 protección');
+      await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección'));
       await act(async () => {
         fireEvent.click(screen.getByTestId('escritorio'));
       });
@@ -524,7 +524,7 @@ describe('Paso 4 de Diseño 2 · envío anticipado (D5)', () => {
     render(<StepClient />);
     await screen.findByText('Garantía Extendida Laptop 24M');
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
-    await screen.findByText('Enviar con 1 protección');
+    await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección'));
     await act(async () => {
       fireEvent.click(screen.getByTestId('escritorio'));
     });
@@ -532,56 +532,34 @@ describe('Paso 4 de Diseño 2 · envío anticipado (D5)', () => {
   });
 });
 
-describe('Paso 4 de Diseño 2 · celular en dos vistas', () => {
-  it('vista 1 → "Continuar" → vista 2 con las protecciones y "‹ Volver"', async () => {
+describe('Paso 4 de Diseño 2 · celular en una sola pantalla (verificación final)', () => {
+  it('campos y protecciones juntos; el botón de celular envía, sin "Continuar" intermedio ni "‹ Volver"', async () => {
     render(<StepClient />);
     await screen.findByText('Garantía Extendida Laptop 24M');
-    // Vista 1: campos a la vista, protecciones solo en escritorio.
     expect(vista(1)).not.toHaveClass('hidden');
-    expect(vista(2)).toHaveClass('hidden', 'lg:block');
-    expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
-    // Escritorio: todo junto y envía.
-    expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
-
-    fireEvent.click(screen.getByTestId('celular'));
-    expect(vista(1)).toHaveClass('hidden', 'lg:block');
     expect(vista(2)).not.toHaveClass('hidden');
     expect(screen.getByTestId('celular')).toHaveTextContent('Enviar solicitud');
-    expect(mockSubmit).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByTestId('atras-celular'));
-    expect(vista(1)).not.toHaveClass('hidden');
+    expect(screen.queryByTestId('atras-celular')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
+    expect(screen.getByTestId('celular')).toHaveTextContent('Enviar con 1 protección');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('celular'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: ['14'] }));
   });
 
-  it('"Continuar" con el día de pago vacío no pasa a la vista 2', async () => {
+  it('enviar desde el celular con el día de pago vacío no envía', async () => {
     delete mockFormData.payment_day;
     render(<StepClient />);
     await screen.findByText('Garantía Extendida Laptop 24M');
-    fireEvent.click(screen.getByTestId('celular'));
-    expect(vista(1)).not.toHaveClass('hidden');
-    expect(screen.queryByTestId('atras-celular')).not.toBeInTheDocument();
-  });
-
-  it('enviar desde la vista 2 con algo pendiente vuelve a la vista 1 sin enviar', async () => {
-    const { rerender } = render(<StepClient />);
-    await screen.findByText('Garantía Extendida Laptop 24M');
-    fireEvent.click(screen.getByTestId('celular')); // a la vista 2
-    expect(vista(2)).not.toHaveClass('hidden');
-
-    // Ej. se borró el borrador: un `formData` nuevo, como el del contexto real.
-    const { payment_day: _borrado, ...resto } = mockFormData;
-    void _borrado;
-    mockFormData = resto;
-    rerender(<StepClient />);
     await act(async () => {
       fireEvent.click(screen.getByTestId('celular'));
     });
     expect(mockSubmit).not.toHaveBeenCalled();
     expect(vista(1)).not.toHaveClass('hidden');
-    expect(vista(2)).toHaveClass('hidden', 'lg:block');
   });
 
-  it('sin seguros hay una sola vista: el botón de celular envía', async () => {
+  it('sin seguros: el botón de celular envía', async () => {
     mockPlanes.lista = [];
     mockSeguros = [{ id: '14', monthlyPrice: 20 }]; // quedó de otro equipo
     render(<StepClient />);
@@ -746,8 +724,8 @@ describe('Corrección · error de carga de planes (BAL-4966)', () => {
     expect(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' })).toHaveAttribute('aria-pressed', 'true');
     expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
     expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 2 protecciones');
-    // Celular: se pasa a la vista 2, donde están las protecciones.
-    await waitFor(() => expect(vista(2)).not.toHaveClass('hidden'));
+    // Celular: las protecciones están en la misma pantalla.
+    expect(vista(2)).not.toHaveClass('hidden');
   });
 
   it('enviar con error y seguros pide confirmación: sin ella NO manda [], y al confirmar suelta y envía', async () => {
@@ -826,20 +804,15 @@ describe('Revisión de F7 · I-3 y M-1: área táctil y movimiento', () => {
 });
 
 describe('Revisión de F7 · I-1: celular con seguros y otra sección después', () => {
-  it('vista 1 "Continuar" → vista 2 con las protecciones → "Continuar" va a /complementos', async () => {
+  it('protecciones en la misma pantalla → "Continuar" va a /complementos', async () => {
     mockFlujo.sectionsAfterWizard = [SECCION_SEGURO, { type: 'accessories', order: 4, enabled: true }];
     render(<StepClient />);
     await screen.findByText('Garantía Extendida Laptop 24M');
-    expect(vista(2)).toHaveClass('hidden', 'lg:block');
-    expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
-
-    fireEvent.click(screen.getByTestId('celular'));
     expect(vista(2)).not.toHaveClass('hidden');
-    expect(vista(1)).toHaveClass('hidden', 'lg:block');
-    expect(screen.getByTestId('atras-celular')).toBeInTheDocument();
+    expect(screen.queryByTestId('atras-celular')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
 
-    // En la vista 2 manda la acción de siempre: ir a complementos.
+    // Manda la acción de siempre: ir a complementos.
     expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
     jest.useFakeTimers();
     try {
