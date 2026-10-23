@@ -930,3 +930,35 @@ describe('QA F10 · Falla 2c: falta un campo en otro paso al enviar', () => {
     }
   });
 });
+
+describe('E2E BAL-4969 (bug 2): reacondicionado en Diseño 2', () => {
+  afterEach(() => {
+    delete (mockProducto as Record<string, unknown>).condition;
+  });
+
+  it('"Enviar" envía directo: sin el modal viejo "Confirma tu solicitud · semi nuevo"', async () => {
+    (mockProducto as Record<string, unknown>).condition = 'refurbished';
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(screen.queryByText(/semi nuevo/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Acepto y contin/ })).not.toBeInTheDocument();
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('doble clic en "Enviar" llama al envío una sola vez', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+  });
+});

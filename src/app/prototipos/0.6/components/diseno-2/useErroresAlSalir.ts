@@ -14,7 +14,7 @@
  * es `DynamicWizardStep` con `camposTocados`.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWizard } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardContext';
 import { validateField, type WizardField, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -55,6 +55,35 @@ export function useErroresAlSalir(step: WizardStep | null) {
     [tocados, codigoPaso],
   );
 
+  // `form_field_error` sale al VALIDAR —al salir del campo o al intentar
+  // continuar/enviar—, una vez por error. Antes salía a cada tecla: el cambio
+  // del valor limpia el error del contexto, la revalidación lo volvía a poner
+  // y cada vuelta contaba como "error nuevo" (E2E BAL-4969: 8 filas de
+  // "Mínimo 9 caracteres" al tipear un celular).
+  // - `porReportarRef`: campos que se acaban de dejar (blur), pendientes de
+  //   reportar en la próxima validación.
+  // - `reportadosRef`: el último mensaje reportado por campo; se borra cuando
+  //   el campo queda válido, así un error NUEVO vuelve a contar.
+  const porReportarRef = useRef<Set<string>>(new Set());
+  const reportadosRef = useRef<Map<string, string>>(new Map());
+  const [salidas, setSalidas] = useState(0);
+  useEffect(() => {
+    porReportarRef.current = new Set();
+    reportadosRef.current = new Map();
+  }, [codigoPaso]);
+
+  const reportar = useCallback((codigo: string, error: string) => {
+    if (reportadosRef.current.get(codigo) === error) return;
+    reportadosRef.current.set(codigo, error);
+    tracker?.track('form_field_error', {
+      step_code: codigoPaso,
+      field_code: codigo,
+      error_field: codigo,
+      error_message: error,
+      diseno: 2,
+    });
+  }, [tracker, codigoPaso]);
+
   const camposPorCodigo = useMemo(() => {
     const m = new Map<string, WizardField>();
     for (const f of step?.fields ?? []) m.set(f.code, f);
@@ -67,6 +96,9 @@ export function useErroresAlSalir(step: WizardStep | null) {
     if (!contenedor || !codigo) return;
     const siguiente = e.relatedTarget as HTMLElement | null;
     if (siguiente && (contenedor.contains(siguiente) || siguiente.closest(DENTRO_DE_UN_DESPLEGABLE))) return;
+    porReportarRef.current.add(codigo);
+    // Un campo ya tocado no cambia `tocados`: esto fuerza la revalidación.
+    setSalidas((n) => n + 1);
     setTocados((prev) => {
       if (prev.paso !== codigoPaso) return { paso: codigoPaso, campos: new Set([codigo]) };
       if (prev.campos.has(codigo)) return prev;
@@ -109,22 +141,22 @@ export function useErroresAlSalir(step: WizardStep | null) {
       // visibilidad (que con el prellenado no es la simple).
       const { error } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
       const actual = formData[codigo]?.error ?? null;
-      if ((error ?? null) !== actual) {
-        setFieldError(codigo, error);
-        // Un error NUEVO al salir del campo (o al corregir mal): una fila por
-        // cambio de mensaje, no por tecla.
-        if (error) {
-          tracker?.track('form_field_error', {
-            step_code: codigoPaso,
-            field_code: codigo,
-            error_field: codigo,
-            error_message: error,
-            diseno: 2,
-          });
-        }
-      }
+      if ((error ?? null) !== actual) setFieldError(codigo, error);
+      if (!error) reportadosRef.current.delete(codigo);
+      else if (porReportarRef.current.has(codigo)) reportar(codigo, error);
+      porReportarRef.current.delete(codigo);
     }
-  }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError, tracker, codigoPaso]);
+  }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError, reportar, salidas]);
+
+  // Errores que pone la validación de "Continuar"/"Enviar" en campos que la
+  // persona no llegó a tocar: se reportan una vez (mismo registro de arriba).
+  useEffect(() => {
+    for (const codigo of camposPorCodigo.keys()) {
+      if (camposTocados.has(codigo)) continue;
+      const error = formData[codigo]?.error;
+      if (error) reportar(codigo, error);
+    }
+  }, [formData, camposPorCodigo, camposTocados, reportar]);
 
   return { camposTocados, onBlur };
 }

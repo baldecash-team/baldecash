@@ -43,6 +43,7 @@ import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { useToast, ModalAviso } from '@/app/prototipos/_shared';
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -736,6 +737,10 @@ function StepContent() {
     isRefurbishedCondition(selectedProduct?.condition) ||
     cartProducts.some((p) => isRefurbishedCondition(p.condition));
 
+  // Un doble clic en "Enviar"/"Continuar" (o en el botón de un modal que
+  // envía) avanza una sola vez (E2E BAL-4969). Sin cambio visual.
+  const tomarCandado = useCandadoDeAvance();
+
   const handleSummarySubmit = async () => {
     // Wait for flow config to be ready
     if (isFlowConfigLoading) return;
@@ -774,7 +779,10 @@ function StepContent() {
     }
 
     // Reacondicionado: exige aceptación explícita antes de continuar/enviar.
-    if (isRefurbishedSelection && !refurbAcceptedRef.current) {
+    // Diseño 2 no: el aviso ya se mostró dentro del modal "Lo quiero", donde
+    // se aceptan los términos (4ee75501); repetirlo acá era un segundo modal
+    // con su propia casilla y un botón más que mandaba el envío (BAL-4969).
+    if (!usarDiseno2 && isRefurbishedSelection && !refurbAcceptedRef.current) {
       setShowRefurbAcceptance(true);
       return;
     }
@@ -787,11 +795,13 @@ function StepContent() {
     // Check if there are sections after wizard (complementos page)
     // (Diseño 2: los seguros ya no cuentan, van en este paso.)
     if (hayComplementos) {
+      if (!tomarCandado()) return;
       // Navigate to complementos page for insurance/accessories sections
       setIsSubmitting(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
       router.push(routes.solicitarComplementos(landing));
     } else if (yaEnviada && handoff) {
+      if (!tomarCandado()) return;
       // El envío anticipado ya creó la solicitud: mandarla otra vez crearía una
       // segunda con los mismos datos.
       router.push(routes.solicitarConfirmacion(
@@ -806,6 +816,7 @@ function StepContent() {
         setConfirmarSinProtecciones(true);
         return;
       }
+      if (!tomarCandado()) return;
       sinProteccionesConfirmadoRef.current = false;
       // No sections after wizard - submit application directly
       // Diseño 2: con los seguros elegidos en este paso (el mismo
@@ -854,6 +865,8 @@ function StepContent() {
       document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    if (!tomarCandado()) return;
 
     // Mark step as completed
     if (step) {
@@ -1267,16 +1280,6 @@ function StepContent() {
                     paso4.soltarParaEnviarSinProtecciones();
                     void handleSummarySubmit();
                   }}
-                />
-                <RefurbishedAcceptanceModal
-                  isOpen={showRefurbAcceptance}
-                  onClose={() => setShowRefurbAcceptance(false)}
-                  onAccept={() => {
-                    refurbAcceptedRef.current = true;
-                    setShowRefurbAcceptance(false);
-                    handleSummarySubmit();
-                  }}
-                  productName={selectedProduct?.name}
                 />
               </div>
             )}

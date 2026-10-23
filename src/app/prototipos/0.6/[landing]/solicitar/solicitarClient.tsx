@@ -5,6 +5,7 @@
  * Landing page before starting the wizard flow
  */
 
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import React, { Suspense, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -452,6 +453,10 @@ function WizardPreviewContent() {
     return true;
   };
 
+  // Doble clic en "Comenzar": avanza una sola vez (E2E BAL-4969). En
+  // renueva-* el paso embebido trae su propio candado.
+  const tomarCandado = useCandadoDeAvance();
+
   const handleStart = () => {
     if (!validacionesDeLaIntro()) return;
 
@@ -467,6 +472,7 @@ function WizardPreviewContent() {
       return;
     }
 
+    if (!tomarCandado()) return;
     router.push(routes.solicitarStep(landing, firstStepSlug));
   };
 

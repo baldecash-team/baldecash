@@ -127,6 +127,7 @@ export function useDatosDelPanel(condicionesFijas: boolean) {
     total: product.getTotalMonthlyPayment(),
     cuotaEquipo: productos.reduce((s, p) => s + (p.monthlyPayment || 0), 0),
     cuotaAccesorios: product.selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0),
+    extras: extrasDeLaCuota(product.selectedAccessories, product.selectedInsurances),
     regalos: principal?.regalos ?? [],
     mesPrimeraCuota,
     mostrarImagen: layout.mostrarImagenProducto,
@@ -138,6 +139,54 @@ export function useDatosDelPanel(condicionesFijas: boolean) {
 }
 
 type DatosDelPanel = ReturnType<typeof useDatosDelPanel>;
+
+export interface ExtraDeLaCuota {
+  clave: string;
+  nombre: string;
+  cuota: number;
+}
+
+/**
+ * Lo que se suma a la cuota del equipo (prototipo de Brenda, Paso 4: "Cuota de
+ * tu laptop" y debajo cada extra con su "+S/x/mes"): los accesorios pagados y
+ * las protecciones elegidas. Sin esto el panel daba un total que no cuadraba
+ * con nada de lo que listaba (BAL-4969, E2E bug 5).
+ */
+export function extrasDeLaCuota(
+  accesorios: { id: string; name: string; monthlyQuota: number }[] | undefined,
+  seguros: { id: string; name: string; monthlyPrice: number }[] | undefined,
+): ExtraDeLaCuota[] {
+  return [
+    ...(accesorios ?? [])
+      .filter((a) => (a.monthlyQuota || 0) > 0)
+      .map((a) => ({ clave: `acc-${a.id}`, nombre: a.name, cuota: a.monthlyQuota })),
+    ...(seguros ?? [])
+      .filter((p) => (p.monthlyPrice || 0) > 0)
+      .map((p) => ({ clave: `seg-${p.id}`, nombre: p.name, cuota: p.monthlyPrice })),
+  ];
+}
+
+/** El desglose de la cuota; sin extras no se pinta (el total ya lo dice todo). */
+function DesgloseDeCuota({ datos, className = '' }: { datos: DatosDelPanel; className?: string }) {
+  const extras = datos.extras ?? [];
+  if (extras.length === 0) return null;
+  const sufijo = sufijoDeFrecuencia(datos.frecuencia);
+  return (
+    <dl className={`space-y-1.5 text-sm ${className}`} data-desglose-v2>
+      <div className="flex items-baseline justify-between gap-2">
+        <dt className="text-[#3A4052]">Cuota de tu equipo</dt>
+        <dd className="font-semibold text-[#1E2230] whitespace-nowrap">{datos.precio(datos.cuotaEquipo)}{sufijo}</dd>
+      </div>
+      {extras.map((e) => (
+        <div key={e.clave} className="flex items-baseline justify-between gap-2">
+          <dt className="min-w-0 text-[#3A4052]">{e.nombre}</dt>
+          <dd className="font-semibold text-[#1E2230] whitespace-nowrap">+{datos.precio(e.cuota)}{sufijo}</dd>
+        </div>
+      ))}
+      <div className="h-px bg-[#E3E6EE]" aria-hidden />
+    </dl>
+  );
+}
 
 function ImagenEquipo({ datos, tam }: { datos: DatosDelPanel; tam: number }) {
   const { principal, productos } = datos;
@@ -389,6 +438,7 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
           </div>
         )}
         <div className="px-5 pt-4 pb-5">
+          <DesgloseDeCuota datos={datos} className="mb-2" />
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}{envio ? ' total' : ''}</span>
             <span className={`inline-block origin-right font-['Baloo_2',_sans-serif] text-2xl font-bold ${pulso} ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary-text)]'}`}>
@@ -529,7 +579,7 @@ export function CabeceraSolicitudV2({
               // una referencia rota (BAL-4959, hallazgo de la revisión).
               aria-controls={abierto ? idSelector : undefined}
               onClick={() => setAbierto((v) => !v)}
-              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !detalleEquipo && !detalle}
+              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)]">
@@ -587,6 +637,7 @@ export function CabeceraSolicitudV2({
                 </Link>
               )}
             </div>
+            <DesgloseDeCuota datos={datos} className="mt-2" />
             <AvisoTope datos={datos} />
             <div className="mt-2">
               <SelectorPlazoInicial datos={datos} />

@@ -81,6 +81,7 @@ jest.mock('../../context/ProductContext', () => ({
     getDiscountAmount: () => 10, // Fixed coupon: returns discount value directly
     getDiscountedMonthlyPayment: () => 90,
     getTotalPrice: () => 1080,
+    getTotalMonthlyPayment: () => 267,
     clearProduct: mockClearProduct,
     clearCartProducts: mockClearCartProducts,
     clearAccessories: mockClearAccessories,
@@ -112,10 +113,11 @@ jest.mock('../../context/WizardConfigContext', () => ({
 
 // Mock useAnalytics (returns no-ops by default)
 const mockAnalyticsTrack = jest.fn();
+const mockTrackSummarySubmit = jest.fn();
 jest.mock('@/app/prototipos/0.6/analytics/useAnalytics', () => ({
   useAnalytics: () =>
     new Proxy(
-      { track: mockAnalyticsTrack },
+      { track: mockAnalyticsTrack, trackSummarySubmit: mockTrackSummarySubmit },
       { get: (target, prop) => (target as Record<string, unknown>)[prop as string] ?? jest.fn() }
     ),
 }));
@@ -1421,5 +1423,45 @@ describe('Diseño 2: lo que guarda el modal "Lo quiero" llega al submit (BAL-500
     const payload = await enviar();
 
     expect(payload.consents).toEqual({ terms: true, privacy: true, promos: true });
+  });
+});
+
+describe('E2E BAL-4969: doble clic y cuota del evento', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('dos llamadas seguidas (doble clic) mandan UN solo POST /submit', async () => {
+    let resolver: (v: unknown) => void = () => {};
+    mockSubmitApplication.mockImplementationOnce(() => new Promise((r) => { resolver = r; }));
+    const { result } = renderHook(() => useSubmitApplication({}));
+
+    let segunda: boolean | undefined;
+    await act(async () => {
+      void result.current.submit();
+      segunda = await result.current.submit();
+    });
+    expect(segunda).toBe(false);
+    expect(mockSubmitApplication).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolver({ success: false, error: 'x' });
+    });
+  });
+
+  it('tras un envío fallido se puede volver a intentar', async () => {
+    mockSubmitApplication.mockResolvedValue({ success: false, error: 'x' });
+    const { result } = renderHook(() => useSubmitApplication({}));
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.submit(); });
+    expect(mockSubmitApplication).toHaveBeenCalledTimes(2);
+    mockSubmitApplication.mockReset();
+  });
+
+  it('summary_submit manda la cuota con extras (equipo + accesorios + seguros)', async () => {
+    mockSubmitApplication.mockResolvedValueOnce({ success: false, error: 'x' });
+    const { result } = renderHook(() => useSubmitApplication({}));
+    await act(async () => { await result.current.submit(); });
+    expect(mockTrackSummarySubmit).toHaveBeenCalledWith(expect.objectContaining({ total_monthly: 267 }));
   });
 });

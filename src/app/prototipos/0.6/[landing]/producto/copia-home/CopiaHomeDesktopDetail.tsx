@@ -30,6 +30,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
@@ -235,6 +236,7 @@ export function CopiaHomeDesktopDetail({
 
   // ---- Modales ----
   const [showRefurb, setShowRefurb] = useState(false);
+  const { loQuieroModal } = useLayout();
   const [showAgenda, setShowAgenda] = useState(false);
 
   // ---- Navegación color (siblings) ----
@@ -305,7 +307,9 @@ export function CopiaHomeDesktopDetail({
 
   const onLoQuiero = () => {
     if (!canBuy) return;
-    if (isRefurbished) { setShowRefurb(true); return; }
+    // Diseño 2: el aviso va dentro del modal "Lo quiero" de `/solicitar`
+    // (BAL-4969); el modal viejo de semi nuevo no sale.
+    if (isRefurbished && !loQuieroModal) { setShowRefurb(true); return; }
     proceedToSolicitar();
   };
 

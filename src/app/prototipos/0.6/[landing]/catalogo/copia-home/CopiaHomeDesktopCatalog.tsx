@@ -92,7 +92,7 @@ export function CopiaHomeDesktopCatalog() {
   const isMobile = useIsMobile();
 
   const { setSelectedProduct, clearCartProducts, clearAccessories } = useProduct();
-  const { navbarProps, footerData, agreementData } = useLayout();
+  const { navbarProps, footerData, agreementData, loQuieroModal } = useLayout();
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
@@ -182,13 +182,15 @@ export function CopiaHomeDesktopCatalog() {
 
   const onLoQuiero = useCallback(
     (p: CatalogProduct) => {
-      if (isRefurbishedCondition(p.conditionCode || p.condition)) {
+      // Diseño 2: el aviso de reacondicionado va dentro del modal "Lo quiero"
+      // (que abre `/solicitar`); el modal viejo no sale (BAL-4969).
+      if (!loQuieroModal && isRefurbishedCondition(p.conditionCode || p.condition)) {
         setPendingRefurb(p);
         return;
       }
       selectAndSolicitar(p);
     },
-    [selectAndSolicitar],
+    [selectAndSolicitar, loQuieroModal],
   );
 
   const toggleCondition = (v: string) =>

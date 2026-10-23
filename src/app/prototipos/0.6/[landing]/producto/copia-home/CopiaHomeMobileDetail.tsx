@@ -23,6 +23,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 import type { ProductDetailResult } from '../api/productDetailApi';
 import { PricingCalculator, type PricingSelection } from '../components/detail/pricing/PricingCalculator';
@@ -260,6 +261,7 @@ export function CopiaHomeMobileDetail({
 
   // ---- Aviso reacondicionado ----
   const [showRefurb, setShowRefurb] = useState(false);
+  const { loQuieroModal } = useLayout();
 
   // ---- Navegación color (siblings) ----
   const onColor = (id: string) => {
@@ -330,7 +332,9 @@ export function CopiaHomeMobileDetail({
   const onLoQuiero = () => {
     // Grado B/C o no disponible: sin compra (el CTA no se renderiza, pero por si acaso).
     if (!canBuy) return;
-    if (isRefurbished) { setShowRefurb(true); return; }
+    // Diseño 2: el aviso va dentro del modal "Lo quiero" de `/solicitar`
+    // (BAL-4969); el modal viejo de semi nuevo no sale.
+    if (isRefurbished && !loQuieroModal) { setShowRefurb(true); return; }
     proceedToSolicitar();
   };
 

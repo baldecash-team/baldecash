@@ -19,6 +19,7 @@
  * "retoma tu solicitud".
  */
 
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
@@ -256,8 +257,14 @@ function LoQuieroModalContent({
   // La ficha guardaba el producto sin tocar los accesorios, así que un intento
   // abandonado los arrastraba al siguiente equipo.
   const productoId = selectedProduct?.id ?? null;
+  // En desarrollo StrictMode monta → desmonta → monta y el efecto corre dos
+  // veces: el evento salía duplicado (E2E BAL-4969, bug 3). El ref sobrevive
+  // a ese doble montaje, así que registra la apertura una sola vez.
+  const aperturaRegistradaRef = useRef(false);
   useEffect(() => {
     clearAccessories();
+    if (aperturaRegistradaRef.current) return;
+    aperturaRegistradaRef.current = true;
     analytics.track('lo_quiero_modal_open', {
       product_id: productoId,
       origen,
@@ -637,6 +644,10 @@ function LoQuieroModalContent({
   );
   cerrarRef.current = cerrar;
 
+  // `navegando` es estado: el segundo clic de un doble clic puede no verlo
+  // todavía. El candado es un ref y se cierra en el acto (E2E BAL-4969).
+  const tomarCandado = useCandadoDeAvance();
+
   const continuar = () => {
     if (navegando) return;
     if (!aceptaTerminos) {
@@ -652,6 +663,7 @@ function LoQuieroModalContent({
       return;
     }
     if (isOverQuotaLimit) return;
+    if (!tomarCandado()) return;
 
     saveConsentStorage(landing, { acceptTerms: true, acceptPrivacy: true, acceptPromos: aceptaPromos });
 

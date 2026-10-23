@@ -21,9 +21,10 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }));
 
+const mockTrackModal = jest.fn();
 jest.mock('@/app/prototipos/0.6/analytics/useAnalytics', () => ({
   useAnalytics: () => ({
-    track: jest.fn(),
+    track: (...a: unknown[]) => mockTrackModal(...a),
     trackAccessoryAdd: jest.fn(),
     trackAccessoryRemove: jest.fn(),
     trackAccessoryView: jest.fn(),
@@ -477,5 +478,18 @@ describe('LoQuieroModal · aviso del equipo y sin accesorios (BAL-4958)', () => 
     expect(tarjeta).toHaveTextContent('Ryzen 3 · 8GB · 256GB');
     expect(screen.getByText('Un paso más y empiezas tu solicitud')).toBeInTheDocument();
     expect(screen.getByText('Revisa tu equipo y acepta los términos para continuar.')).toBeInTheDocument();
+  });
+});
+
+describe('E2E BAL-4969 (bug 3): la apertura se registra una vez', () => {
+  it('bajo StrictMode (doble montaje de desarrollo) lo_quiero_modal_open sale UNA vez', () => {
+    mockTrackModal.mockClear();
+    render(
+      <React.StrictMode>
+        <LoQuieroModal isOpen onClose={mockOnClose} origen="catalogo" />
+      </React.StrictMode>,
+    );
+    const aperturas = mockTrackModal.mock.calls.filter(([e]) => e === 'lo_quiero_modal_open');
+    expect(aperturas).toHaveLength(1);
   });
 });

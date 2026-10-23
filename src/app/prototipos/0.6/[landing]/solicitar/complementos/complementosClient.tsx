@@ -7,6 +7,7 @@
  * Insurance and Accessories state is managed via ProductContext
  */
 
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import React, { Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -240,6 +241,9 @@ function ComplementosContent() {
     router.push(routes.solicitarStep(landing, lastStepSlug));
   };
 
+  // Doble clic en "Enviar": envía una sola vez (E2E BAL-4969).
+  const tomarCandado = useCandadoDeAvance();
+
   const handleSubmit = async () => {
     // Validate ALL wizard steps (regular + summary steps with fields) before submitting
     const stepsToValidate = [...regularSteps, ...validatableSummarySteps];
@@ -261,6 +265,7 @@ function ComplementosContent() {
     // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
     // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
     const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
+    if (!tomarCandado()) return;
     await submitApplication({
       insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
       insuranceIds,

@@ -20,6 +20,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import { AnimatePresence } from 'framer-motion';
 
 import { StepSuccessMessage } from '../celebration/StepSuccessMessage';
@@ -407,6 +408,9 @@ export function usePasoDelWizard(opciones: {
     return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2 });
   }, [step, formValues, setFieldError, getAllDynamicOptions, diseno2]);
 
+  // Doble clic en "Continuar"/"Enviar": avanza una sola vez (E2E BAL-4969).
+  const tomarCandado = useCandadoDeAvance();
+
   // Navigation handlers
   const handleNext = () => {
     setSubmitted(true);
@@ -434,6 +438,7 @@ export function usePasoDelWizard(opciones: {
       else document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    if (!tomarCandado()) return;
     tracker?.track('form_step_complete', {
       step_code: step?.code,
       step_title: step?.title,

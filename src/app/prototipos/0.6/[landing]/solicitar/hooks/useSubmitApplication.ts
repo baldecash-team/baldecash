@@ -247,6 +247,10 @@ export function useSubmitApplication(
   const [error, setError] = useState<string | null>(null);
   const [submitSucceeded, setSubmitSucceeded] = useState(false);
   const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Candado contra el doble clic: `isSubmitting` es estado y no cambia hasta
+  // el próximo render, así que dos clics seguidos entraban los dos y salían
+  // dos POST /submit (E2E BAL-4969, variante C). El ref se cierra en el acto.
+  const enVueloRef = useRef(false);
 
   // Bloqueo de navegación durante el envío
   useEffect(() => {
@@ -283,6 +287,7 @@ export function useSubmitApplication(
     getDiscountAmount,
     getDiscountedMonthlyPayment,
     getTotalPrice,
+    getTotalMonthlyPayment,
     clearProduct,
     clearCartProducts,
     clearAccessories,
@@ -371,6 +376,8 @@ export function useSubmitApplication(
       const { insuranceId = null, insuranceIds, otpEnabled = false, kycEnabled = false,
               stayInWizard = false, conContrato = false } = submitOptions;
 
+      if (enVueloRef.current) return false;
+
       setError(null);
 
       // Validate session exists
@@ -398,13 +405,16 @@ export function useSubmitApplication(
       const consents = readSubmitConsents(landing, consentimientoEnPantallaRef.current);
 
       let succeeded = false;
+      enVueloRef.current = true;
       setIsSubmitting(true);
       setSubmitStage('validating');
 
       // Emit summary_submit right at the start of the submission flow.
       // Incluye totales calculables desde los datos ya disponibles.
       try {
-        const totalMonthly = allProducts.reduce((sum, p) => sum + (p.monthlyPayment || 0), 0);
+        // La cuota que la persona ve y firma: equipo + accesorios + seguros
+        // (antes solo el equipo: 239 donde la cuota era 267, BAL-4969).
+        const totalMonthly = getTotalMonthlyPayment();
         analytics.trackSummarySubmit({
           product_count: allProducts.length,
           accessory_count: selectedAccessories.length,
@@ -854,6 +864,9 @@ export function useSubmitApplication(
         // Solo resetear si NO fue exitoso — en éxito, el componente se
         // desmonta con router.push() y no necesita limpieza. Esto evita
         // una ventana donde el botón se re-habilita antes del redirect.
+        // El candado sigue cerrado tras un éxito que navega (el componente
+        // se va); con `stayInWizard` el formulario sigue y se libera.
+        if (!succeeded || stayInWizard) enVueloRef.current = false;
         if (!succeeded) {
           setIsSubmitting(false);
           setTimeout(() => setSubmitStage('idle'), 100);
@@ -873,6 +886,7 @@ export function useSubmitApplication(
       getDiscountAmount,
       getDiscountedMonthlyPayment,
       getTotalPrice,
+      getTotalMonthlyPayment,
       marcarSesionConvertida,
       resetForm,
       clearProduct,
