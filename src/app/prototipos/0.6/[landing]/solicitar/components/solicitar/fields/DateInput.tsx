@@ -574,7 +574,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             `}
             onClick={() => !disabled && setIsOpen(true)}
           >
-            <Calendar className={v2 ? 'w-4 h-4 text-[var(--color-primary)]' : 'w-4 h-4 text-neutral-400'} />
+            <Calendar className={v2 ? 'w-4 h-4 text-[var(--color-primary-text)]' : 'w-4 h-4 text-neutral-400'} />
             <span className={v2 ? `flex-1 text-base ${value ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
               {value ? formatDisplayDate(value) : placeholder}
             </span>

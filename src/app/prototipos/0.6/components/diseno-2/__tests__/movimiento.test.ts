@@ -45,6 +45,29 @@ describe('movimiento', () => {
     expect(oyente).toBeNull();
   });
 
+  it('M-4: navegador con la API vieja (addListener/removeListener) también sigue los cambios', () => {
+    let viejo: ((e: { matches: boolean }) => void) | null = null;
+    let reducido = true;
+    window.matchMedia = jest.fn((query: string) => ({
+      matches: query.includes('prefers-reduced-motion') && reducido,
+      media: query,
+      addListener: (fn: (e: { matches: boolean }) => void) => {
+        viejo = fn;
+      },
+      removeListener: () => {
+        viejo = null;
+      },
+    })) as unknown as typeof window.matchMedia;
+    const { result, unmount } = renderHook(() => useMenosMovimiento());
+    expect(result.current).toBe(true);
+    expect(viejo).not.toBeNull();
+    reducido = false;
+    act(() => viejo?.({ matches: false }));
+    expect(result.current).toBe(false);
+    unmount();
+    expect(viejo).toBeNull();
+  });
+
   it('sin matchMedia (navegador raro) no rompe: false', () => {
     window.matchMedia = (() => {
       throw new Error('no hay');

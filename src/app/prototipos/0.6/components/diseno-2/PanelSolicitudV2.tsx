@@ -178,14 +178,14 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                     onClick={() => handleTermChange(t)}
                     className={`flex min-h-[48px] flex-col items-center justify-center rounded-lg border px-1 py-1 leading-tight transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
-                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]'
                         : 'border-[#D5D9E6] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
                     }`}
                   >
                     <span className="text-sm font-bold">{t}</span>
-                    <span className={`text-[10px] ${elegido ? 'text-white/90' : 'text-[#5B6275]'}`}>{getTermUnit(t, frecuencia)}</span>
+                    <span className={`text-[10px] ${elegido ? 'text-[var(--color-on-primary)] opacity-90' : 'text-[#5B6275]'}`}>{getTermUnit(t, frecuencia)}</span>
                     {cuota !== null && (
-                      <span className={`text-[10px] font-semibold ${elegido ? 'text-white' : 'text-[var(--color-primary)]'}`}>{precio(cuota)}</span>
+                      <span className={`text-[10px] font-semibold ${elegido ? 'text-[var(--color-on-primary)]' : 'text-[var(--color-primary-text)]'}`}>{precio(cuota)}</span>
                     )}
                   </button>
                 );
@@ -218,7 +218,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                   onClick={() => handleInitialChange(principal.id, principal.initialPercent, o.percent)}
                   className={`min-h-[44px] rounded-lg border px-2 text-sm font-semibold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                     elegido
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary-text)]'
                       : 'border-[#D5D9E6] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
                   }`}
                 >
@@ -269,7 +269,7 @@ function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; cl
         aria-controls={abierto ? id : undefined}
         onClick={() => setAbierto((v) => !v)}
         data-ver-detalle-v2
-        className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         Ver detalle
         <ChevronDown className={`h-4 w-4 transition-transform duration-150 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
@@ -330,7 +330,7 @@ export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; det
         <div className="px-5 pt-4 pb-5">
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}</span>
-            <span className={`font-['Baloo_2',_sans-serif] text-2xl font-bold ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
+            <span className={`font-['Baloo_2',_sans-serif] text-2xl font-bold ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary-text)]'}`}>
               {datos.precio(datos.total)}
               <span className="text-sm font-semibold">{sufijoDeFrecuencia(datos.frecuencia)}</span>
             </span>
@@ -348,7 +348,7 @@ export function PanelSolicitudV2({ datos, detalle }: { datos: DatosDelPanel; det
                 aria-expanded={abierto}
                 aria-controls={idSelector}
                 onClick={() => setAbierto((v) => !v)}
-                className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cambiar plazo o inicial
                 <ChevronDown className={`h-4 w-4 transition-transform duration-150 ${abierto ? 'rotate-180' : ''}`} aria-hidden />
@@ -438,7 +438,7 @@ export function CabeceraSolicitudV2({
               disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !detalleEquipo && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-white">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)]">
                 {datos.mostrarImagen && datos.principal?.image && datos.productos.length === 1 ? (
                   <span className="flex h-full w-full items-center justify-center bg-white">
                     <ImagenEquipo datos={datos} tam={36} />
@@ -449,7 +449,7 @@ export function CabeceraSolicitudV2({
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[15px] font-bold text-[#1E2230]">{datos.principal ? datos.nombre : 'Tu solicitud'}</span>
-                <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary)]">
+                <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-text)]">
                   <span className="truncate">
                     {datos.principal
                       ? <>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)} · {datos.leyenda}</>
@@ -486,7 +486,7 @@ export function CabeceraSolicitudV2({
                   <p className="text-xs font-semibold text-[#0B6B5C]">1.ª cuota en {datos.mesPrimeraCuota}</p>
                 )}
               </div>
-              <Link href={routes.catalogo(landing)} className="shrink-0 text-xs font-semibold text-[var(--color-primary)] underline min-h-[44px] inline-flex items-start">
+              <Link href={routes.catalogo(landing)} className="shrink-0 text-xs font-semibold text-[var(--color-primary-text)] underline min-h-[44px] inline-flex items-start">
                 Cambiar equipo
               </Link>
             </div>

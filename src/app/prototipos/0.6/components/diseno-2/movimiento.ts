@@ -35,8 +35,13 @@ function suscribirMenosMovimiento(avisar: () => void): () => void {
   } catch {
     return () => {};
   }
-  consulta.addEventListener?.('change', avisar);
-  return () => consulta.removeEventListener?.('change', avisar);
+  // Safari < 14 solo tiene la API vieja (`addListener`/`removeListener`).
+  if (typeof consulta.addEventListener === 'function') {
+    consulta.addEventListener('change', avisar);
+    return () => consulta.removeEventListener('change', avisar);
+  }
+  consulta.addListener?.(avisar);
+  return () => consulta.removeListener?.(avisar);
 }
 
 /**

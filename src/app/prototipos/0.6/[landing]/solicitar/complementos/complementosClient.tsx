@@ -21,7 +21,7 @@ import { CubeGridSpinner, useScrollToTop, Toast, useToast, ModalAviso } from '@/
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, admiteDiseno2 } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -215,10 +215,10 @@ function ComplementosContent() {
   const seccionesAMostrar = useMemo(
     () => seccionesDeComplementos(
       sectionsAfterWizard,
-      disenoSolicitud === 2 && !isGamer,
+      disenoSolicitud === 2 && admiteDiseno2(landing),
       steps.some(s => s.is_summary_step),
     ),
-    [sectionsAfterWizard, disenoSolicitud, isGamer, steps],
+    [sectionsAfterWizard, disenoSolicitud, landing, steps],
   );
 
   // Check if insurance section is included

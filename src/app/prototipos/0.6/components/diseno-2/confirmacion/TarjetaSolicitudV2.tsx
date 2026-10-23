@@ -37,7 +37,7 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
   return (
     <aside aria-label="Tu solicitud" className="overflow-hidden rounded-2xl border border-[#AEB6EE] bg-white shadow-sm">
       <div className="flex items-start gap-3 bg-gradient-to-r from-[#EAF7F2] to-[#F3F5FD] px-5 py-4">
-        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[var(--color-primary)] shadow-sm">
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[var(--color-primary-text)] shadow-sm">
           <Laptop className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
@@ -50,7 +50,7 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
         <Fila
           etiqueta={resumen.rotuloCuota}
           valor={
-            <span className="text-base font-bold text-[var(--color-primary)]">
+            <span className="text-base font-bold text-[var(--color-primary-text)]">
               {resumen.cuota}
               <span className="text-xs font-semibold">{resumen.sufijoCuota}</span>
             </span>

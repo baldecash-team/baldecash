@@ -15,6 +15,19 @@ export function isDarkLanding(slug: string): boolean {
   return DARK_LANDINGS.includes(slug);
 }
 
+/**
+ * Si la landing puede usar Diseño 2 de la solicitud (BAL-4969, I-2).
+ *
+ * El kit de Diseño 2 está pensado sobre fondo claro: zona gamer tiene su propio
+ * tema y las landings oscuras (`isDarkLanding`, la misma marca que usa
+ * `LayoutContext` para forzar su primary y `data-theme`) vuelven oscuro el
+ * `bg-white` y dejan el kit ilegible. Esas landings se quedan en Diseño 1
+ * aunque tengan `solicitud_design = 2`.
+ */
+export function admiteDiseno2(slug: string): boolean {
+  return !isGamerLanding(slug) && !isDarkLanding(slug);
+}
+
 /** La landing nvidia usa su propio header (NvidiaNavbar) en todas sus rutas de flujo. */
 export function isNvidiaLanding(slug: string): boolean {
   return slug === 'nvidia';

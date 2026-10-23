@@ -176,7 +176,7 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
                 px-3 py-2.5 min-h-[44px] rounded-xl border-2 text-sm font-medium cursor-pointer transition-colors
                 ${v2
                   ? marcado
-                    ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.12)] text-[color-mix(in_srgb,var(--color-primary)_80%,black)]'
+                    ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.12)] text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]'
                     : hayError
                       ? 'border-[#C2410C] bg-white text-[#1E2230]'
                       : 'border-[#C9CEF0] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
@@ -227,11 +227,11 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
             >
               <span className="mt-0.5"><Cuadradito marcado={marcado} error={hayError} /></span>
               <span className="min-w-0">
-                <span className={`block font-medium text-sm sm:text-base break-words ${marcado ? 'text-[var(--color-primary)]' : 'text-neutral-800'}`}>
+                <span className={`block font-medium text-sm sm:text-base break-words ${marcado ? (v2 ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]' : 'text-[var(--color-primary)]') : 'text-neutral-800'}`}>
                   {o.label}
                 </span>
                 {o.description && (
-                  <span className={`block text-xs sm:text-sm mt-0.5 break-words ${marcado ? 'text-[rgba(var(--color-primary-rgb),0.7)]' : 'text-neutral-500'}`}>
+                  <span className={`block text-xs sm:text-sm mt-0.5 break-words ${marcado ? (v2 ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]/80' : 'text-[rgba(var(--color-primary-rgb),0.7)]') : 'text-neutral-500'}`}>
                     {o.description}
                   </span>
                 )}
@@ -395,7 +395,7 @@ const Desplegable: React.FC<SubProps & { placeholder: string }> = ({
         `}
       >
         <span className={`truncate ${resumen ? (v2 ? 'text-[#1E2230]' : 'text-neutral-800') : (v2 ? 'text-[#8A90A2]' : 'text-neutral-400')}`}>{resumen || placeholder}</span>
-        <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'} ${abierto ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'} ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {abierto && (
         <div
@@ -499,7 +499,7 @@ const Buscador: React.FC<SubProps> = ({
           ${disabled ? 'opacity-50' : ''}
         `}
       >
-        <Search className={`w-4 h-4 flex-shrink-0 ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
+        <Search className={`w-4 h-4 flex-shrink-0 ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'}`} />
         <input
           ref={entrada}
           type="text"

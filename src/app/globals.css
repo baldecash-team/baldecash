@@ -88,6 +88,10 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   --nextui-radius-medium: 12px;
   --nextui-radius-large: 14px;
   --nextui-radius-full: 9999px;
+  /* Diseño 2 (BAL-4969): texto sobre el primary y primary legible sobre blanco.
+     LayoutContext los recalcula con el color de la landing; esto es sin landing. */
+  --color-on-primary: #FFFFFF;
+  --color-primary-text: #4654CD;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

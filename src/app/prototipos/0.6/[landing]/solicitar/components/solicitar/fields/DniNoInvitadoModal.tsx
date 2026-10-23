@@ -50,9 +50,9 @@ const V2 = {
   titulo: "mb-3 font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-tight text-[#1E2230]",
   texto: 'text-[15px] leading-snug text-[#5B6275]',
   primario:
-    'flex flex-1 min-h-[48px] cursor-pointer items-center justify-center rounded-[10px] bg-[var(--color-primary)] px-4 text-center text-base font-bold text-white transition hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
+    'flex flex-1 min-h-[48px] cursor-pointer items-center justify-center rounded-[10px] bg-[var(--color-primary)] px-4 text-center text-base font-bold text-[var(--color-on-primary)] transition hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
   secundario:
-    'flex-1 min-h-[48px] cursor-pointer rounded-[10px] border-[1.5px] border-[var(--color-primary)] bg-white px-4 text-base font-bold text-[var(--color-primary)] transition hover:bg-[rgba(var(--color-primary-rgb),0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
+    'flex-1 min-h-[48px] cursor-pointer rounded-[10px] border-[1.5px] border-[var(--color-primary)] bg-white px-4 text-base font-bold text-[var(--color-primary-text)] transition hover:bg-[rgba(var(--color-primary-rgb),0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
 };
 
 /** El catalogo abierto, el que no pide invitacion. Es la salida para quien no

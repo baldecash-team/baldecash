@@ -182,6 +182,7 @@ jest.mock('@/app/prototipos/0.6/components/diseno-2', () => ({
     </div>
   ),
   BarraInferiorV2Spacer: () => null,
+  AvisoV2: jest.requireActual('@/app/prototipos/0.6/components/diseno-2/AvisoV2').AvisoV2,
 }));
 
 import StepClient from '../StepClient';
@@ -246,6 +247,18 @@ describe('StepClient elige el marco según el diseño de la landing', () => {
   it('zona-gamer queda en Diseño 1 aunque traiga el 2', async () => {
     mockLayout.disenoSolicitud = 2;
     mockLayout.landing = 'zona-gamer';
+    try {
+      render(<StepClient />);
+      await screen.findAllByTestId('cuerpo-del-paso');
+      expect(screen.queryByTestId('shell-v2')).not.toBeInTheDocument();
+    } finally {
+      mockLayout.landing = 'pago-diferido';
+    }
+  });
+
+  it('una landing de tema oscuro (nvidia) queda en Diseño 1 aunque traiga el 2 (BAL-4969, I-2)', async () => {
+    mockLayout.disenoSolicitud = 2;
+    mockLayout.landing = 'nvidia';
     try {
       render(<StepClient />);
       await screen.findAllByTestId('cuerpo-del-paso');

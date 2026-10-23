@@ -20,7 +20,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
-import { isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isGamerLanding, admiteDiseno2 } from '@/app/prototipos/0.6/utils/theme';
 
 // Context
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -42,7 +42,7 @@ import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
-import { Toast, useToast } from '@/app/prototipos/_shared';
+import { useToast } from '@/app/prototipos/_shared';
 import { RefurbishedAcceptanceModal } from '@/app/prototipos/0.6/components/RefurbishedAcceptanceModal';
 import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
@@ -65,7 +65,8 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { textosDeMarcadas } from '../components/solicitar/fields/ListaDeVarias';
 // Diseño 2 de la solicitud (BAL-4959): solo el marco; la lógica es la de acá.
-import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer } from '@/app/prototipos/0.6/components/diseno-2';
+import { ShellV2, TransicionDelWizard, BarraInferiorV2Spacer, AvisoV2 } from '@/app/prototipos/0.6/components/diseno-2';
+import { etiquetaDelPaso } from '@/app/prototipos/0.6/components/diseno-2/ProgresoV2';
 import { nombreDelSaludoDelPaso } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 // Paso 4 · Resumen de Diseño 2 (BAL-4966): los seguros entran al paso.
 import {
@@ -133,9 +134,10 @@ function StepContent() {
    * Diseño 2 (`features.solicitud_design === 2`): el paso se pinta dentro de
    * `ShellV2` en vez de `WizardLayout`. Es solo el marco: validación, borrador,
    * envío anticipado, guards y navegación son los mismos de abajo. Zona gamer
-   * queda en Diseño 1 (decisión D6 del planning).
+   * queda en Diseño 1 (decisión D6 del planning), y las landings de tema oscuro
+   * también (BAL-4969, I-2: el kit es de fondo claro).
    */
-  const usarDiseno2 = disenoSolicitud === 2 && !isGamerLanding(landing);
+  const usarDiseno2 = disenoSolicitud === 2 && admiteDiseno2(landing);
 
   // Get wizard config from API
   const {
@@ -600,7 +602,9 @@ function StepContent() {
       const firstError = validateStepFields(s, formValues, setFieldError, getAllDynamicOptions(), { diseno2: usarDiseno2 });
       if (firstError) {
         return {
-          stepTitle: s.title || s.name,
+          // Diseño 2 nombra el paso como su barra de progreso (M-3, BAL-4969);
+          // Diseño 1 queda como estaba.
+          stepTitle: usarDiseno2 ? etiquetaDelPaso(s) : s.title || s.name,
           stepSlug: getStepSlug(s),
         };
       }
@@ -1144,16 +1148,15 @@ function StepContent() {
           {/* La barra fija de celular no tapa el final del footer */}
           <BarraInferiorV2Spacer />
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
-          {toast && (
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              isVisible={isToastVisible}
-              onClose={hideToast}
-              duration={4000}
-              position="top"
-            />
-          )}
+          {/* M-2 (BAL-4969): el aviso del kit (status + aria-live, cerrar de
+              44px, reduced-motion). El `Toast` compartido de Diseño 1 no cambia. */}
+          <AvisoV2
+            message={toast?.message ?? null}
+            type={toast?.type}
+            isVisible={isToastVisible}
+            onClose={hideToast}
+            duration={4000}
+          />
         </>
       );
     }

@@ -313,7 +313,7 @@ export function SeccionPlegable({
             aria-expanded={false}
             aria-controls={idContenido}
             aria-label={`Editar ${titulo}`}
-            className="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-lg px-1 text-sm font-semibold text-[color-mix(in_srgb,var(--color-primary)_80%,black)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+            className="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-lg px-1 text-sm font-semibold text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
           >
             Editar
           </button>

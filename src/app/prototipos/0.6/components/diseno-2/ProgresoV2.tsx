@@ -21,10 +21,13 @@ import type { WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
 /**
  * Texto del paso en la barra: la misma regla de `WizardProgress` (Diseño 1,
  * `main` ffaf8652) — `progress_label` editable en admin2 y, si falta o viene
- * vacío, el título del paso.
+ * vacío, el título del paso. El paso de resumen sin `progress_label` se llama
+ * "Resumen", igual que en Diseño 1 (BAL-4969, M-3).
  */
-export function etiquetaDelPaso(step: Pick<WizardStep, 'title' | 'progress_label'>): string {
-  return step.progress_label?.trim() || step.title;
+export function etiquetaDelPaso(
+  step: Pick<WizardStep, 'title' | 'progress_label'> & { is_summary_step?: boolean },
+): string {
+  return step.progress_label?.trim() || (step.is_summary_step ? 'Resumen' : step.title);
 }
 
 export interface PasoDelProgreso {
@@ -85,7 +88,7 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
                   aria-hidden
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                     hecho || esActual
-                      ? 'bg-[var(--color-primary)] text-white'
+                      ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
                       : 'border border-[#D5D9E6] bg-white text-[#5B6275]'
                   }`}
                 >
@@ -94,7 +97,7 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
                 <span
                   className={`truncate text-sm ${
                     esActual
-                      ? 'font-bold text-[var(--color-primary)]'
+                      ? 'font-bold text-[var(--color-primary-text)]'
                       : hecho
                         ? 'text-[#1E2230] underline underline-offset-2'
                         : 'text-[#5B6275]'

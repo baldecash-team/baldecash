@@ -291,8 +291,8 @@ describe('Lista con display_mode de botones', () => {
     expect(dni).toHaveAttribute('aria-checked', 'true');
     expect(ce).toHaveAttribute('aria-checked', 'false');
     expect(dni.className).toContain('bg-[var(--color-primary)]');
-    expect(dni.className).toContain('text-white');
-    expect(ce.className).toContain('text-[var(--color-primary)]');
+    expect(dni.className).toContain('text-[var(--color-on-primary)]');
+    expect(ce.className).toContain('text-[var(--color-primary-text)]');
     expect(dni.className).toContain('min-h-[48px]');
 
     fireEvent.click(ce);

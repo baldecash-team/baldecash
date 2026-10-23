@@ -153,11 +153,11 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                 `}
               >
                 <span className="block min-w-0">
-                  <span className={`block font-medium text-sm sm:text-base break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary)_80%,black)]' : 'text-[#1E2230]'}`}>
+                  <span className={`block font-medium text-sm sm:text-base break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]' : 'text-[#1E2230]'}`}>
                     {option.label}
                   </span>
                   {option.description && (
-                    <span className={`block text-xs sm:text-sm mt-0.5 break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary)_80%,black)]/80' : 'text-[#5B6275]'}`}>
+                    <span className={`block text-xs sm:text-sm mt-0.5 break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]/80' : 'text-[#5B6275]'}`}>
                       {option.description}
                     </span>
                   )}

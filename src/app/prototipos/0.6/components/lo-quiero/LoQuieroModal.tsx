@@ -673,7 +673,7 @@ function LoQuieroModalContent({
               <button
                 type="button"
                 onClick={() => cerrar('cambiar')}
-                className="shrink-0 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                className="shrink-0 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cambiar
               </button>
@@ -748,7 +748,7 @@ function LoQuieroModalContent({
                           />
                           {elegido && (
                             <span className="hidden md:flex absolute top-2 right-2 w-6 h-6 rounded-full bg-[var(--color-primary)] items-center justify-center pointer-events-none" aria-hidden>
-                              <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                              <Check className="w-4 h-4 text-[var(--color-on-primary)]" strokeWidth={3} />
                             </span>
                           )}
                           <ImagenAccesorio src={acc.thumbnailUrl || acc.image} className="w-14 h-14 md:w-full md:h-20 rounded-lg pointer-events-none" />
@@ -758,7 +758,7 @@ function LoQuieroModalContent({
                             )}
                             <p className="text-sm font-semibold text-neutral-800 line-clamp-2 md:min-h-[2.5rem] leading-snug">{nombre}</p>
                             <p className="mt-0.5 flex items-center gap-1.5 min-w-0 md:hidden">
-                              <span className="text-sm font-bold text-[var(--color-primary)] whitespace-nowrap">
+                              <span className="text-sm font-bold text-[var(--color-primary-text)] whitespace-nowrap">
                                 +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
                               </span>
                               <span className="text-xs text-neutral-400 inline-flex items-center min-w-0 whitespace-nowrap overflow-hidden">
@@ -777,8 +777,8 @@ function LoQuieroModalContent({
                               aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
                               className={`relative z-[1] shrink-0 min-h-[44px] md:min-h-[36px] px-4 md:px-3 rounded-full border-2 text-sm font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                                 elegido
-                                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-white hover:brightness-95'
-                                  : 'bg-white border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
+                                  ? 'bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
+                                  : 'bg-white border-[var(--color-primary)] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
                               }`}
                             >
                               {elegido ? (
@@ -798,7 +798,7 @@ function LoQuieroModalContent({
                     <button
                       type="button"
                       onClick={() => setVerTodos((v) => !v)}
-                      className="mt-2 w-full md:w-auto min-h-[44px] px-4 rounded-lg text-sm font-semibold text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] flex items-center justify-center gap-1 cursor-pointer"
+                      className="mt-2 w-full md:w-auto min-h-[44px] px-4 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] flex items-center justify-center gap-1 cursor-pointer"
                     >
                       {verTodos ? 'Ver menos' : `Ver todos (${ofrecibles.length})`}
                       <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${verTodos ? 'rotate-180' : ''}`} aria-hidden />
@@ -855,7 +855,7 @@ function LoQuieroModalContent({
                   }`}
                   aria-hidden
                 >
-                  {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                  {aceptaTerminos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} />}
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-sm text-neutral-800">Acepto Términos y Política de privacidad</span>
@@ -867,28 +867,30 @@ function LoQuieroModalContent({
                 </span>
                 {aceptaTerminos && <span className="text-xs font-semibold text-[#0B6B5C] shrink-0">¡Listo!</span>}
               </div>
-              <p className="pl-[40px] pr-2.5 pb-1.5 text-xs text-neutral-500">
-                Leer{' '}
+              {/* M-1 (BAL-4969): cada enlace tiene su propia área táctil de 44px y
+                  separación entre ambos; siguen fuera del `role="checkbox"`. */}
+              <div className="flex flex-wrap items-center gap-x-1 pl-[32px] pr-2.5 text-xs text-neutral-500">
+                <span>Leer</span>
                 <a
                   href={routes.legal(landing, 'terminos-y-condiciones')}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="underline text-[var(--color-primary)] hover:opacity-80"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2 underline text-[var(--color-primary-text)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
                   Términos
-                </a>{' '}
-                ·{' '}
+                </a>
+                <span aria-hidden>·</span>
                 <a
                   href={routes.legal(landing, 'politica-de-privacidad')}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="underline text-[var(--color-primary)] hover:opacity-80"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md px-2 underline text-[var(--color-primary-text)] hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
                   Política de privacidad
                 </a>
-              </p>
+              </div>
             </div>
 
             {/* Promociones (opcional) + cupón plegable en la misma fila */}
@@ -912,7 +914,7 @@ function LoQuieroModalContent({
                   }`}
                   aria-hidden
                 >
-                  {aceptaPromos && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                  {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)]" strokeWidth={3} />}
                 </span>
                 <span className="text-sm text-neutral-700">
                   Quiero promociones <span className="text-neutral-400">(opcional)</span>
@@ -923,7 +925,7 @@ function LoQuieroModalContent({
                   type="button"
                   onClick={() => setCuponAbierto((v) => !v)}
                   aria-expanded={cuponAbierto}
-                  className="shrink-0 min-h-[44px] px-2.5 rounded-lg text-sm font-semibold text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] inline-flex items-center gap-1.5 cursor-pointer transition-colors duration-150"
+                  className="shrink-0 min-h-[44px] px-2.5 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] inline-flex items-center gap-1.5 cursor-pointer transition-colors duration-150"
                 >
                   <Tag className="w-4 h-4" aria-hidden />
                   {cuponAbierto ? (
@@ -962,11 +964,11 @@ function LoQuieroModalContent({
               <p className="leading-none" aria-live="polite">
                 <span
                   ref={totalRef}
-                  className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[28px] md:text-3xl font-bold text-[var(--color-primary)]"
+                  className="inline-block origin-left font-['Baloo_2',_sans-serif] text-[28px] md:text-3xl font-bold text-[var(--color-primary-text)]"
                 >
                   S/{totalVisible}
                 </span>
-                <span className="text-sm font-semibold text-[var(--color-primary)] ml-1">{sufijo}</span>
+                <span className="text-sm font-semibold text-[var(--color-primary-text)] ml-1">{sufijo}</span>
               </p>
               {n > 0 && (
                 <p className="text-xs text-neutral-600 mt-0.5 truncate">
@@ -984,10 +986,10 @@ function LoQuieroModalContent({
               type="button"
               onClick={continuar}
               disabled={botonDeshabilitado}
-              className={`shrink-0 min-h-[48px] px-5 md:px-6 rounded-xl font-semibold text-white inline-flex items-center justify-center gap-2 shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+              className={`shrink-0 min-h-[48px] px-5 md:px-6 rounded-xl font-semibold inline-flex items-center justify-center gap-2 shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                 botonDeshabilitado
                   ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none'
-                  : 'bg-[var(--color-primary)] hover:brightness-90 cursor-pointer'
+                  : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
               }`}
             >
               {preparando || navegando ? (
@@ -1030,7 +1032,7 @@ function LoQuieroModalContent({
               </div>
               <div className="px-5 pt-4 pb-2">
                 {marcaDetalle && (
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">{marcaDetalle}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary-text)]">{marcaDetalle}</p>
                 )}
                 <h3 id="lo-quiero-detalle-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-neutral-800 leading-tight">
                   {nombreParaMostrar(detalle.name, detalle.brand?.name)}
@@ -1039,7 +1041,7 @@ function LoQuieroModalContent({
                   <ul className="mt-3 space-y-1.5">
                     {datosDetalle.map((d) => (
                       <li key={d} className="flex items-start gap-2 text-sm text-neutral-600">
-                        <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary)]" aria-hidden />
+                        <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
                         <span>{d}</span>
                       </li>
                     ))}
@@ -1047,10 +1049,10 @@ function LoQuieroModalContent({
                 )}
                 <div className="mt-4 rounded-xl bg-[rgba(var(--color-primary-rgb),0.06)] px-4 py-3">
                   <p className="leading-none">
-                    <span className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--color-primary)]">
+                    <span className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--color-primary-text)]">
                       +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
                     </span>
-                    <span className="text-sm font-semibold text-[var(--color-primary)] ml-1">{sufijo}</span>
+                    <span className="text-sm font-semibold text-[var(--color-primary-text)] ml-1">{sufijo}</span>
                   </p>
                   {detalle.price > 0 && (
                     <p className="text-xs text-neutral-600 mt-1">
@@ -1070,7 +1072,7 @@ function LoQuieroModalContent({
                 className={`w-full min-h-[48px] rounded-xl font-semibold inline-flex items-center justify-center gap-2 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   detalleElegido
                     ? 'border-2 border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50'
-                    : 'bg-[var(--color-primary)] text-white shadow-md hover:brightness-90'
+                    : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md hover:brightness-90'
                 }`}
               >
                 {detalleElegido ? 'Quitar de mi solicitud' : 'Agregar a mi solicitud'}

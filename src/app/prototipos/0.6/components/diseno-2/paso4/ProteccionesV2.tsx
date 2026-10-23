@@ -23,7 +23,7 @@ import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/u
 function IconoDelPlan({ tipo }: { tipo: string }) {
   const Icono = tipo === 'seguro_robo' ? Lock : tipo === 'multiasistencia' ? HeartPulse : ShieldCheck;
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF0FB] text-[var(--color-primary)]" aria-hidden>
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EEF0FB] text-[var(--color-primary-text)]" aria-hidden>
       <Icono className="h-[18px] w-[18px]" />
     </span>
   );
@@ -89,7 +89,7 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
             <button
               type="button"
               onClick={reintentar}
-              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-[var(--color-primary)] bg-white px-4 text-sm font-bold text-[var(--color-primary)] cursor-pointer hover:bg-[#F3F5FD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1"
+              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-[var(--color-primary)] bg-white px-4 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer hover:bg-[#F3F5FD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1"
             >
               <RotateCw className="h-4 w-4" aria-hidden />
               Reintentar
@@ -127,7 +127,7 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
                       analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
                       setDetalle(plan);
                     }}
-                    className="inline-flex min-h-[44px] items-center self-start text-[13px] font-semibold text-[var(--color-primary)] underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    className="inline-flex min-h-[44px] items-center self-start text-[13px] font-semibold text-[var(--color-primary-text)] underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
                     ¿Qué cubre?
                   </button>
@@ -145,8 +145,8 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
                     onClick={() => alternar(plan.id)}
                     className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full border-[1.5px] px-4 text-sm font-bold transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
-                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-                        : 'border-[var(--color-primary)] bg-white text-[var(--color-primary)] hover:bg-[#F3F5FD]'
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]'
+                        : 'border-[var(--color-primary)] bg-white text-[var(--color-primary-text)] hover:bg-[#F3F5FD]'
                     }`}
                   >
                     {elegido && <Check className="h-4 w-4" strokeWidth={3} aria-hidden data-check-v2 />}

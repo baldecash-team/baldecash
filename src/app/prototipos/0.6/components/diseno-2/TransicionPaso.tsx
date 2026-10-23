@@ -167,7 +167,7 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
                   hecho
                     ? 'border-[#12A877] bg-[#12A877] text-white'
                     : actual
-                      ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary)]'
+                      ? 'border-[var(--color-primary)] bg-white text-[var(--color-primary-text)]'
                       : 'border-[#D5D9E6] bg-white text-[#5B6275]'
                 }`}
                 style={{ left: `${pos(i)}%` }}
@@ -186,7 +186,7 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
         </p>
         {siguiente && hasta !== desde && (
           <p
-            className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)]/10 px-4 py-1.5 text-sm font-semibold text-[var(--color-primary)]"
+            className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)]/10 px-4 py-1.5 text-sm font-semibold text-[var(--color-primary-text)]"
             style={reducido ? undefined : { animation: 'tpAparece 0.3s ease-out 1.2s both' }}
           >
             <ArrowRight className="h-4 w-4" aria-hidden />
@@ -201,7 +201,7 @@ export function TransicionPaso({ pasos, pasoCompletado, onComplete }: Transicion
               e.stopPropagation();
               terminar();
             }}
-            className="relative min-h-[48px] overflow-hidden rounded-xl border border-[#AEB6EE] bg-white px-7 text-base font-bold text-[var(--color-primary)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+            className="relative min-h-[48px] overflow-hidden rounded-xl border border-[#AEB6EE] bg-white px-7 text-base font-bold text-[var(--color-primary-text)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
           >
             Continuar
             <span

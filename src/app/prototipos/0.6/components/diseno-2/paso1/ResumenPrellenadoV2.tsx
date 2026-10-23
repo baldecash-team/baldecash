@@ -30,7 +30,7 @@ export function ResumenPrellenadoV2({
       <button
         type="button"
         onClick={onCorregir}
-        className="-my-3 inline-flex min-h-[44px] items-center px-1 -mx-1 cursor-pointer rounded text-sm font-bold text-[var(--color-primary)] underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--color-primary)_80%,black)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="-my-3 inline-flex min-h-[44px] items-center px-1 -mx-1 cursor-pointer rounded text-sm font-bold text-[var(--color-primary-text)] underline underline-offset-2 hover:text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         Corregir
       </button>

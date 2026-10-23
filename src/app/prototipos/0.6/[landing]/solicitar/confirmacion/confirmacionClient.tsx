@@ -17,7 +17,7 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
-import { isNvidiaLanding, isGamerLanding } from '@/app/prototipos/0.6/utils/theme';
+import { isNvidiaLanding, isGamerLanding, admiteDiseno2 } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -372,7 +372,7 @@ function RealConfirmationContent({
   overlayVariant?: string | null;
   otpCta?: React.ReactNode;
   landing: string;
-  /** F8 (BAL-4967): `disenoSolicitud === 2` y no es zona gamer (esa queda en Diseño 1). */
+  /** F8 (BAL-4967): `disenoSolicitud === 2` y la landing admite Diseño 2 (`admiteDiseno2`: ni zona gamer ni tema oscuro). */
   diseno2?: boolean;
 }) {
   if (isLoading) {
@@ -551,7 +551,7 @@ function ConfirmacionContent() {
 
   // F8 (BAL-4967): mismo criterio que `StepClient` — Diseño 2 solo fuera de
   // zona gamer, que se queda en Diseño 1 (decisión D6 del planning de Diseño 2).
-  const usarDiseno2 = disenoSolicitud === 2 && !isGamerLanding(landing);
+  const usarDiseno2 = disenoSolicitud === 2 && admiteDiseno2(landing);
 
   // Fetch application status when code is present
   useEffect(() => {

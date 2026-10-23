@@ -393,7 +393,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         `}
       >
         {/* Map pin icon */}
-        <MapPin className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
+        <MapPin className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'}`} />
 
         {/* Input for Google Places Autocomplete */}
         <input

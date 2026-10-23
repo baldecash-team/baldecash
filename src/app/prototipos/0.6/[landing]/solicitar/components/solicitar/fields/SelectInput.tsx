@@ -320,7 +320,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             )}
             {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
             {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
-            <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[var(--color-primary)]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
 

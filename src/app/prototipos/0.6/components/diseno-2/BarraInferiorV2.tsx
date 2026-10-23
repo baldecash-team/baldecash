@@ -62,7 +62,7 @@ export function BarraInferiorV2({
         {isLastStep && total && (
           <div className="min-w-0 shrink-0">
             <p className="text-[11px] text-[#5B6275]">Cuota total</p>
-            <p className="font-['Baloo_2',_sans-serif] text-lg font-bold leading-none text-[var(--color-primary)]">{total}</p>
+            <p className="font-['Baloo_2',_sans-serif] text-lg font-bold leading-none text-[var(--color-primary-text)]">{total}</p>
           </div>
         )}
         <button
@@ -70,8 +70,8 @@ export function BarraInferiorV2({
           data-continuar-v2
           onClick={onPrimary}
           disabled={deshabilitado}
-          className={`campo-v2-cta flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl text-base font-bold text-white shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
-            deshabilitado ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] hover:brightness-90 cursor-pointer'
+          className={`campo-v2-cta flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+            deshabilitado ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
           }`}
         >
           {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}

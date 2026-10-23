@@ -288,6 +288,7 @@ jest.mock('@/app/prototipos/0.6/components/diseno-2', () => ({
   },
   TransicionDelWizard: () => null,
   BarraInferiorV2Spacer: () => null,
+  AvisoV2: jest.requireActual('@/app/prototipos/0.6/components/diseno-2/AvisoV2').AvisoV2,
 }));
 
 import StepClient from '../StepClient';
@@ -853,6 +854,39 @@ describe('QA F10 · Falla 2c: falta un campo en otro paso al enviar', () => {
       expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('datos-personales'));
     } finally {
       nombre.required = antes;
+      jest.useRealTimers();
+    }
+  });
+
+  it('M-2/M-3: el aviso es una región status/polite, nombra el paso con su progress_label y se cierra con un botón accesible', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    const nombre = PASO_REGULAR.fields[0];
+    const antes = nombre.required;
+    nombre.required = true;
+    (PASO_REGULAR as { progress_label?: string }).progress_label = 'Tus datos';
+    jest.useFakeTimers();
+    try {
+      montarComoEnLaApp();
+      await screen.findByTestId('campos-del-paso');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('escritorio'));
+      });
+      const region = screen.getByRole('status');
+      expect(region).toHaveAttribute('aria-live', 'polite');
+      expect(region).toHaveTextContent('Hay campos incompletos en "Tus datos". Por favor, revísalos.');
+      const cerrar = screen.getByRole('button', { name: 'Cerrar aviso' });
+      expect(cerrar.className).toMatch(/h-11/);
+      expect(cerrar.className).toMatch(/w-11/);
+      expect(cerrar.className).toMatch(/focus-visible:ring-2/);
+      await act(async () => {
+        fireEvent.click(cerrar);
+        await jest.advanceTimersByTimeAsync(300);
+      });
+      expect(screen.queryByText(/Hay campos incompletos/)).not.toBeInTheDocument();
+    } finally {
+      nombre.required = antes;
+      delete (PASO_REGULAR as { progress_label?: string }).progress_label;
       jest.useRealTimers();
     }
   });

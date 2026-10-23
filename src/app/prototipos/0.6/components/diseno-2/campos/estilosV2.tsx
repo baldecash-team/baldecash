@@ -51,7 +51,7 @@ export const PISTA_V2 = 'text-[13px] leading-snug text-[#5B6275]';
 export const CAJA_V2 = 'h-[50px] rounded-[10px] border-[1.5px] bg-white transition-colors duration-150';
 /** Prefijo "+51" / "S/": bloque pegado al borde izquierdo de la caja. */
 export const PREFIJO_V2 =
-  'flex h-full flex-shrink-0 select-none items-center self-stretch border-r border-[rgba(var(--color-primary-rgb),0.18)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-base font-semibold text-[color-mix(in_srgb,var(--color-primary)_80%,black)]';
+  'flex h-full flex-shrink-0 select-none items-center self-stretch border-r border-[rgba(var(--color-primary-rgb),0.18)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-base font-semibold text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]';
 /** Placeholder gris. */
 export const PLACEHOLDER_V2 = 'placeholder:text-[#8A90A2]';
 
@@ -75,8 +75,8 @@ export function chipV2(seleccionado: boolean): string {
     'min-h-[48px] rounded-[10px] border-[1.5px] px-2 text-sm leading-tight transition-colors duration-150 cursor-pointer',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
     seleccionado
-      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-white'
-      : 'border-[var(--color-primary)] bg-white font-semibold text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.07)]',
+      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-bold text-[var(--color-on-primary)]'
+      : 'border-[var(--color-primary)] bg-white font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.07)]',
   ].join(' ');
 }
 

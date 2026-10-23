@@ -8,3 +8,4 @@ export { ShellV2 } from './ShellV2';
 export type { ShellV2Props } from './ShellV2';
 export { BarraInferiorV2, BarraInferiorV2Spacer } from './BarraInferiorV2';
 export { TransicionDelWizard } from './TransicionPaso';
+export { AvisoV2 } from './AvisoV2';

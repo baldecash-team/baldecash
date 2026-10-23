@@ -82,15 +82,15 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
         </div>
       </div>
 
-      <div className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold text-white">
+      <div className="relative mt-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm font-semibold text-[var(--color-on-primary)]">
         <span className="h-1.5 w-1.5 rounded-full bg-[#5FD3BE]" aria-hidden />
         Solicitud N.° {numeroDeSolicitud}
       </div>
 
-      <h1 className="relative mt-4 font-['Baloo_2',_sans-serif] text-2xl font-bold leading-tight text-white sm:text-3xl">
+      <h1 className="relative mt-4 font-['Baloo_2',_sans-serif] text-2xl font-bold leading-tight text-[var(--color-on-primary)] sm:text-3xl">
         {titulo}
       </h1>
-      <p className="relative mx-auto mt-2 max-w-md text-sm text-white/90 sm:text-base">{subtitulo}</p>
+      <p className="relative mx-auto mt-2 max-w-md text-sm text-[var(--color-on-primary)] opacity-90 sm:text-base">{subtitulo}</p>
     </div>
   );
 }

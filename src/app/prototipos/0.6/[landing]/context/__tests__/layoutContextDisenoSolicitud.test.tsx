@@ -109,3 +109,43 @@ describe('LayoutContext — features.solicitud_design (BAL-4958)', () => {
     expect(screen.getByTestId('modal')).toHaveTextContent('false');
   });
 });
+
+describe('LayoutContext — landings sin Diseño 2 y colores de texto (BAL-4969)', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('I-2: una landing de tema oscuro (nvidia) no abre el modal aunque traiga el 2', async () => {
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(2));
+    render(
+      <LayoutProvider landingOverride="nvidia">
+        <Probe />
+      </LayoutProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('diseno')).toHaveTextContent('2'));
+    expect(screen.getByTestId('modal')).toHaveTextContent('false');
+  });
+
+  it('I-1: con el morado por defecto, texto blanco encima y el mismo morado para texto', async () => {
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(2));
+    await renderProbe();
+    const raiz = document.documentElement.style;
+    expect(raiz.getPropertyValue('--color-on-primary')).toBe('#FFFFFF');
+    expect(raiz.getPropertyValue('--color-primary-text')).toBe('#4654CD');
+  });
+
+  it('I-1: con un primary claro, texto oscuro encima y un primary-text oscurecido', async () => {
+    const { getLandingLayout } = jest.requireMock('@/app/prototipos/0.6/services/landingApi') as {
+      getLandingLayout: jest.Mock;
+    };
+    getLandingLayout.mockResolvedValueOnce({
+      landing: { slug: 'pago-diferido', landing_type: 'propia' },
+      company: { logo_url: 'https://ejemplo.test/logo.png' },
+      primary_color: '#00ADEE',
+    });
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(2));
+    await renderProbe();
+    const raiz = document.documentElement.style;
+    await waitFor(() => expect(raiz.getPropertyValue('--color-primary')).toBe('#00ADEE'));
+    expect(raiz.getPropertyValue('--color-on-primary')).toBe('#1E2230');
+    expect(raiz.getPropertyValue('--color-primary-text')).toBe('#0079A7');
+  });
+});

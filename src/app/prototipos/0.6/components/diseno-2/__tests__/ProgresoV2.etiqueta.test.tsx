@@ -36,6 +36,14 @@ describe('etiquetaDelPaso', () => {
   it.each([undefined, null, '', '   '])('con progress_label %p cae al título (no al name)', (v) => {
     expect(etiquetaDelPaso(paso({ progress_label: v as string | null | undefined }))).toBe('Título del paso');
   });
+
+  it.each([undefined, null, '  '])('el paso de resumen con progress_label %p se llama "Resumen", como en Diseño 1 (M-3)', (v) => {
+    expect(etiquetaDelPaso(paso({ is_summary_step: true, title: 'Preferencias', progress_label: v as string | null | undefined }))).toBe('Resumen');
+  });
+
+  it('el paso de resumen con progress_label usa ese texto', () => {
+    expect(etiquetaDelPaso(paso({ is_summary_step: true, title: 'Preferencias', progress_label: 'Envío' }))).toBe('Envío');
+  });
 });
 
 describe('pasosDelProgreso + ProgresoV2', () => {

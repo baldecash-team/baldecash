@@ -272,7 +272,7 @@ export function ShellV2({
                       type="button"
                       onClick={irAtras}
                       disabled={ocupado}
-                      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-2 text-[15px] font-bold text-[var(--color-primary)] cursor-pointer hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                      className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-2 text-[15px] font-bold text-[var(--color-primary-text)] cursor-pointer hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                     >
                       <ChevronLeft className="h-4 w-4" aria-hidden />
                       Atrás
@@ -284,8 +284,8 @@ export function ShellV2({
                       data-continuar-v2
                       onClick={accionPrincipal}
                       disabled={ocupado || !canProceed}
-                      className={`inline-flex min-h-[52px] items-center gap-2 rounded-xl px-7 text-base font-bold text-white shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
-                        ocupado || !canProceed ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] hover:brightness-90 cursor-pointer'
+                      className={`inline-flex min-h-[52px] items-center gap-2 rounded-xl px-7 text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+                        ocupado || !canProceed ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
                       }`}
                     >
                       {/* La misma regla que la barra fija de celular (`BarraInferiorV2`):
@@ -313,7 +313,7 @@ export function ShellV2({
                       type="button"
                       onClick={atrasCelular.onClick}
                       disabled={ocupado}
-                      className="inline-flex min-h-[44px] items-center gap-1 px-3 text-[15px] font-bold text-[var(--color-primary)] cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-lg"
+                      className="inline-flex min-h-[44px] items-center gap-1 px-3 text-[15px] font-bold text-[var(--color-primary-text)] cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-lg"
                     >
                       <ChevronLeft className="h-4 w-4" aria-hidden />
                       {atrasCelular.texto}

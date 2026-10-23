@@ -255,7 +255,7 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
         onMouseLeave={handleMouseLeave}
       >
         {icon ?? (v2
-          ? <Info aria-label="Más información" className="w-[18px] h-[18px] text-[var(--color-primary)] hover:text-[color-mix(in_srgb,var(--color-primary)_80%,black)] transition-colors" />
+          ? <Info aria-label="Más información" className="w-[18px] h-[18px] text-[var(--color-primary-text)] hover:text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)] transition-colors" />
           : <Info className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />)}
       </span>
 
