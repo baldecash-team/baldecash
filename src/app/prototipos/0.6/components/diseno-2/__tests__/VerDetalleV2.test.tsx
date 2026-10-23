@@ -117,7 +117,7 @@ describe('BarraInferiorV2 — texto del Paso 4', () => {
   it('usa el texto que le pasan y muestra el total', () => {
     render(<BarraInferiorV2 onPrimary={jest.fn()} isLastStep total="S/179/mes" texto="Enviar con 1 protección" />);
     expect(screen.getByRole('button')).toHaveTextContent('Enviar con 1 protección');
-    expect(screen.getByText('S/179/mes')).toBeInTheDocument();
+    expect(document.querySelector('[data-total-barra] p:last-child')).toHaveTextContent('S/179/mes');
   });
   it('sin texto propio, lo de siempre', () => {
     render(<BarraInferiorV2 onPrimary={jest.fn()} isLastStep />);

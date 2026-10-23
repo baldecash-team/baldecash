@@ -37,6 +37,15 @@ export interface BarraInferiorV2Props {
   atras?: { texto: string; onClick: () => void } | null;
 }
 
+/**
+ * "S/159/mes" → ["S/159", "/mes"]: el sufijo de la frecuencia va más chico,
+ * como en el panel, para que el monto entre entero en 360 px.
+ */
+export function partirTotal(total: string): [string, string] {
+  const m = total.match(/^(.*?\d)(\/[^\d]*)$/);
+  return m ? [m[1], m[2]] : [total, ''];
+}
+
 /** Alto reservado para que la barra no tape el final de la página. */
 export function BarraInferiorV2Spacer() {
   return <div className="lg:hidden" style={{ height: 'calc(80px + env(safe-area-inset-bottom))' }} aria-hidden />;
@@ -59,13 +68,14 @@ export function BarraInferiorV2({
   if (oculto || teclado || !onPrimary) return null;
   const deshabilitado = isSubmitting || isBusy || !canProceed;
   const texto = isSubmitting ? submitMessage || 'Enviando…' : textoPropio || (isLastStep ? 'Enviar solicitud' : 'Continuar');
+  const [monto, sufijo] = partirTotal(total ?? '');
 
   return (
     <div
       className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#E3E6EE] bg-white px-4 pt-3"
       style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {atras && (
           <button
             type="button"
@@ -78,10 +88,15 @@ export function BarraInferiorV2({
             <ChevronLeft className="h-5 w-5" aria-hidden />
           </button>
         )}
+        {/* El monto nunca se corta (verificación final, BAL-4969: salía
+            «S/159/m…» a 390). Si falta espacio, cede el texto del botón. */}
         {total && (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs text-[#5B6275]">{leyendaTotal}</p>
-            <p className="truncate font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-[1.1] text-[var(--color-primary-text)]">{total}</p>
+          <div data-total-barra className="flex-1">
+            <p className="text-xs leading-tight text-[#5B6275]">{leyendaTotal}</p>
+            <p className="whitespace-nowrap font-['Baloo_2',_sans-serif] text-[20px] min-[375px]:text-[22px] font-bold leading-[1.1] text-[var(--color-primary-text)]">
+              {monto}
+              {sufijo && <span className="text-sm font-semibold">{sufijo}</span>}
+            </p>
           </div>
         )}
         <button
@@ -89,13 +104,14 @@ export function BarraInferiorV2({
           data-continuar-v2
           onClick={onPrimary}
           disabled={deshabilitado}
-          className={`campo-v2-cta flex min-h-[52px] ${total ? 'shrink-0 px-[18px]' : 'flex-1'} items-center justify-center gap-2 rounded-xl text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
+          className={`campo-v2-cta flex min-h-[52px] ${total ? 'min-w-0 px-4 min-[375px]:px-[18px]' : 'flex-1'} items-center justify-center gap-2 rounded-xl text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
             deshabilitado ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
           }`}
         >
           {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin motion-reduce:animate-none rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
           <span className="truncate">{texto}</span>
-          {!isSubmitting && <ArrowRight className="h-5 w-5" aria-hidden />}
+          {/* Enviar va sin flecha, como en el prototipo (`ctaLabelM`). */}
+          {!isSubmitting && !isLastStep && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
         </button>
       </div>
     </div>

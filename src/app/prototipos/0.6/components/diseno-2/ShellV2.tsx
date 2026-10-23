@@ -385,7 +385,10 @@ export function ShellV2({
         <BarraInferiorV2
           atras={atrasCelular}
           onPrimary={accionMovil?.onPrimary ?? accionPrincipal}
-          texto={accionMovil?.texto ?? (isLastStep ? textoDelEnvio : undefined)}
+          // En la barra de celular el envío dice siempre «Enviar solicitud»
+          // (prototipo, `ctaLabelM`): «Enviar con 2 protecciones» no entra
+          // junto al monto en 360 px. Las protecciones se ven en la lista.
+          texto={accionMovil?.texto ?? (isLastStep ? 'Enviar solicitud' : undefined)}
           isLastStep={isLastStep}
           isSubmitting={isSubmitting}
           isBusy={isBusy}
