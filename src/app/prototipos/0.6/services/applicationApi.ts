@@ -8,7 +8,9 @@ import {
   mensajeDelError,
   detalleNoEsTexto,
   MENSAJE_ERROR_GENERICO,
-  MENSAJE_ERROR_TIEMPO,
+  MENSAJE_ERROR_INESPERADO,
+  MENSAJE_ENVIO_SIN_CONFIRMAR,
+  ERROR_CODE_ENVIO_SIN_CONFIRMAR,
 } from './mensajeDelError';
 
 /**
@@ -268,14 +270,26 @@ export async function submitApplication(
         ...(controlador ? { signal: controlador.signal } : {}),
       });
     } catch (error) {
-      if ((error as { name?: string })?.name === 'AbortError') {
+      // Sin respuesta: el POST pudo haber llegado y la solicitud estar
+      // creándose (ver MENSAJE_ENVIO_SIN_CONFIRMAR). Ni el corte por tiempo ni
+      // el de red se dicen como "error de conexión, intenta nuevamente".
+      const porTiempo = (error as { name?: string })?.name === 'AbortError';
+      if (porTiempo) {
         Sentry.captureMessage('submit: el envío superó el tiempo máximo', {
           level: 'warning',
           tags: { modulo: 'solicitud', accion: 'submit' },
         });
-        return { success: false, error: MENSAJE_ERROR_TIEMPO };
+      } else {
+        Sentry.captureException(error, {
+          tags: { modulo: 'solicitud', accion: 'submit', motivo: 'sin_respuesta' },
+          extra: { session_uuid: data.session_uuid },
+        });
       }
-      throw error;
+      return {
+        success: false,
+        error: MENSAJE_ENVIO_SIN_CONFIRMAR,
+        error_code: ERROR_CODE_ENVIO_SIN_CONFIRMAR,
+      };
     } finally {
       if (temporizador) clearTimeout(temporizador);
     }
@@ -287,6 +301,21 @@ export async function submitApplication(
       result = await response.json();
     } catch {
       result = null;
+    }
+
+    // 502/503/504 los pone el balanceador, no ws2: corta la conexión mientras
+    // el submit sigue corriendo atrás y la solicitud puede terminar creada.
+    if ([502, 503, 504].includes(response.status)) {
+      Sentry.captureMessage('submit: el balanceador cortó el envío', {
+        level: 'warning',
+        tags: { modulo: 'solicitud', accion: 'submit', status: String(response.status) },
+        extra: { session_uuid: data.session_uuid },
+      });
+      return {
+        success: false,
+        error: MENSAJE_ENVIO_SIN_CONFIRMAR,
+        error_code: ERROR_CODE_ENVIO_SIN_CONFIRMAR,
+      };
     }
 
     if (!response.ok) {
@@ -314,10 +343,16 @@ export async function submitApplication(
     if (!result) return { success: false, error: MENSAJE_ERROR_GENERICO };
     return result as unknown as SubmitApplicationResponse;
   } catch (error) {
+    // Acá ya no llega la red (eso se resuelve arriba): es un error del código
+    // que arma el envío. Decir "error de conexión" mandaba a buscar el
+    // problema en el wifi de la persona.
     console.error('Error submitting application:', error);
+    Sentry.captureException(error, {
+      tags: { modulo: 'solicitud', accion: 'submit', motivo: 'excepcion_cliente' },
+    });
     return {
       success: false,
-      error: 'Error de conexión. Por favor intenta nuevamente.',
+      error: MENSAJE_ERROR_INESPERADO,
     };
   }
 }

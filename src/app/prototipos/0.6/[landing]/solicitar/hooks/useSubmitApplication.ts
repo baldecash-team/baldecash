@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { useRouter, useParams } from 'next/navigation';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '../context/ProductContext';
@@ -17,6 +18,11 @@ import {
   type SubmitApplicationRequest,
   type UploadedFileData,
 } from '../../../services/applicationApi';
+import {
+  ERROR_CODE_ENVIO_SIN_CONFIRMAR,
+  MENSAJE_ENVIO_SIN_CONFIRMAR,
+  MENSAJE_ERROR_INESPERADO,
+} from '../../../services/mensajeDelError';
 import { resetFormStartTracking } from './useFieldTracking';
 import {
   clearConsentStorage,
@@ -55,6 +61,30 @@ function termToMonths(term: number, frequency?: string): number {
   if (frequency === 'semanal') return Math.round(term / 4);
   if (frequency === 'quincenal') return Math.round(term / 2);
   return term; // mensual or unknown → assume already in months
+}
+
+/**
+ * Cuánto se frena un reenvío después de un envío sin confirmar. ws2 es
+ * idempotente por sesión, pero solo cuando la primera solicitud ya se guardó:
+ * un reintento mientras la primera sigue en curso crea otra (130342 y 130343,
+ * BAL-4969). Pasado este tiempo, reintentar con la misma sesión devuelve la
+ * solicitud existente si llegó.
+ */
+export const ESPERA_TRAS_ENVIO_SIN_CONFIRMAR_MS = 5 * 60 * 1000;
+
+const claveSinConfirmar = (sessionUuid: string) => `baldecash-envio-sin-confirmar-${sessionUuid}`;
+
+function envioSinConfirmarVigente(sessionUuid: string): boolean {
+  try {
+    const desde = Number(localStorage.getItem(claveSinConfirmar(sessionUuid)));
+    return Number.isFinite(desde) && desde > 0 && Date.now() - desde < ESPERA_TRAS_ENVIO_SIN_CONFIRMAR_MS;
+  } catch {
+    return false;
+  }
+}
+
+function marcarEnvioSinConfirmar(sessionUuid: string): void {
+  try { localStorage.setItem(claveSinConfirmar(sessionUuid), String(Date.now())); } catch {}
 }
 
 interface UseSubmitApplicationOptions {
@@ -391,6 +421,14 @@ export function useSubmitApplication(
       // Get all products (cart or single)
       const allProducts = getAllProducts();
 
+      // Un envío anterior de esta sesión quedó sin respuesta y puede seguir
+      // creándose en ws2: reenviar ahora duplica la solicitud.
+      if (envioSinConfirmarVigente(sessionUuid)) {
+        setError(MENSAJE_ENVIO_SIN_CONFIRMAR);
+        onToast?.(MENSAJE_ENVIO_SIN_CONFIRMAR, 'error');
+        return false;
+      }
+
       // Validate at least one product is selected
       if (allProducts.length === 0) {
         const msg = 'No hay producto seleccionado.';
@@ -405,6 +443,10 @@ export function useSubmitApplication(
       const consents = readSubmitConsents(landing, consentimientoEnPantallaRef.current);
 
       let succeeded = false;
+      // La respuesta de un envío que ws2 YA aceptó. Si algo del código revienta
+      // después, la solicitud existe igual: no se muestra error (invitaría a
+      // reenviar y duplicar), se sigue a la confirmación.
+      let envioAceptado: { code?: string; token?: string } | null = null;
       enVueloRef.current = true;
       setIsSubmitting(true);
       setSubmitStage('validating');
@@ -596,6 +638,7 @@ export function useSubmitApplication(
         });
 
         if (result.success) {
+          envioAceptado = { code: result.application_code, token: result.public_token };
           analytics.track('form_submit_success', {
             product_count: allProducts.length,
             accessory_count: selectedAccessories.length,
@@ -834,6 +877,7 @@ export function useSubmitApplication(
             (typeof result.error === 'string' ? result.error : undefined) ||
             'Error al enviar la solicitud. Por favor intenta nuevamente.';
           setError(msg);
+          if (result.error_code === ERROR_CODE_ENVIO_SIN_CONFIRMAR) marcarEnvioSinConfirmar(sessionUuid);
           // La unidad tomada va al modal si el caller lo maneja; si no, cae al
           // toast, que es el comportamiento de siempre. Nunca los dos: dos
           // avisos del mismo hecho se leen como dos problemas distintos.
@@ -845,15 +889,36 @@ export function useSubmitApplication(
           return false;
         }
       } catch (err) {
+        // `submitApplication` no lanza (la red se resuelve adentro): lo que
+        // llega acá es una excepción del código de esta pantalla. Antes se
+        // pintaba como "Error de conexión" y no quedaba rastro en Sentry.
         console.error('Error submitting application:', err);
+        Sentry.captureException(err, {
+          tags: {
+            modulo: 'solicitud',
+            accion: 'submit',
+            despues_del_envio: envioAceptado ? 'si' : 'no',
+          },
+          extra: { landing, session_uuid: sessionUuid },
+        });
+        if (envioAceptado) {
+          // La solicitud ya existe: se llega a la confirmación igual.
+          setSubmitStage('success');
+          setSubmitSucceeded(true);
+          succeeded = true;
+          if (stayInWizard) return true;
+          router.push(
+            routes.solicitarConfirmacion(landing, envioAceptado.code, false, envioAceptado.token)
+          );
+          return true;
+        }
         analytics.track('form_submit_error', {
-          error_code: 'network_error',
-          stage: 'connection',
+          error_code: 'client_exception',
+          stage: 'client',
         });
         setSubmitStage('error');
-        const msg = 'Error de conexión. Por favor intenta nuevamente.';
-        setError(msg);
-        onToast?.(msg, 'error');
+        setError(MENSAJE_ERROR_INESPERADO);
+        onToast?.(MENSAJE_ERROR_INESPERADO, 'error');
         return false;
       } finally {
         // Limpiar timeout de "slow"

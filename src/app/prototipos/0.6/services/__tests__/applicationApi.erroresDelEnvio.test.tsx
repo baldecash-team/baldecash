@@ -6,7 +6,13 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { submitApplication, TIEMPO_MAXIMO_ENVIO_MS } from '../applicationApi';
-import { mensajeDelError, MENSAJE_ERROR_SERVIDOR, MENSAJE_ERROR_TIEMPO } from '../mensajeDelError';
+import * as Sentry from '@sentry/nextjs';
+import {
+  mensajeDelError,
+  MENSAJE_ERROR_SERVIDOR,
+  MENSAJE_ENVIO_SIN_CONFIRMAR,
+  MENSAJE_ERROR_INESPERADO,
+} from '../mensajeDelError';
 import { AvisoV2 } from '../../components/diseno-2/AvisoV2';
 
 jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn(), captureException: jest.fn() }));
@@ -53,7 +59,8 @@ describe('submitApplication: errores que antes rompían la pantalla', () => {
     ['422 objeto', respuesta(422, { detail: { code: 'TITULAR_MENOR', message: 'Titular menor' } }), 'Titular menor'],
     ['409', respuesta(409, { detail: 'Solicitud duplicada' }), 'Solicitud duplicada'],
     ['500 JSON', respuesta(500, { detail: 'Internal Server Error' }), MENSAJE_ERROR_SERVIDOR],
-    ['502 HTML', html(502), MENSAJE_ERROR_SERVIDOR],
+    ['502 HTML (balanceador)', html(502), MENSAJE_ENVIO_SIN_CONFIRMAR],
+    ['504 HTML (balanceador)', html(504), MENSAJE_ENVIO_SIN_CONFIRMAR],
   ])('%s → error en texto', async (_n, r, esperado) => {
     (global.fetch as jest.Mock).mockResolvedValue(r);
     const res = await submitApplication(request);
@@ -62,10 +69,27 @@ describe('submitApplication: errores que antes rompían la pantalla', () => {
     expect(res.error).toBe(esperado);
   });
 
-  it('red caída → "Error de conexión"', async () => {
-    (global.fetch as jest.Mock).mockRejectedValue(new TypeError('Failed to fetch'));
+  // BAL-4969, prod 23-10-2026: ws2 tardó ~4 min, el balanceador cortó sin
+  // CORS y el navegador vio `TypeError: Failed to fetch`. La solicitud sí se
+  // creó. "Error de conexión, intenta nuevamente" llevó a un duplicado.
+  it('sin respuesta (Failed to fetch) → envío sin confirmar, no "intenta nuevamente", y a Sentry', async () => {
+    const corte = new TypeError('Failed to fetch');
+    (global.fetch as jest.Mock).mockRejectedValue(corte);
     const res = await submitApplication(request);
-    expect(res.error).toContain('conexión');
+    expect(res.success).toBe(false);
+    expect(res.error_code).toBe('ENVIO_SIN_CONFIRMAR');
+    expect(res.error).toBe(MENSAJE_ENVIO_SIN_CONFIRMAR);
+    expect(res.error).not.toContain('Error de conexión');
+    expect(Sentry.captureException).toHaveBeenCalledWith(corte, expect.anything());
+  });
+
+  it('una excepción del código al armar el envío → mensaje genérico, no "conexión"', async () => {
+    const rota = { ...request, files: [{ fieldCode: 'dni', file: null }] } as unknown as Parameters<typeof submitApplication>[0];
+    const res = await submitApplication(rota);
+    expect(res.success).toBe(false);
+    expect(res.error).toBe(MENSAJE_ERROR_INESPERADO);
+    expect(Sentry.captureException).toHaveBeenCalled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('conexión colgada → se corta al tiempo máximo con un texto', async () => {
@@ -80,7 +104,8 @@ describe('submitApplication: errores que antes rompían la pantalla', () => {
       const promesa = submitApplication(request);
       jest.advanceTimersByTime(TIEMPO_MAXIMO_ENVIO_MS + 1);
       const res = await promesa;
-      expect(res.error).toBe(MENSAJE_ERROR_TIEMPO);
+      expect(res.error).toBe(MENSAJE_ENVIO_SIN_CONFIRMAR);
+      expect(res.error_code).toBe('ENVIO_SIN_CONFIRMAR');
     } finally {
       jest.useRealTimers();
     }

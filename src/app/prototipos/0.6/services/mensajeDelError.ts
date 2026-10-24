@@ -19,6 +19,27 @@ export const MENSAJE_ERROR_SERVIDOR =
 export const MENSAJE_ERROR_TIEMPO =
   'La conexión está tardando demasiado. Revisa tu internet e intenta nuevamente.';
 
+/**
+ * El envío salió del navegador pero no volvió una respuesta que diga cómo
+ * terminó: la red se cortó, el tiempo máximo venció o el balanceador cerró la
+ * conexión (502/503/504) mientras ws2 seguía trabajando.
+ *
+ * En ese caso la solicitud PUEDE haberse creado. Pasó en prod (BAL-4969,
+ * 23-10-2026): ws2 tardó casi 4 minutos en el submit, el navegador recibió un
+ * corte sin CORS, la pantalla dijo "Error de conexión. Por favor intenta
+ * nuevamente", la persona reintentó y quedaron dos solicitudes (130342 y
+ * 130343). Por eso el texto NO invita a reenviar enseguida.
+ */
+export const ERROR_CODE_ENVIO_SIN_CONFIRMAR = 'ENVIO_SIN_CONFIRMAR';
+export const MENSAJE_ENVIO_SIN_CONFIRMAR =
+  'No pudimos confirmar si tu solicitud llegó. Es posible que ya se haya ' +
+  'registrado: no la envíes de nuevo todavía. Si se registró, te escribiremos ' +
+  'por WhatsApp. Si en 10 minutos no tienes noticias, vuelve a intentarlo.';
+
+/** Un error del código de la pantalla, no de la red. */
+export const MENSAJE_ERROR_INESPERADO =
+  'Tuvimos un problema inesperado al procesar tu solicitud. Por favor intenta nuevamente.';
+
 function textoDe(valor: unknown): string | null {
   if (typeof valor === 'string') return valor.trim() || null;
   if (Array.isArray(valor)) {
