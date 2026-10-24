@@ -127,6 +127,13 @@ jest.mock('../useFieldTracking', () => ({
   resetFormStartTracking: jest.fn(),
 }));
 
+// Sentry: las excepciones del código tienen que llegar con su pila.
+const mockCaptureException = jest.fn();
+jest.mock('@sentry/nextjs', () => ({
+  captureException: (...args: unknown[]) => mockCaptureException(...args),
+  captureMessage: jest.fn(),
+}));
+
 // Mock applicationApi
 const mockSubmitApplication = jest.fn();
 jest.mock('../../../../services/applicationApi', () => ({
@@ -639,8 +646,9 @@ describe('useSubmitApplication', () => {
       expect(mockPush).not.toHaveBeenCalled();
     });
 
-    it('handles network error', async () => {
-      mockSubmitApplication.mockRejectedValueOnce(new Error('Network error'));
+    it('una excepción del código NO se pinta como "Error de conexión" y va a Sentry', async () => {
+      const boom = new TypeError("Cannot read properties of undefined (reading 'id')");
+      mockSubmitApplication.mockRejectedValueOnce(boom);
 
       const onToast = jest.fn();
       const { result } = renderHook(() => useSubmitApplication({ onToast }));
@@ -651,10 +659,73 @@ describe('useSubmitApplication', () => {
       });
 
       expect(success).toBe(false);
-      expect(onToast).toHaveBeenCalledWith(
-        'Error de conexión. Por favor intenta nuevamente.',
-        'error'
+      const msg = onToast.mock.calls[0][0] as string;
+      expect(msg).not.toContain('conexión');
+      expect(msg).toContain('problema inesperado');
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        boom,
+        expect.objectContaining({ tags: expect.objectContaining({ despues_del_envio: 'no' }) })
       );
+    });
+
+    // BAL-4969, prod 23-10-2026: ws2 aceptó el envío y algo del código
+    // reventó después. La solicitud existe: mostrar un error invita a
+    // reenviar y duplicarla.
+    it('si el envío ya salió bien y algo revienta después, NO hay error: va a la confirmación', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: true,
+        application_id: 130342,
+        application_code: 'APP-2026-99839761',
+        public_token: 'tok-1',
+      });
+      const boom = new Error('localStorage lleno');
+      mockMarcarSesionConvertida.mockImplementationOnce(() => { throw boom; });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      let success: boolean = false;
+      await act(async () => {
+        success = await result.current.submit({ otpEnabled: true });
+      });
+
+      expect(success).toBe(true);
+      expect(onToast).not.toHaveBeenCalledWith(expect.anything(), 'error');
+      expect(result.current.error).toBeNull();
+      expect(mockPush).toHaveBeenCalledWith(
+        routes.solicitarConfirmacion('test-landing', 'APP-2026-99839761', false, 'tok-1')
+      );
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        boom,
+        expect.objectContaining({ tags: expect.objectContaining({ despues_del_envio: 'si' }) })
+      );
+    });
+
+    it('envío sin confirmar: el reintento inmediato NO sale (duplicaría la solicitud)', async () => {
+      localStorage.clear();
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'ENVIO_SIN_CONFIRMAR',
+        error: 'No pudimos confirmar si tu solicitud llegó.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+      expect(mockSubmitApplication).toHaveBeenCalledTimes(1);
+      expect(onToast.mock.calls[0][0]).not.toContain('Error de conexión');
+
+      let segundo: boolean = true;
+      await act(async () => {
+        segundo = await result.current.submit();
+      });
+      expect(segundo).toBe(false);
+      expect(mockSubmitApplication).toHaveBeenCalledTimes(1);
+      expect(onToast.mock.calls[1][0]).toContain('no la envíes de nuevo');
+      localStorage.clear();
     });
 
     it('shows generic error when API fails without error message', async () => {
