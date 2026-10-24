@@ -158,6 +158,12 @@ export interface ApiCatalogProduct {
   grade_siblings?: {
     grade: string;
     product_id: number;
+    /**
+     * Combo de ESTE grado cuando la card es de combo: el slug viene como
+     * `{slug}-combo-{id}` y la cuota sale del precio del combo. `null` = el
+     * grado va suelto. Contra un backend viejo no viene.
+     */
+    combo_id?: number | null;
     slug: string;
     price: number | null;
     stock_available: number;
@@ -799,6 +805,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     gradeSiblings: (apiProduct.grade_siblings ?? []).map((s) => ({
       grade: s.grade,
       productId: s.product_id,
+      // `undefined` (backend viejo) se distingue de `null` (grado suelto): ver
+      // `comboIdDelGrado`.
+      comboId: s.combo_id === undefined ? undefined : s.combo_id === null ? null : Number(s.combo_id),
       slug: s.slug,
       price: s.price,
       name: s.name ?? null,

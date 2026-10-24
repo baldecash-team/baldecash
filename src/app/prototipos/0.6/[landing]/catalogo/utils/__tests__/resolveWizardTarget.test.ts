@@ -187,4 +187,36 @@ describe('resolveWizardTarget', () => {
       expect(target.quotaMonthly).toBe(40);
     });
   });
+
+  // Card de combo agrupada por grado: el wizard recibe el combo del grado
+  // elegido —su slug `-combo-N`, su nombre con el regalo y su `comboId`—, no
+  // el combo del grado que trajo el listado.
+  describe('hermanos de grado en una card de combo', () => {
+    const gradoA = { grade: 'A', productId: 700, comboId: 41, slug: 'hp-250-g10-combo-41', displayName: 'HP 250 G10 (con kit de regalo)', price: 1900, lowestQuota: 118, minTermQuota: 300, isAvailable: true };
+    const gradoB = { grade: 'B', productId: 701, comboId: 42 as number | null, slug: 'hp-250-g10-grado-b-combo-42', name: 'HP 250 G10 (Grado B)', displayName: 'HP 250 G10 Grado B (con kit de regalo)', price: 1780, lowestQuota: 110, minTermQuota: 280, isAvailable: true };
+    const cardCombo = card({ id: '700', slug: gradoA.slug, comboId: 41, quotaMonthly: 118, gradeSiblings: [gradoA, gradoB] });
+
+    it('lleva el combo, el slug y el nombre del grado elegido', () => {
+      const target = resolveWizardTarget(cardCombo, '701');
+
+      expect(target.comboId).toBe(42);
+      expect(target.slug).toBe('hp-250-g10-grado-b-combo-42');
+      expect(target.displayName).toBe('HP 250 G10 Grado B (con kit de regalo)');
+      expect(target.quotaMonthly).toBe(110);
+    });
+
+    it('con combo_id null el grado va suelto, sin el combo de la card', () => {
+      const suelto = { ...gradoB, comboId: null };
+      const target = resolveWizardTarget({ ...cardCombo, gradeSiblings: [gradoA, suelto] }, '701');
+
+      expect(target.comboId).toBeUndefined();
+    });
+
+    it('backend viejo sin combo_id conserva el combo de la card', () => {
+      const viejo = { ...gradoB, comboId: undefined };
+      const target = resolveWizardTarget({ ...cardCombo, gradeSiblings: [gradoA, viejo] }, '701');
+
+      expect(target.comboId).toBe(41);
+    });
+  });
 });

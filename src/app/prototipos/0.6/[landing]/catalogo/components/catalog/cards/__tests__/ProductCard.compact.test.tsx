@@ -283,8 +283,9 @@ describe('ProductCard — variante compacta (reacondicionados)', () => {
     });
 
     // El grado con pricing sin cargar manda `null` (asi llega hoy de la landing
-    // 241). Ahi la card conserva lo suyo en vez de mostrar un hueco.
-    it('con precio null del grado conserva el de la card', async () => {
+    // 241). Antes se podia elegir y la card seguia con la cuota de otro grado;
+    // ahora el boton sale apagado y la card conserva lo suyo.
+    it('con precio null del grado lo deshabilita y conserva lo de la card', async () => {
       const user = userEvent.setup();
       const onAddToCart = jest.fn();
       const sinPricing = buildProduct({
@@ -295,12 +296,14 @@ describe('ProductCard — variante compacta (reacondicionados)', () => {
       });
       render(<ProductCard product={sinPricing} compact onAddToCart={onAddToCart} />);
 
-      await user.click(screen.getByRole('button', { name: 'Grado C' }));
+      expect(screen.getByRole('button', { name: 'Grado C' })).toBeDisabled();
+      // El grado de la propia card sigue disponible: sus datos son los de la card.
+      expect(screen.getByRole('button', { name: 'Grado B' })).not.toBeDisabled();
       await user.click(screen.getByRole('button', { name: /lo quiero/i }));
 
       const item = onAddToCart.mock.calls[0][0];
-      expect(item.slug).toBe('c');       // la identidad SI cambia
-      expect(item.price).toBe(402);      // el precio cae al de la card
+      expect(item.slug).toBe('advance-notebook-cn4058');
+      expect(item.price).toBe(402);
     });
   });
 

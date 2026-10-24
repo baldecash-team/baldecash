@@ -951,6 +951,13 @@ export interface CatalogGradeSibling {
   /** Letra del grado: "A", "B", "C"… */
   grade: string;
   productId: number;
+  /**
+   * Combo de ESTE grado, en las cards de combo: el mismo kit armado con el
+   * equipo de ese grado. `null` = el grado va suelto; `undefined` = backend
+   * viejo que no manda el campo (ahí se conserva el combo de la card).
+   */
+  comboId?: number | null;
+  /** Mismo formato que el slug de la card: `{slug}-combo-{id}` si es combo. */
   slug: string;
   /** Precio de lista del grado. `null` cuando no está cargado. */
   price: number | null;
