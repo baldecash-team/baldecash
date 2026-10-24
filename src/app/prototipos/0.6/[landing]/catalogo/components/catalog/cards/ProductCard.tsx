@@ -29,6 +29,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { cardKey } from '../../../utils/cardKey';
+import { comboIdDelGrado, gradoNoElegible } from '../../../utils/mergeGradeSibling';
 import {
   cardSelectorMode, tieneGradosAgrupados, gradosDeLaCard, modoElegido,
   type SelectorMode,
@@ -220,7 +221,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // llegó del listado; si ese no viniera, en el primero DISPONIBLE (no en el
   // primero a secas: marcar de entrada un grado agotado sería mentir).
   const [selectedGrade, setSelectedGrade] = useState<string | undefined>(
-    () => product.grade ?? product.gradeSiblings?.find(g => g.isAvailable)?.grade,
+    () => product.grade ?? product.gradeSiblings?.find(g => !gradoNoElegible(g, product.id))?.grade,
   );
 
   // Entrega diferida: al dar "Lo quiero" se muestra primero el aviso de fecha.
@@ -519,6 +520,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const createCartItem = (): CartItem => ({
     productId: activeProductId,
     slug: activeSlug,  // For API calls when fetching payment plans
+    // El combo del grado elegido: el suelto y sus combos comparten productId,
+    // así que sin esto el submit iba con el combo del grado que trajo la card.
+    comboId: selectedGradeSibling ? comboIdDelGrado(product, selectedGradeSibling) : product.comboId,
     name: displayName,
     shortName: product.name,
     brand: product.brand,
@@ -646,7 +650,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div data-testid="card-grades" className="flex flex-col gap-1.5">
         <div className="flex gap-1.5">
           {grados.map((g) => {
-            const agotado = !g.isAvailable;
+            const agotado = gradoNoElegible(g, product.id);
+            const sinStock = !g.isAvailable;
             const esElegido = g.grade === selectedGrade;
             return (
               <button
@@ -657,7 +662,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 disabled={agotado}
                 // El agotado explica POR QUÉ no responde: un
                 // botón muerto sin motivo se lee como un fallo.
-                title={agotado ? `Grado ${g.grade} — sin stock` : `Grado ${g.grade}`}
+                title={
+                  sinStock
+                    ? `Grado ${g.grade} — sin stock`
+                    : agotado
+                    ? `Grado ${g.grade} — no disponible`
+                    : `Grado ${g.grade}`
+                }
                 onClick={() => setSelectedGrade(g.grade)}
                 // min-h-8: las pills tenían ~24px, por debajo de
                 // lo cómodo para el pulgar en móvil.
