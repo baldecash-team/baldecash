@@ -45,17 +45,29 @@ interface TonoDelAviso {
   Icono: typeof AlertTriangle;
 }
 
+/**
+ * Colores del kit de Diseño 2 con los tokens `--d2-*` (BAL-5076): en claro
+ * valen lo mismo que los hex de antes; en la landing oscura toman su par.
+ */
 function tonoDelAviso(type: ToastType): TonoDelAviso {
-  const texto = 'text-[#1E2230]';
-  const cerrar = 'text-[#3A4052] hover:bg-black/5';
+  const texto = 'text-[var(--d2-texto)]';
+  const cerrar = 'text-[var(--d2-texto-2)] hover:bg-black/5';
   if (type === 'warning' || type === 'error') {
-    return { caja: 'border-[#F2B79A] bg-[#FFF1EB]', icono: 'text-[#C2410C]', texto, cerrar, Icono: AlertTriangle };
+    return { caja: 'border-[var(--d2-error-borde)] bg-[var(--d2-error-suave)]', icono: 'text-[var(--d2-error)]', texto, cerrar, Icono: AlertTriangle };
   }
   if (type === 'success') {
-    return { caja: 'border-[#BFE6DA] bg-[#E8F7F2]', icono: 'text-[#0B6B5C]', texto, cerrar, Icono: CheckCircle2 };
+    return { caja: 'border-[var(--d2-ok-borde)] bg-[var(--d2-ok-suave-3)]', icono: 'text-[var(--d2-ok-texto)]', texto, cerrar, Icono: CheckCircle2 };
   }
-  return { caja: 'border-[#D5D9E6] bg-white', icono: 'text-[var(--color-primary-text)]', texto, cerrar, Icono: Info };
+  return { caja: 'border-[var(--d2-borde-control)] bg-[var(--d2-tarjeta)]', icono: 'text-[var(--color-primary-text)]', texto, cerrar, Icono: Info };
 }
+
+/**
+ * El morado fijo del `Toast` de Diseño 1: Diseño 1 no toma el color de la
+ * landing, así que aquí sí va el hex (excepción declarada en
+ * `colorDeLaLanding.test.ts`, solo para las constantes `D1_`).
+ */
+const D1_ICONO_INFO = 'text-[#4654CD]';
+const D1_ANILLO = 'focus-visible:ring-[#4654CD]';
 
 /** Los colores del `Toast` compartido de Diseño 1 (BAL-5008). */
 function tonoDelAvisoD1(type: ToastType): TonoDelAviso {
@@ -74,7 +86,7 @@ function tonoDelAvisoD1(type: ToastType): TonoDelAviso {
   if (type === 'success') {
     return { caja: 'border-neutral-800 bg-neutral-800', icono: 'text-[#22c55e]', texto: 'text-white', cerrar: 'text-white hover:bg-white/10', Icono: CheckCircle2 };
   }
-  return { caja: 'border-neutral-200 bg-white', icono: 'text-[#4654CD]', texto: 'text-neutral-800', cerrar: 'text-neutral-600 hover:bg-black/5', Icono: Info };
+  return { caja: 'border-neutral-200 bg-white', icono: D1_ICONO_INFO, texto: 'text-neutral-800', cerrar: 'text-neutral-600 hover:bg-black/5', Icono: Info };
 }
 
 export function AvisoV2({ message, type = 'warning', isVisible, onClose, duration = 4000, diseno = 2 }: AvisoV2Props) {
@@ -120,7 +132,7 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
               type="button"
               onClick={onClose}
               aria-label="Cerrar aviso"
-              className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 ${diseno === 2 ? 'focus-visible:ring-[var(--color-primary)]' : 'focus-visible:ring-[#4654CD]'} ${tono.cerrar}`}
+              className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 ${diseno === 2 ? 'focus-visible:ring-[var(--color-primary)]' : D1_ANILLO} ${tono.cerrar}`}
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

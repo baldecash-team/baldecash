@@ -121,6 +121,8 @@ const PARES_OSCUROS: Par[] = [
   ['texto', 'error-suave', TEXTO], ['texto', 'aviso-suave', TEXTO], ['texto', 'ok-suave-3', TEXTO],
   ['ambar-texto', 'ambar-suave', TEXTO], ['reac-titulo', 'reac-suave', TEXTO], ['info-titulo', 'info-suave', TEXTO],
   ['texto-2', 'reac-suave', TEXTO], ['texto-2', 'info-suave', TEXTO],
+  // AvisoV2 (BAL-5008 + BAL-5076): ícono y botón de cerrar sobre cada caja.
+  ['ok-texto', 'ok-suave-3', BORDE], ['texto-2', 'error-suave', BORDE], ['texto-2', 'ok-suave-3', BORDE],
   // Bordes de controles e íconos (3:1)
   ['borde-campo', 'tarjeta', BORDE], ['borde-control', 'tarjeta', BORDE], ['borde-hito', 'tarjeta', BORDE],
   ['borde-casilla', 'tarjeta', BORDE], ['borde-boton', 'tarjeta', BORDE], ['ok', 'tarjeta', BORDE],
@@ -150,9 +152,6 @@ describe('componentes del kit sin hex del kit escritos a mano', () => {
   );
   // Ilustraciones (Baldecito, confeti, chispas): mismos colores en los dos temas.
   const ILUSTRACION = ['BaldecitoV2.tsx', 'confeti.ts', 'TransicionPaso.tsx', 'CabeceraConfirmacionV2.tsx'];
-  // AvisoV2 lo reescribe BAL-5008 (variante de Diseño 1, rama aparte): se
-  // pasa a tokens después de juntar las dos ramas, para no chocar.
-  const PENDIENTE_BAL_5008 = ['AvisoV2.tsx'];
   const HEX_DEL_KIT = Object.values(VALORES_DE_HOY).filter((v) => v.startsWith('#') && v !== '#FFFFFF');
 
   function archivos(dir: string): string[] {
@@ -165,7 +164,7 @@ describe('componentes del kit sin hex del kit escritos a mano', () => {
 
   it('las clases usan var(--d2-*) en vez del hex', () => {
     const conHex: string[] = [];
-    for (const archivo of CARPETAS.flatMap(archivos).filter((a) => !PENDIENTE_BAL_5008.includes(path.basename(a)))) {
+    for (const archivo of CARPETAS.flatMap(archivos)) {
       const texto = fs.readFileSync(archivo, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
       for (const hex of HEX_DEL_KIT) {
         if (ILUSTRACION.includes(path.basename(archivo)) && /^#(0E8C78|1E2230)$/.test(hex)) continue;

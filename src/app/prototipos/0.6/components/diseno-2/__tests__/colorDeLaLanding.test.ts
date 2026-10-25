@@ -31,6 +31,9 @@ function lineasConMoradoFijo(archivo: string): string[] {
     .map((l, i) => ({ l, i }))
     // Los comentarios pueden nombrar el color por defecto.
     .filter(({ l }) => !/^\s*(\*|\/\/|\/\*)/.test(l) && MORADO_FIJO.test(l))
+    // AvisoV2 con `diseno={1}` (BAL-5008) copia el `Toast` de Diseño 1, que
+    // no toma el color de la landing: su morado vive solo en las constantes `D1_`.
+    .filter(({ l }) => !(path.basename(archivo) === 'AvisoV2.tsx' && /^\s*const D1_[A-Z_]+ = /.test(l)))
     .map(({ l, i }) => `${path.relative(RAIZ, archivo)}:${i + 1}: ${l.trim()}`);
 }
 
