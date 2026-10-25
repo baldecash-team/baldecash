@@ -931,6 +931,42 @@ describe('QA F10 · Falla 2c: falta un campo en otro paso al enviar', () => {
   });
 });
 
+describe('BAL-5008: Diseño 1 también avisa "campos incompletos" al enviar', () => {
+  it('se ve el aviso (status/polite, cerrar de 44px) antes de volver al paso con el campo vacío', async () => {
+    mockLayout.disenoSolicitud = 1;
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    const nombre = PASO_REGULAR.fields[0];
+    const antes = nombre.required;
+    nombre.required = true; // obligatorio y vacío en el Paso 1
+    jest.useFakeTimers();
+    try {
+      montarComoEnLaApp();
+      expect(screen.queryByTestId('shell-v2')).not.toBeInTheDocument();
+      const enviar = screen.getAllByRole('button', { name: /Enviar/i })[0];
+      await act(async () => {
+        fireEvent.click(enviar);
+      });
+      const region = screen.getByRole('status');
+      expect(region).toHaveAttribute('aria-live', 'polite');
+      expect(region).toHaveAttribute('data-aviso-d1');
+      expect(region).toHaveTextContent('Hay campos incompletos en "Datos personales". Por favor, revísalos.');
+      const cerrar = screen.getByRole('button', { name: 'Cerrar aviso' });
+      expect(cerrar.className).toMatch(/h-11/);
+      expect(cerrar.className).toMatch(/w-11/);
+      expect(mockSubmit).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1600);
+      });
+      expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('datos-personales'));
+    } finally {
+      nombre.required = antes;
+      jest.useRealTimers();
+    }
+  });
+});
+
 describe('E2E BAL-4969 (bug 2): reacondicionado en Diseño 2', () => {
   afterEach(() => {
     delete (mockProducto as Record<string, unknown>).condition;

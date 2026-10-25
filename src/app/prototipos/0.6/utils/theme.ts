@@ -18,14 +18,23 @@ export function isDarkLanding(slug: string): boolean {
 /**
  * Si la landing puede usar Diseño 2 de la solicitud (BAL-4969, I-2).
  *
- * El kit de Diseño 2 está pensado sobre fondo claro: zona gamer tiene su propio
- * tema y las landings oscuras (`isDarkLanding`, la misma marca que usa
- * `LayoutContext` para forzar su primary y `data-theme`) vuelven oscuro el
- * `bg-white` y dejan el kit ilegible. Esas landings se quedan en Diseño 1
- * aunque tengan `solicitud_design = 2`.
+ * Zona gamer se queda en Diseño 1 aunque tenga `solicitud_design = 2`: no es
+ * solo un tema oscuro, tiene su propio catálogo (`GamerCatalogoContent`), su
+ * propia entrada a la solicitud (`GamerSolicitarContent`), su header/footer y
+ * un tema claro/oscuro propio (`data-bc-theme`); el kit de Diseño 2 no pasa por
+ * ninguno de esos caminos.
+ *
+ * Las landings de tema oscuro (`isDarkLanding`, p. ej. nvidia) SÍ admiten
+ * Diseño 2 desde BAL-5076: el kit tiene su versión oscura con los tokens
+ * `--d2-*` de `src/app/d2-tokens.css`, que se activan con el mismo
+ * `data-theme="nvidia"` que pone `LayoutContext`.
+ *
+ * `renueva-*` no se decide aquí: su motivo es otro (segundo financiamiento) y
+ * lo bloquean admin2 y ws2; en la web `/solicitar` deja su intro propia
+ * (`isSecondFinancingLanding`).
  */
 export function admiteDiseno2(slug: string): boolean {
-  return !isGamerLanding(slug) && !isDarkLanding(slug);
+  return !isGamerLanding(slug);
 }
 
 /** La landing nvidia usa su propio header (NvidiaNavbar) en todas sus rutas de flujo. */

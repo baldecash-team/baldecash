@@ -43,22 +43,22 @@ export function ConfirmarSinProteccionesV2({
         // Mismo z-index que los otros modales del flujo (los flotantes van en z-[100]).
         wrapper: 'z-[9999]',
         backdrop: 'bg-black/50 backdrop-blur-sm z-[9998]',
-        base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200 mx-4',
+        base: 'bg-[var(--d2-tarjeta)] rounded-2xl shadow-2xl border border-[var(--d2-borde-gris-2)] mx-4',
         body: 'p-0',
-        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+        closeButton: 'top-4 right-4 hover:bg-[var(--d2-gris)] rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
         <ModalBody className="p-6">
           <div className="mb-3 flex items-center gap-3 pr-8">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-100" aria-hidden>
-              <AlertTriangle className="h-6 w-6 text-amber-700" />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--d2-ambar-suave-2)]" aria-hidden>
+              <AlertTriangle className="h-6 w-6 text-[var(--d2-ambar-icono)]" />
             </span>
-            <h2 id="confirmar-sin-protecciones-titulo" className="text-lg font-bold text-[#1E2230]">
+            <h2 id="confirmar-sin-protecciones-titulo" className="text-lg font-bold text-[var(--d2-texto)]">
               ¿Enviar sin tus protecciones?
             </h2>
           </div>
-          <p className="mb-5 text-sm text-[#5B6275]">
+          <p className="mb-5 text-sm text-[var(--d2-texto-suave)]">
             No pudimos cargar las protecciones, así que tu solicitud saldría sin las que elegiste (
             {textoDeElegidas(elegidas)}). Puedes reintentar o enviarla sin ellas.
           </p>
@@ -74,7 +74,7 @@ export function ConfirmarSinProteccionesV2({
             <button
               type="button"
               onClick={onEnviarSinProtecciones}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border-[1.5px] border-neutral-300 bg-white px-4 text-sm font-semibold text-[#3A4052] cursor-pointer hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border-[1.5px] border-[var(--d2-borde-boton)] bg-[var(--d2-tarjeta)] px-4 text-sm font-semibold text-[var(--d2-texto-2)] cursor-pointer hover:bg-[var(--d2-gris-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
             >
               Enviar sin protecciones
             </button>

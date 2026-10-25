@@ -118,35 +118,35 @@ export function HojaSeguroV2({ plan, elegido, onAlternar, onCerrar, landing, fre
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className={`relative flex max-h-[calc(100dvh-12px)] w-full flex-col gap-3 overflow-y-auto overscroll-contain rounded-t-[22px] bg-white px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-3 shadow-[0_20px_48px_rgba(20,24,40,0.25)] outline-none md:max-h-none md:w-[500px] md:gap-3.5 md:overflow-visible md:rounded-[18px] md:p-[26px] ${
+        className={`relative flex max-h-[calc(100dvh-12px)] w-full flex-col gap-3 overflow-y-auto overscroll-contain rounded-t-[22px] bg-[var(--d2-tarjeta)] px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-3 shadow-[0_20px_48px_rgba(20,24,40,0.25)] outline-none md:max-h-none md:w-[500px] md:gap-3.5 md:overflow-visible md:rounded-[18px] md:p-[26px] ${
           saliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'
         }`}
       >
-        <div className="h-1 w-10 self-center rounded-full bg-[#C9CEF0] md:hidden" aria-hidden="true" />
+        <div className="h-1 w-10 self-center rounded-full bg-[var(--d2-borde-campo)] md:hidden" aria-hidden="true" />
         <div className="flex items-start justify-between gap-3 md:gap-4">
-          <h2 id={idTitulo} className="pt-2 text-[20px] font-bold leading-tight text-[#1E2230] md:text-[21px]">
+          <h2 id={idTitulo} className="pt-2 text-[20px] font-bold leading-tight text-[var(--d2-texto)] md:text-[21px]">
             {plan.name}
           </h2>
           <button
             type="button"
             onClick={cerrar}
             aria-label="Cerrar"
-            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#F4F5F8] text-[#1E2230] transition-colors duration-150 hover:bg-[#E9EBF0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--d2-fondo)] text-[var(--d2-texto)] transition-colors duration-150 hover:bg-[var(--d2-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
           >
             <X className="h-[18px] w-[18px]" aria-hidden />
           </button>
         </div>
 
-        <div className="flex flex-col gap-0.5 rounded-xl bg-[#F4F5F8] px-3.5 py-3">
+        <div className="flex flex-col gap-0.5 rounded-xl bg-[var(--d2-fondo)] px-3.5 py-3">
           <span className="text-[22px] font-bold text-[var(--color-primary-text)]">{cuota}</span>
-          {total && <span className="text-[13px] text-[#5B6275]">{total}</span>}
+          {total && <span className="text-[13px] text-[var(--d2-texto-suave)]">{total}</span>}
         </div>
 
         {coberturas.length > 0 && (
           <ul className="flex flex-col gap-2.5">
             {coberturas.map((c) => (
-              <li key={c} className="flex items-start gap-2.5 text-[15px] text-[#1E2230]">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E8C78" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0">
+              <li key={c} className="flex items-start gap-2.5 text-[15px] text-[var(--d2-texto)]">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--d2-ok)]">
                   <path d="M5 12l5 5 9-10" />
                 </svg>
                 <span>{c}</span>
@@ -155,9 +155,9 @@ export function HojaSeguroV2({ plan, elegido, onAlternar, onCerrar, landing, fre
           </ul>
         )}
 
-        {nota && <p className="text-sm text-[#5B6275]">{nota}</p>}
+        {nota && <p className="text-sm text-[var(--d2-texto-suave)]">{nota}</p>}
 
-        <p className="text-[13px] text-[#5B6275]">
+        <p className="text-[13px] text-[var(--d2-texto-suave)]">
           {proveedor} ·{' '}
           <a href={terminos} target="_blank" rel="noopener noreferrer" className="text-[var(--color-primary-text)] underline">
             Ver términos y condiciones
@@ -168,7 +168,7 @@ export function HojaSeguroV2({ plan, elegido, onAlternar, onCerrar, landing, fre
           <button
             type="button"
             onClick={cerrar}
-            className={`hidden min-h-[48px] cursor-pointer rounded-xl border-[1.5px] border-[#C9CEF0] bg-white px-5 text-[15px] font-semibold text-[#1E2230] transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 md:inline-flex md:items-center ${
+            className={`hidden min-h-[48px] cursor-pointer rounded-xl border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] px-5 text-[15px] font-semibold text-[var(--d2-texto)] transition-colors duration-150 hover:bg-[var(--d2-gris-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 md:inline-flex md:items-center ${
               config.infoOnly ? '!inline-flex justify-center' : ''
             }`}
           >

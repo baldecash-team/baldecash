@@ -3,8 +3,14 @@
 /**
  * Baldecito del prototipo de Brenda (BAL-4959), copiado tal cual en SVG: el
  * balde con las hojas, los brazos, la mano que saluda, los ojos que
- * parpadean y la sonrisa. El azul es el color de la landing
- * (`--color-primary`); la tapa, ese color aclarado.
+ * parpadean y la sonrisa.
+ *
+ * Colores FIJOS de la marca BaldeCash (BAL-4959, pedido de Emilio): Baldecito
+ * es la mascota, no sigue el color de la landing (`--color-primary`) ni el
+ * tema oscuro. Cuerpo, brazos y piernas en el Principal del brandbook
+ * (#4654CD, `.claude/skills/brandbook`); la tapa en Blue 300 (#6873D7, el
+ * mismo tono que antes salía de aclarar #4654CD al 82 %); las hojas, los ojos
+ * y la sonrisa, como en el SVG del prototipo de Brenda.
  *
  * Movimiento (`globals.css`): todo el cuerpo flota (`bcBob`), la mano
  * saluda (`bcWave`) y los ojos parpadean (`bcBlink`). Con `animado={false}`
@@ -25,8 +31,12 @@ export interface BaldecitoV2Props {
   etiqueta?: string;
 }
 
-const AZUL = 'var(--color-primary)';
-const TAPA = 'color-mix(in srgb, var(--color-primary) 82%, white)';
+/** Principal del brandbook. */
+export const AZUL_BALDECITO = '#4654CD';
+/** Blue 300 del brandbook. */
+export const TAPA_BALDECITO = '#6873D7';
+const AZUL = AZUL_BALDECITO;
+const TAPA = TAPA_BALDECITO;
 
 export function BaldecitoV2({
   ancho,

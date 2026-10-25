@@ -12,7 +12,7 @@ export function LoadingFallbackV2() {
   return (
     <div
       data-confirmacion-v2-cargando
-      className="flex items-center justify-center bg-[#F7F8FC]"
+      className="flex items-center justify-center bg-[var(--d2-fondo-confirmacion)]"
       style={{ minHeight: '60svh' }}
     >
       <CubeGridSpinner />

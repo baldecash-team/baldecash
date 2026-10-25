@@ -211,9 +211,9 @@ function StepContent() {
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts, selectedInsurances, clearInsurance, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
 
   // Toast notifications for submit
-  // El aviso de envío ("Hay campos incompletos en…", errores del envío). Solo
-  // Diseño 2 lo pinta (QA F10 · Falla 2c, BAL-4969): Diseño 1 nunca montó el
-  // <Toast/> en esta pantalla y queda como estaba (ver prepr-web-report.md).
+  // El aviso de envío ("Hay campos incompletos en…", errores del envío). Los
+  // dos diseños lo pintan con `AvisoV2` (QA F10 · Falla 2c, BAL-4969): Diseño 1
+  // no montaba ningún aviso y regresaba al paso sin decir por qué (BAL-5008).
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
@@ -1251,7 +1251,7 @@ function StepContent() {
                   <div
                     data-vista-paso4="1"
                     // Con secciones, cada una trae su tarjeta (prototipo).
-                    className={step.groups?.length ? undefined : 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
+                    className={step.groups?.length ? undefined : 'rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-white p-4 sm:p-7'}
                     style={step.groups?.length ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
                   >
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
@@ -1350,6 +1350,19 @@ function StepContent() {
       />
     );
 
+    // BAL-5008: el mismo aviso accesible de Diseño 2 (status + aria-live,
+    // cerrar de 44px), con los colores del `Toast` de Diseño 1.
+    const avisoD1 = (
+      <AvisoV2
+        diseno={1}
+        message={toast?.message ?? null}
+        type={toast?.type}
+        isVisible={isToastVisible}
+        onClose={hideToast}
+        duration={4000}
+      />
+    );
+
     // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
     if (isGamer) {
       return (
@@ -1358,6 +1371,7 @@ function StepContent() {
           {stickyCta}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
           {modalUnidadTomadaResumen}
+          {avisoD1}
         </GamerWizardWrapper>
       );
     }
@@ -1369,6 +1383,7 @@ function StepContent() {
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
         {modalUnidadTomadaResumen}
+        {avisoD1}
       </>
     );
   }

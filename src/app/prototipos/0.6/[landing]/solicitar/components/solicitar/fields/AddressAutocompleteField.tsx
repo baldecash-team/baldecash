@@ -404,7 +404,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         className={v2 ? `
           flex items-center gap-2 px-3.5 ${CAJA_V2}
           ${bordeV2({ error: showDisplayError, foco: isFocused, correcto: showSuccess })}
-          ${field.readonly ? 'opacity-70 bg-[#F7F8FA]' : ''}
+          ${field.readonly ? 'opacity-70 bg-[var(--d2-campo-apagado)]' : ''}
         ` : `
           flex items-center gap-2 h-11 px-3
           rounded-lg border-2 transition-all duration-200 bg-white
@@ -438,7 +438,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           }
           style={{ fontSize: '16px' }}
           className={`
-            flex-1 bg-transparent outline-none ${v2 ? `min-w-0 text-[#1E2230] ${PLACEHOLDER_V2}` : 'text-neutral-800'}
+            flex-1 bg-transparent outline-none ${v2 ? `min-w-0 text-[var(--d2-texto)] ${PLACEHOLDER_V2}` : 'text-neutral-800'}
             ${v2 ? '' : 'placeholder:text-neutral-400'}
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
@@ -454,7 +454,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           <Loader2 className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 animate-spin" />
         )}
         {!isLoading && showSuccess && (
-          <Check className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[#0E8C78]' : 'text-[#22c55e]'}`} />
+          <Check className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[var(--d2-ok)]' : 'text-[#22c55e]'}`} />
         )}
         {!isLoading && showDisplayError && !v2 && (
           <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />
@@ -508,7 +508,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           id={`${field.code}-sin-mapa`}
           role="status"
           data-aviso-sin-mapa
-          className={v2 ? 'flex items-center gap-1.5 text-[13px] leading-snug text-[#5B6275]' : 'flex items-center gap-1 text-xs text-neutral-500'}
+          className={v2 ? 'flex items-center gap-1.5 text-[13px] leading-snug text-[var(--d2-texto-suave)]' : 'flex items-center gap-1 text-xs text-neutral-500'}
         >
           <MapPin className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
           {AVISO_SIN_MAPA}

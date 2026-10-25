@@ -4,6 +4,10 @@
  * `rgba(var(--color-primary-rgb), x)` y el tono oscuro mezclando negro), no el
  * morado del brandbook fijo. En una landing sin color propio la variable vale
  * #4654CD, así que se ve igual que antes.
+ *
+ * Única excepción: Baldecito (`BaldecitoV2.tsx`), la mascota, que va siempre
+ * con los colores de la marca (BAL-4959, pedido de Emilio). Su test es
+ * `BaldecitoV2.colores.test.tsx`.
  */
 import fs from 'fs';
 import path from 'path';
@@ -15,6 +19,7 @@ function archivosDelKit(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const ruta = path.join(dir, e.name);
     if (e.isDirectory()) return e.name === '__tests__' ? [] : archivosDelKit(ruta);
+    if (e.name === 'BaldecitoV2.tsx') return [];
     return /\.(tsx?|css)$/.test(e.name) && !/\.test\./.test(e.name) ? [ruta] : [];
   });
 }
@@ -26,6 +31,9 @@ function lineasConMoradoFijo(archivo: string): string[] {
     .map((l, i) => ({ l, i }))
     // Los comentarios pueden nombrar el color por defecto.
     .filter(({ l }) => !/^\s*(\*|\/\/|\/\*)/.test(l) && MORADO_FIJO.test(l))
+    // AvisoV2 con `diseno={1}` (BAL-5008) copia el `Toast` de Diseño 1, que
+    // no toma el color de la landing: su morado vive solo en las constantes `D1_`.
+    .filter(({ l }) => !(path.basename(archivo) === 'AvisoV2.tsx' && /^\s*const D1_[A-Z_]+ = /.test(l)))
     .map(({ l, i }) => `${path.relative(RAIZ, archivo)}:${i + 1}: ${l.trim()}`);
 }
 

@@ -107,9 +107,18 @@ describe('Revisión de F7 · M-6 y M-1', () => {
   });
 
   it('el chevron de "Ver detalle" no gira con movimiento reducido', () => {
-    render(<PanelSolicitudV2 datos={datos()} detalle={REPASO} />);
-    const chevron = screen.getByRole('button', { name: /Ver detalle/ }).querySelector('svg');
-    expect(chevron).toHaveClass('motion-reduce:transition-none');
+    const original = window.matchMedia;
+    window.matchMedia = ((q: string) => ({
+      matches: q.includes('prefers-reduced-motion'), media: q, onchange: null,
+      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      render(<PanelSolicitudV2 datos={datos()} detalle={REPASO} />);
+      const chevron = screen.getByRole('button', { name: /Ver detalle/ }).querySelector('svg');
+      expect((chevron as SVGElement).style.transition).toBe('none');
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });
 

@@ -30,13 +30,13 @@ export function useCamposV2(): boolean {
 
 export const COLOR_V2 = {
   marca: 'var(--color-primary)',
-  neutro: '#C9CEF0',
-  error: '#C2410C',
-  errorTexto: '#B23C0A',
-  correcto: '#0E8C78',
-  etiqueta: '#262C66',
-  texto: '#1E2230',
-  gris: '#5B6275',
+  neutro: 'var(--d2-borde-campo)',
+  error: 'var(--d2-error)',
+  errorTexto: 'var(--d2-error-texto)',
+  correcto: 'var(--d2-ok)',
+  etiqueta: 'var(--d2-etiqueta)',
+  texto: 'var(--d2-texto)',
+  gris: 'var(--d2-texto-suave)',
 } as const;
 
 /**
@@ -44,7 +44,7 @@ export const COLOR_V2 = {
  * radio 2xl y la franja de marca arriba. En el prototipo cada sección del
  * paso va en su propia tarjeta (BAL-4969).
  */
-export const TARJETA_V2 = 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7';
+export const TARJETA_V2 = 'rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-tarjeta)] p-4 sm:p-7';
 export const TARJETA_V2_ESTILO = { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' } as const;
 
 /**
@@ -53,23 +53,23 @@ export const TARJETA_V2_ESTILO = { boxShadow: 'inset 0 4px 0 0 var(--color-prima
  * kit (1,5px / radio 10px, como `CAJA_V2`), fondo blanco y texto de marca.
  */
 export const BOTON_ATRAS_V2 =
-  'inline-flex min-h-[52px] flex-shrink-0 items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[#C9CEF0] bg-white text-base font-bold text-[var(--color-primary-text)] transition-colors duration-150 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex min-h-[52px] flex-shrink-0 items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] text-base font-bold text-[var(--color-primary-text)] transition-colors duration-150 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 /** Etiqueta arriba del campo (15px, negrita). */
-export const ETIQUETA_V2 = 'flex items-center gap-1.5 text-[15px] font-bold leading-snug text-[#262C66]';
+export const ETIQUETA_V2 = 'flex items-center gap-1.5 text-[15px] font-bold leading-snug text-[var(--d2-etiqueta)]';
 /** "(opcional)" al lado de la etiqueta. */
-export const OPCIONAL_V2 = 'text-[13px] font-normal text-[#5B6275]';
+export const OPCIONAL_V2 = 'text-[13px] font-normal text-[var(--d2-texto-suave)]';
 /** Mensaje de error bajo el campo. */
-export const ERROR_V2 = 'text-[13px] leading-snug text-[#B23C0A]';
+export const ERROR_V2 = 'text-[13px] leading-snug text-[var(--d2-error-texto)]';
 /** Pista (`hint`) bajo el campo. */
-export const PISTA_V2 = 'text-[13px] leading-snug text-[#5B6275]';
+export const PISTA_V2 = 'text-[13px] leading-snug text-[var(--d2-texto-suave)]';
 /** La caja del campo: 50px, radio 10px, borde 1.5px. El color lo pone `bordeV2`. */
-export const CAJA_V2 = 'h-[50px] rounded-[10px] border-[1.5px] bg-white transition-colors duration-150';
+export const CAJA_V2 = 'h-[50px] rounded-[10px] border-[1.5px] bg-[var(--d2-tarjeta)] transition-colors duration-150';
 /** Prefijo "+51" / "S/": bloque pegado al borde izquierdo de la caja. */
 export const PREFIJO_V2 =
-  'flex h-full flex-shrink-0 select-none items-center self-stretch border-r border-[rgba(var(--color-primary-rgb),0.18)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-base font-semibold text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]';
+  'flex h-full flex-shrink-0 select-none items-center self-stretch border-r border-[rgba(var(--color-primary-rgb),0.18)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-base font-semibold text-[var(--d2-prefijo-texto)]';
 /** Placeholder gris. */
-export const PLACEHOLDER_V2 = 'placeholder:text-[#8A90A2]';
+export const PLACEHOLDER_V2 = 'placeholder:text-[var(--d2-texto-tenue)]';
 
 export interface EstadoCajaV2 {
   error?: boolean;
@@ -79,10 +79,10 @@ export interface EstadoCajaV2 {
 
 /** Color del borde: error > foco > correcto > neutro. */
 export function bordeV2({ error, foco, correcto }: EstadoCajaV2): string {
-  if (error) return 'border-[#C2410C]';
+  if (error) return 'border-[var(--d2-error)]';
   if (foco) return 'border-[var(--color-primary)]';
-  if (correcto) return 'border-[#0E8C78]';
-  return 'border-[#C9CEF0]';
+  if (correcto) return 'border-[var(--d2-ok)]';
+  return 'border-[var(--d2-borde-campo)]';
 }
 
 /**
@@ -100,7 +100,7 @@ export function chipV2(seleccionado: boolean): string {
     // oscuro; elegido con borde de marca, fondo de marca suave y texto de marca.
     seleccionado
       ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] font-bold text-[var(--color-primary-text)]'
-      : 'border-[#C9CEF0] bg-white font-semibold text-[#1E2230] hover:border-[var(--color-primary)]',
+      : 'border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] font-semibold text-[var(--d2-texto)] hover:border-[var(--color-primary)]',
   ].join(' ');
 }
 

@@ -36,7 +36,7 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
       className="relative flex flex-col items-center gap-3 overflow-hidden px-6 pb-[112px] pt-10 text-center"
       style={{
         background:
-          'linear-gradient(140deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 85%, black) 55%, color-mix(in srgb, var(--color-primary) 70%, black) 100%)',
+          'linear-gradient(140deg, var(--d2-cabecera-inicio) 0%, var(--d2-cabecera-medio) 55%, var(--d2-cabecera-fin) 100%)',
       }}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -89,7 +89,10 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
             style={{ animation: 'anilloConfirmacionV2 2.4s ease-out 0.4s infinite' }}
           />
         )}
-        <span aria-hidden className="absolute inset-0 rounded-full bg-white shadow-[0_14px_34px_rgba(15,20,60,0.3)]" />
+        {/* Medallón de Baldecito: blanco fijo en los dos temas (BAL-4959). Con
+            `style` y no `bg-white`, porque el puente del tema oscuro de
+            `globals.css` vuelve oscuro todo `.bg-white`. */}
+        <span aria-hidden className="absolute inset-0 rounded-full shadow-[0_14px_34px_rgba(15,20,60,0.3)]" style={{ backgroundColor: '#FFFFFF' }} />
         <span className="relative mt-1.5 block">
           <BaldecitoV2
             ancho={86}
@@ -101,15 +104,15 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
         </span>
       </div>
 
-      <div className="relative mt-1 inline-flex items-center gap-2 rounded-full border border-white/[0.28] bg-white/[0.14] px-3 py-[5px] text-[13px] font-semibold tabular-nums text-[var(--color-on-primary)]">
+      <div className="relative mt-1 inline-flex items-center gap-2 rounded-full border border-white/[0.28] bg-white/[0.14] px-3 py-[5px] text-[13px] font-semibold tabular-nums text-[var(--d2-cabecera-texto)]">
         <span className="h-2 w-2 rounded-full bg-[#5FD3BE]" aria-hidden />
         Solicitud N.° {numeroDeSolicitud}
       </div>
 
-      <h1 className="relative font-['Baloo_2',_sans-serif] text-[30px] font-bold leading-[1.1] text-[var(--color-on-primary)] [text-wrap:balance] sm:text-[42px]">
+      <h1 className="relative font-['Baloo_2',_sans-serif] text-[30px] font-bold leading-[1.1] text-[var(--d2-cabecera-texto)] [text-wrap:balance] sm:text-[42px]">
         {titulo}
       </h1>
-      <p className="relative mx-auto max-w-[540px] text-[15px] leading-normal text-[var(--color-on-primary)] opacity-90 sm:text-[17px]">{subtitulo}</p>
+      <p className="relative mx-auto max-w-[540px] text-[15px] leading-normal text-[var(--d2-cabecera-texto)] opacity-90 sm:text-[17px]">{subtitulo}</p>
     </div>
   );
 }

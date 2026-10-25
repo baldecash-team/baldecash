@@ -86,8 +86,8 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
 
   return (
     <nav aria-label="Progreso de tu solicitud" className="mb-6">
-      <p className="text-sm text-[#5B6275] mb-2.5">
-        <strong className="font-bold text-[#1E2230]">Tus datos</strong> · paso {numeroActual} de {total}
+      <p className="text-sm text-[var(--d2-texto-suave)] mb-2.5">
+        <strong className="font-bold text-[var(--d2-texto)]">Tus datos</strong> · paso {numeroActual} de {total}
       </p>
       <ol className="grid gap-3" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
         {pasos.map((paso, i) => {
@@ -103,7 +103,7 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
 
           const contenido = (
             <>
-              <span className="relative block h-1 overflow-hidden rounded-full bg-[#E3E6EE]" aria-hidden>
+              <span className="relative block h-1 overflow-hidden rounded-full bg-[var(--d2-borde)]" aria-hidden>
                 {llena && (
                   <span
                     data-barra-llena
@@ -117,7 +117,7 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold${animNumero} ${
                     hecho || esActual
                       ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]'
-                      : 'border border-[#D5D9E6] bg-white text-[#5B6275]'
+                      : 'border border-[var(--d2-borde-control)] bg-[var(--d2-tarjeta)] text-[var(--d2-texto-suave)]'
                   }`}
                 >
                   {hecho ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}
@@ -127,8 +127,8 @@ export function ProgresoV2({ pasos, indiceActual, completados, onIrAPaso }: Prog
                     esActual
                       ? 'font-bold text-[var(--color-primary-text)]'
                       : hecho
-                        ? 'text-[#1E2230] underline underline-offset-2'
-                        : 'text-[#5B6275]'
+                        ? 'text-[var(--d2-texto)] underline underline-offset-2'
+                        : 'text-[var(--d2-texto-suave)]'
                   }`}
                 >
                   {paso.nombre}
@@ -168,7 +168,7 @@ export function ProgresoMovilV2({ indiceActual, total }: { indiceActual: number;
   const numero = Math.min(Math.max(indiceActual, 0), total - 1) + 1;
   return (
     <div
-      className="h-[3px] bg-[#E3E6EE]"
+      className="h-[3px] bg-[var(--d2-borde)]"
       role="progressbar"
       aria-label={`Paso ${numero} de ${total}`}
       aria-valuemin={1}

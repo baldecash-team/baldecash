@@ -111,7 +111,7 @@ describe('ShellV2 — Atrás como botón y Continuar en línea (BAL-4959)', () =
     expect(atras.className).toMatch(/min-h-\[52px\]/);
     expect(atras.className).toMatch(/border-\[1\.5px\]/);
     expect(atras.className).toMatch(/rounded-\[10px\]/);
-    expect(atras.className).toMatch(/bg-white/);
+    expect(atras.className).toContain('bg-[var(--d2-tarjeta)]');
     expect(continuar.className).toMatch(/min-h-\[52px\]/);
     // Misma fila: el mismo contenedor, sin barra fija aparte.
     expect(atras.parentElement).toBe(continuar.parentElement);

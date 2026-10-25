@@ -137,7 +137,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
                 onClick={() => elegir(option)}
                 onKeyDown={(e) => moverConFlechas(e, index)}
                 disabled={option.disabled || disabled}
-                className={`${chipV2(isSelected)} ${error && !isSelected ? '!border-[#C2410C]' : ''} ${
+                className={`${chipV2(isSelected)} ${error && !isSelected ? '!border-[var(--d2-error)]' : ''} ${
                   option.disabled ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -146,7 +146,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             );
           })}
         </div>
-        {helpText && !error && <p className="text-[13px] text-[#5B6275]">{helpText}</p>}
+        {helpText && !error && <p className="text-[13px] text-[var(--d2-texto-suave)]">{helpText}</p>}
         {error && <ErrorCampoV2 id={errorId}>{error}</ErrorCampoV2>}
       </div>
     );

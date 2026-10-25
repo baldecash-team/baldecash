@@ -113,10 +113,25 @@ describe('LayoutContext — features.solicitud_design (BAL-4958)', () => {
 describe('LayoutContext — landings sin Diseño 2 y colores de texto (BAL-4969)', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('I-2: una landing de tema oscuro (nvidia) no abre el modal aunque traiga el 2', async () => {
+  it('BAL-5076: una landing de tema oscuro (nvidia) con el 2 abre el modal (Diseño 2 oscuro)', async () => {
     fetchLandingConfigMock.mockResolvedValue(baseConfig(2));
     render(
       <LayoutProvider landingOverride="nvidia">
+        <Probe />
+      </LayoutProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('diseno')).toHaveTextContent('2'));
+    expect(screen.getByTestId('modal')).toHaveTextContent('true');
+    // El tema oscuro se activa con el mismo data-theme de siempre, y el
+    // texto de marca es el verde tal cual (se lee sobre la tarjeta oscura).
+    expect(document.documentElement.getAttribute('data-theme')).toBe('nvidia');
+    expect(document.documentElement.style.getPropertyValue('--color-primary-text')).toBe('#76B900');
+  });
+
+  it('I-2: zona gamer sigue sin abrir el modal aunque traiga el 2 (tiene su propio flujo)', async () => {
+    fetchLandingConfigMock.mockResolvedValue(baseConfig(2));
+    render(
+      <LayoutProvider landingOverride="zona-gamer">
         <Probe />
       </LayoutProvider>,
     );

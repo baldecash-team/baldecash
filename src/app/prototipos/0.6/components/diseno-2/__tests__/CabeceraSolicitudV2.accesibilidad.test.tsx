@@ -54,10 +54,14 @@ afterEach(() => {
 });
 
 describe('CabeceraSolicitudV2 — el desplegable', () => {
-  it('cerrado: sin aria-controls (nada que apunte a un id que no existe)', () => {
+  it('cerrado: aria-controls apunta a la caja del desplegable, que existe aunque esté oculta (BAL-4959)', () => {
     render(<CabeceraSolicitudV2 datos={datos()} indiceActual={0} totalPasos={3} landing="pago-diferido" />);
     const boton = screen.getByRole('button', { expanded: false } as never) ?? screen.getAllByRole('button')[0];
-    expect(boton).not.toHaveAttribute('aria-controls');
+    const id = boton.getAttribute('aria-controls');
+    expect(id).toBeTruthy();
+    const caja = document.getElementById(id as string);
+    expect(caja).not.toBeNull();
+    expect(caja).toHaveAttribute('hidden');
   });
 
   it('al abrir: aria-controls apunta a un id que SÍ existe, el foco entra al panel y se bloquea el scroll de fondo', async () => {

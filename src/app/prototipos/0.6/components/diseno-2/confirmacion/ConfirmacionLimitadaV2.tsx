@@ -22,17 +22,17 @@ export function ConfirmacionLimitadaV2({ applicationData, onGoHome }: Confirmaci
   const numero = applicationData.reference || applicationData.code;
   const reducido = useMenosMovimiento();
   return (
-    <div data-confirmacion-v2-limitada className="bg-[#F7F8FC]">
+    <div data-confirmacion-v2-limitada className="bg-[var(--d2-fondo-confirmacion)]">
       <div className="mx-auto max-w-2xl px-4 py-10 text-center sm:px-6 sm:py-14">
         <span className="mx-auto block w-fit">
           <BaldecitoV2 ancho={74} animado={!reducido} flotar={{ duracion: 3, demora: 0 }} saludar={{ duracion: 1.6, demora: 0 }} />
         </span>
-        <h1 className="mt-4 font-['Baloo_2',_sans-serif] text-2xl font-bold text-[#1E2230]">
+        <h1 className="mt-4 font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--d2-texto)]">
           ¡Recibimos tu solicitud!
         </h1>
-        <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-[#EDEFF7] px-4 py-2">
-          <span className="text-xs text-[#5B6275]">N° de solicitud</span>
-          <span className="break-all font-mono text-xs font-semibold text-[#1E2230]">{numero}</span>
+        <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--d2-chip-numero)] px-4 py-2">
+          <span className="text-xs text-[var(--d2-texto-suave)]">N° de solicitud</span>
+          <span className="break-all font-mono text-xs font-semibold text-[var(--d2-texto)]">{numero}</span>
         </div>
         <div className="mt-8 text-left">
           <ContactInfo onGoToHome={onGoHome} />

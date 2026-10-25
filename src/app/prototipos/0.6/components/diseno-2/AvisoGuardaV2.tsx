@@ -32,21 +32,21 @@ export function AvisoGuardaV2({ titulo, mensaje, accion, tono = 'alerta', classN
       role={alerta ? 'alert' : 'status'}
       data-aviso-guarda-v2
       className={`rounded-xl border p-3 sm:p-4 font-['Asap',_sans-serif] ${
-        alerta ? 'border-[#F2B79A] bg-[#FFF1EB]' : 'border-amber-300 bg-amber-50'
+        alerta ? 'border-[var(--d2-error-borde)] bg-[var(--d2-error-suave)]' : 'border-[var(--d2-ambar-borde-2)] bg-[var(--d2-ambar-suave)]'
       } ${className}`}
     >
       <div className="flex items-start gap-2.5">
-        <Icono className={`mt-0.5 h-5 w-5 shrink-0 ${alerta ? 'text-[#C2410C]' : 'text-amber-700'}`} aria-hidden />
+        <Icono className={`mt-0.5 h-5 w-5 shrink-0 ${alerta ? 'text-[var(--d2-error)]' : 'text-[var(--d2-ambar-icono)]'}`} aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold text-[#1E2230]">{titulo}</p>
-          <p className="mt-0.5 text-[13px] leading-snug text-[#3A4052]">{mensaje}</p>
+          <p className="text-[15px] font-semibold text-[var(--d2-texto)]">{titulo}</p>
+          <p className="mt-0.5 text-[13px] leading-snug text-[var(--d2-texto-2)]">{mensaje}</p>
         </div>
       </div>
       {accion && (
         <button
           type="button"
           onClick={accion.onClick}
-          className="mt-3 inline-flex min-h-[44px] items-center rounded-full border-[1.5px] border-[var(--color-primary)] bg-white px-4 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer hover:bg-[#F3F5FD] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1"
+          className="mt-3 inline-flex min-h-[44px] items-center rounded-full border-[1.5px] border-[var(--color-primary)] bg-[var(--d2-tarjeta)] px-4 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer hover:bg-[var(--d2-marca-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1"
         >
           {accion.texto}
         </button>

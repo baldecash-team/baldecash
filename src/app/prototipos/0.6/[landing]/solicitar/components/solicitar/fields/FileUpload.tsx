@@ -215,12 +215,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           ${isDragging
             ? v2 ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)]' : 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
             : showError
-            ? v2 ? 'border-[#C2410C] bg-[#FFF1EB]' : 'border-red-300 bg-red-50 hover:border-red-400'
+            ? v2 ? 'border-[var(--d2-error)] bg-[var(--d2-error-suave)]' : 'border-red-300 bg-red-50 hover:border-red-400'
             : showWarning
             ? 'border-amber-300 bg-amber-50 hover:border-amber-400'
             : hasFiles
-            ? v2 ? 'border-[#0E8C78] bg-[#E8F7F2]' : 'border-green-300 bg-green-50 hover:border-green-400'
-            : v2 ? 'border-[#C9CEF0] bg-white hover:border-[var(--color-primary)]' : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'}
+            ? v2 ? 'border-[var(--d2-ok)] bg-[var(--d2-ok-suave-3)]' : 'border-green-300 bg-green-50 hover:border-green-400'
+            : v2 ? 'border-[var(--d2-borde-campo)] bg-white hover:border-[var(--color-primary)]' : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >

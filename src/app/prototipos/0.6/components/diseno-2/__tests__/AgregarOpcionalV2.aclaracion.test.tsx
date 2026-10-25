@@ -20,6 +20,6 @@ describe('AgregarOpcionalV2 — aclaración entre paréntesis', () => {
     const boton = screen.getByRole('button', { name: 'Agregar celular para llamadas (si es otro número)' });
     const aclaracion = boton.querySelector('[data-aclaracion]')!;
     expect(aclaracion).toHaveTextContent('(si es otro número)');
-    expect(aclaracion).toHaveClass('font-normal', 'text-[#5B6275]');
+    expect(aclaracion).toHaveClass('font-normal', 'text-[var(--d2-texto-suave)]');
   });
 });

@@ -72,13 +72,13 @@ export function CajaAvisoDelEquipo({ aviso }: { aviso: AvisoDelEquipo }) {
       role="note"
       data-aviso-equipo={aviso.tipo}
       className={`flex items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 ${
-        reac ? 'border-[#F5C46B] bg-[#FFF7E6]' : 'border-[#C7CEF5] bg-[#EEF1FD]'
+        reac ? 'border-[var(--d2-reac-borde)] bg-[var(--d2-reac-suave)]' : 'border-[var(--d2-info-borde)] bg-[var(--d2-info-suave)]'
       }`}
     >
       <span
         aria-hidden="true"
         className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] ${
-          reac ? 'bg-[#FFE7B3] text-[#8A4B00]' : 'bg-[#DCE1FA] text-[#2F3CB0]'
+          reac ? 'bg-[var(--d2-reac-icono-fondo)] text-[var(--d2-reac-icono)]' : 'bg-[var(--d2-info-icono-fondo)] text-[var(--d2-info-icono)]'
         }`}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -97,8 +97,8 @@ export function CajaAvisoDelEquipo({ aviso }: { aviso: AvisoDelEquipo }) {
         </svg>
       </span>
       <span className="flex min-w-0 flex-col gap-px">
-        <span className={`text-[13.5px] font-bold ${reac ? 'text-[#6B3A00]' : 'text-[#232E8F]'}`}>{titulo}</span>
-        <span className="text-[12.5px] leading-[1.4] text-[#3A4052]">{texto}</span>
+        <span className={`text-[13.5px] font-bold ${reac ? 'text-[var(--d2-reac-titulo)]' : 'text-[var(--d2-info-titulo)]'}`}>{titulo}</span>
+        <span className="text-[12.5px] leading-[1.4] text-[var(--d2-texto-2)]">{texto}</span>
       </span>
     </div>
   );

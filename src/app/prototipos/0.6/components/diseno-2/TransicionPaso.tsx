@@ -151,10 +151,10 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
       role="dialog"
       aria-modal="true"
       aria-labelledby="transicion-paso-titulo"
-      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden px-4 py-6 cursor-pointer font-['Asap',_sans-serif] text-[#1E2230]"
+      className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden px-4 py-6 cursor-pointer font-['Asap',_sans-serif] text-[var(--d2-texto)]"
       onClick={terminar}
       style={{
-        background: 'radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-primary) 9%, white) 0%, #FFFFFF 62%)',
+        background: 'radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--color-primary) 9%, var(--d2-tarjeta)) 0%, var(--d2-tarjeta) 62%)',
         ...an('d2Fundido', 0.2, 0),
       }}
       data-transicion-v2
@@ -162,15 +162,15 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
       <div className="flex w-full max-w-[420px] flex-col items-center text-center">
         {/* Camino con Baldecito (puente del prototipo de Brenda) */}
         <div className="relative h-[188px] w-[308px] max-w-full sm:[zoom:1.2]" aria-hidden>
-          <span className="absolute left-[22px] right-[22px] top-[142px] h-1 rounded-full bg-[#E3E6EE]" />
+          <span className="absolute left-[22px] right-[22px] top-[142px] h-1 rounded-full bg-[var(--d2-borde)]" />
           <span
-            className="absolute left-[22px] top-[142px] h-1 rounded-full bg-[#12B76A]"
+            className="absolute left-[22px] top-[142px] h-1 rounded-full bg-[var(--d2-progreso-ok)]"
             style={{ width: desde * GAP }}
           />
           {avanza && (
             <span
               data-camino-lleno
-              className="absolute top-[142px] h-1 origin-left rounded-full bg-[#12B76A]"
+              className="absolute top-[142px] h-1 origin-left rounded-full bg-[var(--d2-progreso-ok)]"
               style={{ left: x(desde), width: GAP, ...an('d2Llenado', 0.9, 0.35, 'ease-in-out') }}
             />
           )}
@@ -182,10 +182,10 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
                 <span
                   className={`absolute top-[128px] flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                     hecho
-                      ? 'bg-[#12B76A] text-white'
+                      ? 'bg-[var(--d2-progreso-ok)] text-white'
                       : sigue
-                        ? 'border-[3px] border-[var(--color-primary)] bg-white text-[var(--color-primary-text)]'
-                        : 'border-2 border-[#C9CEF0] bg-white text-[#8A90A2]'
+                        ? 'border-[3px] border-[var(--color-primary)] bg-[var(--d2-tarjeta)] text-[var(--color-primary-text)]'
+                        : 'border-2 border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] text-[var(--d2-texto-tenue)]'
                   }`}
                   style={{
                     left: x(i) - 16,
@@ -197,7 +197,7 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
                 <span
                   data-etiqueta-puente
                   className={`absolute top-[166px] w-[88px] truncate px-1 text-center text-xs ${
-                    hecho ? 'font-semibold text-[#0B6B5C]' : sigue ? 'font-bold text-[var(--color-primary-text)]' : 'text-[#8A90A2]'
+                    hecho ? 'font-semibold text-[var(--d2-ok-texto)]' : sigue ? 'font-bold text-[var(--color-primary-text)]' : 'text-[var(--d2-texto-tenue)]'
                   }`}
                   style={{ left: x(i) - 44 }}
                 >
@@ -246,12 +246,12 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
 
         <h2
           id="transicion-paso-titulo"
-          className="mt-[22px] font-['Baloo_2',_sans-serif] text-[34px] font-bold leading-[1.1] text-[#1E2230]"
+          className="mt-[22px] font-['Baloo_2',_sans-serif] text-[34px] font-bold leading-[1.1] text-[var(--d2-texto)]"
           style={an('d2Pop', 0.4, 0.15)}
         >
           {titulo}
         </h2>
-        <p className="mt-1.5 text-base text-[#5B6275]" style={an('d2Pop', 0.4, 0.3)}>
+        <p className="mt-1.5 text-base text-[var(--d2-texto-suave)]" style={an('d2Pop', 0.4, 0.3)}>
           Paso {pasoCompletado} de {total} completado
         </p>
         {siguiente && avanza && (
@@ -270,7 +270,7 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
             e.stopPropagation();
             terminar();
           }}
-          className="relative mt-[26px] min-h-[46px] overflow-hidden rounded-xl border-[1.5px] border-[#C9CEF0] bg-white px-7 text-[15px] font-bold text-[var(--color-primary-text)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+          className="relative mt-[26px] min-h-[46px] overflow-hidden rounded-xl border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] px-7 text-[15px] font-bold text-[var(--color-primary-text)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
         >
           Continuar
           <span

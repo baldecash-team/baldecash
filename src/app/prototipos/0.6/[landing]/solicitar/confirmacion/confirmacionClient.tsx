@@ -374,7 +374,7 @@ function RealConfirmationContent({
   overlayVariant?: string | null;
   otpCta?: React.ReactNode;
   landing: string;
-  /** F8 (BAL-4967): `disenoSolicitud === 2` y la landing admite Diseño 2 (`admiteDiseno2`: ni zona gamer ni tema oscuro). */
+  /** F8 (BAL-4967): `disenoSolicitud === 2` y la landing admite Diseño 2 (`admiteDiseno2`: todas menos zona gamer). */
   diseno2?: boolean;
 }) {
   // "Te enviamos tu laptop" solo si el formulario pide dirección (BAL-4969).

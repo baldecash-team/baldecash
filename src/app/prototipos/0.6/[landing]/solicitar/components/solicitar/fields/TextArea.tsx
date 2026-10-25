@@ -105,7 +105,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
         className={v2 ? `
           relative rounded-[10px] border-[1.5px] transition-colors duration-150 bg-white overflow-hidden
           ${bordeV2({ error: showError, foco: isFocused, correcto: !!showSuccess })}
-          ${disabled ? 'opacity-70 bg-[#F7F8FA]' : ''}
+          ${disabled ? 'opacity-70 bg-[var(--d2-campo-apagado)]' : ''}
         ` : `
           relative rounded-lg border-2 transition-all duration-200 bg-white overflow-hidden
           ${getBorderColor()}
@@ -145,7 +145,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
 
         {/* Status icons */}
         <div className="absolute top-3 right-3">
-          {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
+          {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[var(--d2-ok)]' : 'w-5 h-5 text-[#22c55e]'} />}
           {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
         </div>
       </div>
@@ -153,7 +153,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
       {v2 && (error || verContador) && (
         <div className="flex items-start justify-between gap-2">
           {error ? <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2> : <span />}
-          {verContador && <p className="flex-shrink-0 text-xs text-[#5B6275]">{value.length}/{maxLength}</p>}
+          {verContador && <p className="flex-shrink-0 text-xs text-[var(--d2-texto-suave)]">{value.length}/{maxLength}</p>}
         </div>
       )}
 

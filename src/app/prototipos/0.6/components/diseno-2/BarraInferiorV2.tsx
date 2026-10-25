@@ -72,7 +72,7 @@ export function BarraInferiorV2({
 
   return (
     <div
-      className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[#E3E6EE] bg-white px-4 pt-3"
+      className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-3"
       style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-center gap-2.5">
@@ -92,7 +92,7 @@ export function BarraInferiorV2({
             «S/159/m…» a 390). Si falta espacio, cede el texto del botón. */}
         {total && (
           <div data-total-barra className="flex-1">
-            <p className="text-xs leading-tight text-[#5B6275]">{leyendaTotal}</p>
+            <p className="text-xs leading-tight text-[var(--d2-texto-suave)]">{leyendaTotal}</p>
             <p className="whitespace-nowrap font-['Baloo_2',_sans-serif] text-[20px] min-[375px]:text-[22px] font-bold leading-[1.1] text-[var(--color-primary-text)]">
               {monto}
               {sufijo && <span className="text-sm font-semibold">{sufijo}</span>}
@@ -105,7 +105,7 @@ export function BarraInferiorV2({
           onClick={onPrimary}
           disabled={deshabilitado}
           className={`campo-v2-cta flex min-h-[52px] ${total ? 'min-w-0 px-4 min-[375px]:px-[18px]' : 'flex-1'} items-center justify-center gap-2 rounded-xl text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
-            deshabilitado ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
+            deshabilitado ? 'bg-[var(--d2-boton-apagado)] text-[var(--d2-boton-apagado-texto)] shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
           }`}
         >
           {(isSubmitting || isBusy) && <span className="h-5 w-5 animate-spin motion-reduce:animate-none rounded-full border-2 border-white/40 border-t-white" aria-hidden />}

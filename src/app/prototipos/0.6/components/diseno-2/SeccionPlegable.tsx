@@ -306,7 +306,7 @@ export function SeccionPlegable({
         {cerrada && (
           <span
             aria-hidden="true"
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#E3F5F1] text-[#0E8C78]"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--d2-ok-suave)] text-[var(--d2-ok)]"
           >
             <Check className="h-[15px] w-[15px]" strokeWidth={3} />
           </span>
@@ -317,10 +317,10 @@ export function SeccionPlegable({
           <div className="flex items-center gap-2.5">
             <IconoDeSeccionV2 nombre={icono} />
             <div className="flex min-w-0 flex-col gap-0.5">
-              <h2 id={idTitulo} className="text-lg font-bold leading-snug text-[#1E2230]">
+              <h2 id={idTitulo} className="text-lg font-bold leading-snug text-[var(--d2-texto)]">
                 {titulo}
               </h2>
-              {descripcion && <p className="text-sm text-[#5B6275]">{descripcion}</p>}
+              {descripcion && <p className="text-sm text-[var(--d2-texto-suave)]">{descripcion}</p>}
             </div>
           </div>
         ) : (
@@ -328,13 +328,13 @@ export function SeccionPlegable({
           <h2
             id={idTitulo}
             className={cerrada
-              ? 'text-[17px] font-bold leading-snug text-[#1E2230]'
-              : 'text-lg font-bold leading-snug text-[#1E2230]'}
+              ? 'text-[17px] font-bold leading-snug text-[var(--d2-texto)]'
+              : 'text-lg font-bold leading-snug text-[var(--d2-texto)]'}
           >
             {titulo}
           </h2>
           {cerrada && (
-            <p className="break-words text-sm text-[#5B6275] sm:truncate" title={resumen}>
+            <p className="break-words text-sm text-[var(--d2-texto-suave)] sm:truncate" title={resumen}>
               {resumen}
             </p>
           )}
@@ -347,7 +347,7 @@ export function SeccionPlegable({
             aria-expanded={false}
             aria-controls={idContenido}
             aria-label={`Editar ${titulo}`}
-            className="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-lg px-1 text-sm font-semibold text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
+            className="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-lg px-1 text-sm font-semibold text-[var(--d2-prefijo-texto)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2"
           >
             Editar
           </button>
@@ -361,7 +361,7 @@ export function SeccionPlegable({
         // tarjeta: 18 px, como en el prototipo (verificación final, BAL-4969).
         data-titulo-en-campo={tituloEnElCampo && !cerrada ? 'true' : undefined}
         className={cerrada ? 'hidden' : `grid grid-cols-12 gap-x-3 gap-y-4${yaSeCerro ? ' d2-aparece' : ''}${
-          tituloEnElCampo ? ' [&_label]:text-lg [&_label]:leading-snug [&_label]:text-[#1E2230]' : ''
+          tituloEnElCampo ? ' [&_label]:text-lg [&_label]:leading-snug [&_label]:text-[var(--d2-texto)]' : ''
         }`}
       >
         {children}

@@ -44,7 +44,8 @@ import {
 } from '@/app/prototipos/0.6/utils/couponDocument';
 import { useMesPrimeraCuota } from '../lo-quiero/useMesPrimeraCuota';
 import { ProgresoMovilV2 } from './ProgresoV2';
-import { usePulsoAlCambiar } from './movimiento';
+import { transicionFlecha, useMenosMovimiento, usePulsoAlCambiar } from './movimiento';
+import { PlegableV2 } from './PlegableV2';
 import { PRESION_V2 } from './campos/estilosV2';
 import { EVENTO_ABRIR_PLAZO_V2 } from './guardasV2';
 
@@ -174,16 +175,16 @@ function DesgloseDeCuota({ datos, className = '' }: { datos: DatosDelPanel; clas
   return (
     <dl className={`space-y-1.5 text-sm ${className}`} data-desglose-v2>
       <div className="flex items-baseline justify-between gap-2">
-        <dt className="text-[#3A4052]">Cuota de tu equipo</dt>
-        <dd className="font-semibold text-[#1E2230] whitespace-nowrap">{datos.precio(datos.cuotaEquipo)}{sufijo}</dd>
+        <dt className="text-[var(--d2-texto-2)]">Cuota de tu equipo</dt>
+        <dd className="font-semibold text-[var(--d2-texto)] whitespace-nowrap">{datos.precio(datos.cuotaEquipo)}{sufijo}</dd>
       </div>
       {extras.map((e) => (
         <div key={e.clave} className="flex items-baseline justify-between gap-2">
-          <dt className="min-w-0 text-[#3A4052]">{e.nombre}</dt>
-          <dd className="font-semibold text-[#1E2230] whitespace-nowrap">+{datos.precio(e.cuota)}{sufijo}</dd>
+          <dt className="min-w-0 text-[var(--d2-texto-2)]">{e.nombre}</dt>
+          <dd className="font-semibold text-[var(--d2-texto)] whitespace-nowrap">+{datos.precio(e.cuota)}{sufijo}</dd>
         </div>
       ))}
-      <div className="h-px bg-[#E3E6EE]" aria-hidden />
+      <div className="h-px bg-[var(--d2-borde)]" aria-hidden />
     </dl>
   );
 }
@@ -194,7 +195,7 @@ function ImagenEquipo({ datos, tam }: { datos: DatosDelPanel; tam: number }) {
   if (productos.length === 1 && principal.image) {
     return <Image src={principal.image} alt={principal.name} width={tam} height={tam} className="object-contain" style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%" }} />;
   }
-  return <Package className="w-1/2 h-1/2 text-neutral-300" aria-hidden />;
+  return <Package className="w-1/2 h-1/2 text-[var(--d2-icono-vacio)]" aria-hidden />;
 }
 
 function ChipsDelPanel({ datos }: { datos: DatosDelPanel }) {
@@ -203,18 +204,18 @@ function ChipsDelPanel({ datos }: { datos: DatosDelPanel }) {
   return (
     <div className="mt-2 flex flex-wrap gap-1.5">
       {regalos.map((r) => (
-        <span key={r.id} className="inline-flex items-center gap-1.5 rounded-full bg-[#E6F7F1] px-2.5 py-1 text-xs font-semibold text-[#0B6B5C]">
+        <span key={r.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave-2)] px-2.5 py-1 text-xs font-semibold text-[var(--d2-ok-texto)]">
           <Gift className="h-3.5 w-3.5" aria-hidden />
           {r.name} de regalo
         </span>
       ))}
       {mesPrimeraCuota && (
-        <span className="inline-flex items-center rounded-full bg-[#E6F7F1] px-2.5 py-1 text-xs font-semibold text-[#0B6B5C]">
+        <span className="inline-flex items-center rounded-full bg-[var(--d2-ok-suave-2)] px-2.5 py-1 text-xs font-semibold text-[var(--d2-ok-texto)]">
           1.ª cuota en {mesPrimeraCuota}
         </span>
       )}
       {appliedCoupon && (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-claro)] px-2.5 py-1 text-xs font-semibold text-[var(--d2-ok-claro-texto)]">
           <Tag className="h-3.5 w-3.5" aria-hidden />
           {appliedCoupon.code}
           <span className="font-normal">
@@ -236,7 +237,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
     <div className="space-y-3">
       {puedePlazo && (
         <fieldset>
-          <legend className="mb-1.5 text-[13px] font-bold text-[#1E2230]">Plazo</legend>
+          <legend className="mb-1.5 text-[13px] font-bold text-[var(--d2-texto)]">Plazo</legend>
           {conBotones ? (
             <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${termOptions.length}, minmax(0, 1fr))` }}>
               {termOptions.map((t) => {
@@ -251,11 +252,11 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                     className={`flex min-h-[48px] flex-col items-center justify-center rounded-lg border px-1 py-1 leading-tight transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]'
-                        : 'border-[#D5D9E6] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
+                        : 'border-[var(--d2-borde-control)] bg-[var(--d2-tarjeta)] text-[var(--d2-texto)] hover:border-[var(--color-primary)]'
                     }`}
                   >
                     <span className="text-sm font-bold">{t}</span>
-                    <span className={`text-[10px] ${elegido ? 'text-[var(--color-on-primary)] opacity-90' : 'text-[#5B6275]'}`}>{getTermUnit(t, frecuencia)}</span>
+                    <span className={`text-[10px] ${elegido ? 'text-[var(--color-on-primary)] opacity-90' : 'text-[var(--d2-texto-suave)]'}`}>{getTermUnit(t, frecuencia)}</span>
                     {cuota !== null && (
                       <span className={`text-[10px] font-semibold ${elegido ? 'text-[var(--color-on-primary)]' : 'text-[var(--color-primary-text)]'}`}>{precio(cuota)}</span>
                     )}
@@ -276,8 +277,8 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
       )}
       {puedeInicial && (
         <fieldset>
-          <legend className="mb-1.5 text-[13px] font-bold text-[#1E2230]">
-            Cuota inicial <span className="font-normal text-[#5B6275]">(opcional)</span>
+          <legend className="mb-1.5 text-[13px] font-bold text-[var(--d2-texto)]">
+            Cuota inicial <span className="font-normal text-[var(--d2-texto-suave)]">(opcional)</span>
           </legend>
           <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${Math.min(opcionesInicial.length, 3)}, minmax(0, 1fr))` }}>
             {opcionesInicial.map((o) => {
@@ -291,7 +292,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                   className={`min-h-[44px] rounded-lg border px-2 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                     elegido
                       ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary-text)]'
-                      : 'border-[#D5D9E6] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
+                      : 'border-[var(--d2-borde-control)] bg-[var(--d2-tarjeta)] text-[var(--d2-texto)] hover:border-[var(--color-primary)]'
                   }`}
                 >
                   {o.label}
@@ -308,7 +309,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
 function AvisoTope({ datos }: { datos: DatosDelPanel }) {
   if (!datos.isOverQuotaLimit) return null;
   return (
-    <div role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+    <div role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--d2-ambar-borde)] bg-[var(--d2-ambar-suave)] px-3 py-2 text-xs text-[var(--d2-ambar-texto)]">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <span>La cuota supera el límite de S/{datos.maxMonthlyQuota}/mes.</span>
     </div>
@@ -318,8 +319,8 @@ function AvisoTope({ datos }: { datos: DatosDelPanel }) {
 /** "Envío gratis" solo donde hay envío (no en Locker Truck ni en préstamos). */
 function Confianza({ conEnvio = true }: { conEnvio?: boolean }) {
   return (
-    <p className="mt-3 flex items-center gap-2 px-1 text-[13px] text-[#5B6275]">
-      <ShieldCheck className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
+    <p className="mt-3 flex items-center gap-2 px-1 text-[13px] text-[var(--d2-texto-suave)]">
+      <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--d2-ok-acento)]" aria-hidden />
       {conEnvio ? 'Registrados en la SBS · Envío gratis a todo el Perú' : 'Registrados en la SBS'}
     </p>
   );
@@ -333,25 +334,24 @@ function Confianza({ conEnvio = true }: { conEnvio?: boolean }) {
 function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; className?: string }) {
   const [abierto, setAbierto] = useState(false);
   const id = useId();
+  const menos = useMenosMovimiento();
   if (!detalle) return null;
   return (
     <div className={className}>
       <button
         type="button"
         aria-expanded={abierto}
-        aria-controls={abierto ? id : undefined}
+        aria-controls={id}
         onClick={() => setAbierto((v) => !v)}
         data-ver-detalle-v2
         className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         Ver detalle
-        <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+        <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
       </button>
-      {abierto && (
-        <div id={id} role="region" aria-label="Detalle de tu solicitud" className="d2-aparece mt-2 space-y-3 text-left">
-          {detalle}
-        </div>
-      )}
+      <PlegableV2 abierto={abierto} id={id} role="region" aria-label="Detalle de tu solicitud" classNameContenido="mt-2 space-y-3 text-left">
+        {detalle}
+      </PlegableV2>
     </div>
   );
 }
@@ -383,6 +383,7 @@ export interface EnvioDelPanel {
 export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { datos: DatosDelPanel; detalle?: React.ReactNode; envio?: EnvioDelPanel | null; conEnvio?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  const menos = useMenosMovimiento();
   const selectorRef = useRef<HTMLDivElement>(null);
   const abrirSelector = useCallback(() => {
     setAbierto(true);
@@ -397,9 +398,9 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
     if (!detalle) return null;
     return (
       <aside aria-label="Tu solicitud">
-        <div className="rounded-2xl border border-[#AEB6EE] bg-[#F3F5FD] px-5 py-4" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}>
+        <div className="rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-marca-suave)] px-5 py-4" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}>
           <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:max-h-[60vh] [&_[role=region]]:overflow-y-auto [&_[role=region]]:basis-full">
-            <p className="text-xs font-bold uppercase tracking-wide text-[#3A4052]">Tu solicitud</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
             <VerDetalle detalle={detalle} className="contents" />
           </div>
         </div>
@@ -409,39 +410,39 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
 
   return (
     <aside aria-label="Tu solicitud">
-      <div className="overflow-hidden rounded-2xl border border-[#AEB6EE] bg-white shadow-md" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary), 0 10px 28px rgba(30,34,48,0.06)' }}>
-        <div className="bg-[#F3F5FD] px-5 pt-5 pb-4">
+      <div className="overflow-hidden rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-tarjeta)] shadow-md" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary), 0 10px 28px rgba(30,34,48,0.06)' }}>
+        <div className="bg-[var(--d2-marca-suave)] px-5 pt-5 pb-4">
           {detalle ? (
             // Con "Ver detalle" el panel puede crecer más que la pantalla
             // (va fijo): el repaso abierto se desplaza dentro de su caja.
             <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:max-h-[45vh] [&_[role=region]]:overflow-y-auto [&_[role=region]]:basis-full">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#3A4052]">Tu solicitud</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
               <VerDetalle detalle={detalle} className="contents" />
             </div>
           ) : (
-            <p className="text-xs font-bold uppercase tracking-wide text-[#3A4052]">Tu solicitud</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
           )}
           {datos.mostrarImagen && (
             <div className="mx-auto mt-3 flex h-28 w-36 items-center justify-center">
               <ImagenEquipo datos={datos} tam={140} />
             </div>
           )}
-          <p className="mt-3 text-[17px] font-bold leading-tight text-[#1E2230]">{datos.nombre}</p>
-          <p className="mt-1 text-[13px] text-[#5B6275]">{datos.leyenda}</p>
+          <p className="mt-3 text-[17px] font-bold leading-tight text-[var(--d2-texto)]">{datos.nombre}</p>
+          <p className="mt-1 text-[13px] text-[var(--d2-texto-suave)]">{datos.leyenda}</p>
           <ChipsDelPanel datos={datos} />
         </div>
         {envio && (
           // Línea de ticket con muescas a los lados (prototipo, Paso 4).
-          <div className="relative h-0 border-t-2 border-dashed border-[#C9CEF0]" aria-hidden>
-            <span className="absolute -left-[9px] -top-[9px] h-4 w-4 rounded-full border border-[#AEB6EE] bg-[#F4F5F8] [clip-path:inset(0_0_0_50%)]" />
-            <span className="absolute -right-[9px] -top-[9px] h-4 w-4 rounded-full border border-[#AEB6EE] bg-[#F4F5F8] [clip-path:inset(0_50%_0_0)]" />
+          <div className="relative h-0 border-t-2 border-dashed border-[var(--d2-borde-campo)]" aria-hidden>
+            <span className="absolute -left-[9px] -top-[9px] h-4 w-4 rounded-full border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-fondo)] [clip-path:inset(0_0_0_50%)]" />
+            <span className="absolute -right-[9px] -top-[9px] h-4 w-4 rounded-full border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-fondo)] [clip-path:inset(0_50%_0_0)]" />
           </div>
         )}
         <div className="px-5 pt-4 pb-5">
           <DesgloseDeCuota datos={datos} className="mb-2" />
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[15px] font-bold text-[#1E2230]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}{envio ? ' total' : ''}</span>
-            <span className={`inline-block origin-right font-['Baloo_2',_sans-serif] text-2xl font-bold ${pulso} ${datos.isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary-text)]'}`}>
+            <span className="text-[15px] font-bold text-[var(--d2-texto)]">{datos.frecuencia === 'semanal' ? 'Cuota semanal' : datos.frecuencia === 'quincenal' ? 'Cuota quincenal' : 'Cuota mensual'}{envio ? ' total' : ''}</span>
+            <span className={`inline-block origin-right font-['Baloo_2',_sans-serif] text-2xl font-bold ${pulso} ${datos.isOverQuotaLimit ? 'text-[var(--d2-error-rojo)]' : 'text-[var(--color-primary-text)]'}`}>
               {datos.precio(datos.total)}
               <span className="text-sm font-semibold">{sufijoDeFrecuencia(datos.frecuencia)}</span>
             </span>
@@ -451,20 +452,20 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
             <>
               {envio.conDiaDePago !== false && (
                 <div className="mt-1 flex items-baseline justify-between gap-2 text-sm">
-                  <span className="text-[#3A4052]">Día de pago</span>
+                  <span className="text-[var(--d2-texto-2)]">Día de pago</span>
                   {envio.diaDePago ? (
-                    <span className="font-semibold text-[#1E2230]">{envio.diaDePago}</span>
+                    <span className="font-semibold text-[var(--d2-texto)]">{envio.diaDePago}</span>
                   ) : (
-                    <span className="italic text-[#8A90A2]">Por elegir</span>
+                    <span className="italic text-[var(--d2-texto-tenue)]">Por elegir</span>
                   )}
                 </div>
               )}
               {/* El aviso de tope pidió "Cambiar plazo": en el paso que envía
                   el selector no tiene botón propio, se abre acá. */}
-              {abierto && datos.hayQueElegir && (
-                <div ref={selectorRef} className="d2-aparece mt-3 border-t border-[#E3E6EE] pt-3">
+              {datos.hayQueElegir && (
+                <PlegableV2 abierto={abierto} id={`${idSelector}-envio`} contenidoRef={selectorRef} classNameContenido="mt-3 border-t border-[var(--d2-borde)] pt-3">
                   <SelectorPlazoInicial datos={datos} />
-                </div>
+                </PlegableV2>
               )}
               <button
                 type="button"
@@ -473,7 +474,7 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
                 disabled={envio.deshabilitado}
                 className={`mt-4 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-xl text-[17px] font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${
                   envio.deshabilitado
-                    ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed'
+                    ? 'bg-[var(--d2-boton-apagado)] text-[var(--d2-boton-apagado-texto)] shadow-none cursor-not-allowed'
                     : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
                 }`}
               >
@@ -492,13 +493,11 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
                 className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cambiar plazo o inicial
-                <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+                <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
               </button>
-              {abierto && (
-                <div id={idSelector} ref={selectorRef} className="d2-aparece mt-1 border-t border-[#E3E6EE] pt-3">
-                  <SelectorPlazoInicial datos={datos} />
-                </div>
-              )}
+              <PlegableV2 abierto={abierto} id={idSelector} contenidoRef={selectorRef} classNameContenido="mt-1 border-t border-[var(--d2-borde)] pt-3">
+                <SelectorPlazoInicial datos={datos} />
+              </PlegableV2>
             </>
           )}
         </div>
@@ -526,6 +525,7 @@ export function CabeceraSolicitudV2({
 }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  const menos = useMenosMovimiento();
   const panelRef = useRef<HTMLDivElement>(null);
   const pulso = usePulsoAlCambiar(datos.total);
   const abrirDesplegable = useCallback(() => setAbierto(true), []);
@@ -569,22 +569,22 @@ export function CabeceraSolicitudV2({
       {abierto && (
         <div className="d2-fundido fixed inset-0 bg-black/20" aria-hidden onClick={() => setAbierto(false)} />
       )}
-      <div className="relative border-b border-[#E3E6EE] bg-[#F3F5FD] shadow-[0_2px_10px_rgba(30,34,48,0.06)]">
+      <div className="relative border-b border-[var(--d2-borde)] bg-[var(--d2-marca-suave)] shadow-[0_2px_10px_rgba(30,34,48,0.06)]">
         <div className="flex items-center pr-3.5">
           {datos.principal || detalle ? (
             <button
               type="button"
               aria-expanded={abierto}
-              // Cerrado, el panel no está en el DOM: apuntar a su id sería
-              // una referencia rota (BAL-4959, hallazgo de la revisión).
-              aria-controls={abierto ? idSelector : undefined}
+              // La caja del desplegable (`PlegableV2`) queda siempre en el
+              // DOM, así que el id nunca es una referencia rota (BAL-4959).
+              aria-controls={idSelector}
               onClick={() => setAbierto((v) => !v)}
               disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)]">
                 {datos.mostrarImagen && datos.principal?.image && datos.productos.length === 1 ? (
-                  <span className="flex h-full w-full items-center justify-center bg-white">
+                  <span className="flex h-full w-full items-center justify-center bg-[var(--d2-tarjeta)]">
                     <ImagenEquipo datos={datos} tam={36} />
                   </span>
                 ) : (
@@ -592,42 +592,42 @@ export function CabeceraSolicitudV2({
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[15px] font-bold text-[#1E2230]">{datos.principal ? datos.nombre : 'Tu solicitud'}</span>
+                <span className="block truncate text-[15px] font-bold text-[var(--d2-texto)]">{datos.principal ? datos.nombre : 'Tu solicitud'}</span>
                 <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-text)]">
                   <span className="truncate">
                     {datos.principal
                       ? <><span className={`inline-block origin-left ${pulso}`}>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)}</span> · {datos.leyenda}</>
                       : 'Revisa tus datos'}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
                 </span>
               </span>
             </button>
           ) : (
             <span className="flex-1" />
           )}
-          <span className="shrink-0 text-xs text-[#5B6275]">
-            Paso <strong className="font-bold text-[#1E2230]">{numero}</strong> de {totalPasos}
+          <span className="shrink-0 text-xs text-[var(--d2-texto-suave)]">
+            Paso <strong className="font-bold text-[var(--d2-texto)]">{numero}</strong> de {totalPasos}
           </span>
         </div>
         <ProgresoMovilV2 indiceActual={indiceActual} total={totalPasos} />
 
-        {abierto && (datos.principal || detalle) && (
+        {(datos.principal || detalle) && (
+          <PlegableV2 abierto={abierto} id={idSelector}>
           <div
             ref={panelRef}
-            id={idSelector}
             tabIndex={-1}
-            className="d2-aparece max-h-[70vh] overflow-y-auto border-t border-[#E3E6EE] bg-white px-4 pt-3 pb-4"
+            className="max-h-[70vh] overflow-y-auto border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-3 pb-4"
           >
             {datos.principal && (<>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                {detalleEquipo && <p className="text-xs text-[#5B6275]">{detalleEquipo}</p>}
+                {detalleEquipo && <p className="text-xs text-[var(--d2-texto-suave)]">{detalleEquipo}</p>}
                 {datos.regalos.map((r) => (
-                  <p key={r.id} className="text-xs font-semibold text-[#0B6B5C]">+ {r.name} de regalo</p>
+                  <p key={r.id} className="text-xs font-semibold text-[var(--d2-ok-texto)]">+ {r.name} de regalo</p>
                 ))}
                 {datos.mesPrimeraCuota && (
-                  <p className="text-xs font-semibold text-[#0B6B5C]">1.ª cuota en {datos.mesPrimeraCuota}</p>
+                  <p className="text-xs font-semibold text-[var(--d2-ok-texto)]">1.ª cuota en {datos.mesPrimeraCuota}</p>
                 )}
               </div>
               {/* Un préstamo de efectivo no tiene equipo que cambiar (BAL-4969). */}
@@ -643,8 +643,9 @@ export function CabeceraSolicitudV2({
               <SelectorPlazoInicial datos={datos} />
             </div>
             </>)}
-            <VerDetalle detalle={detalle} className={datos.principal ? 'mt-2 border-t border-[#E3E6EE] pt-1' : ''} />
+            <VerDetalle detalle={detalle} className={datos.principal ? 'mt-2 border-t border-[var(--d2-borde)] pt-1' : ''} />
           </div>
+          </PlegableV2>
         )}
       </div>
     </header>

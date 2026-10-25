@@ -47,8 +47,8 @@ interface Props {
 /** Clases de Diseño 2. Las de Diseño 1 quedan escritas tal cual abajo. */
 const V2 = {
   tarjeta: "w-full max-w-md rounded-2xl bg-white p-6 shadow-xl font-['Asap',_sans-serif]",
-  titulo: "mb-3 font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-tight text-[#1E2230]",
-  texto: 'text-[15px] leading-snug text-[#5B6275]',
+  titulo: "mb-3 font-['Baloo_2',_sans-serif] text-[22px] font-bold leading-tight text-[var(--d2-texto)]",
+  texto: 'text-[15px] leading-snug text-[var(--d2-texto-suave)]',
   primario:
     'flex flex-1 min-h-[48px] cursor-pointer items-center justify-center rounded-[10px] bg-[var(--color-primary)] px-4 text-center text-base font-bold text-[var(--color-on-primary)] transition hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2',
   secundario:

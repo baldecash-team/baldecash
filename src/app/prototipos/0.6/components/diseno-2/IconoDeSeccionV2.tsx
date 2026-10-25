@@ -37,7 +37,7 @@ export function IconoDeSeccionV2({ nombre }: { nombre?: string | null }) {
       aria-hidden="true"
       data-icono-seccion={nombre}
       className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full lg:h-9 lg:w-9 ${
-        verde ? 'bg-[#E3F5F1] text-[#0E8C78]' : 'bg-[rgba(var(--color-primary-rgb),0.12)] text-[var(--color-primary)]'
+        verde ? 'bg-[var(--d2-ok-suave)] text-[var(--d2-ok)]' : 'bg-[rgba(var(--color-primary-rgb),0.12)] text-[var(--color-primary)]'
       }`}
     >
       <Icono className="h-[19px] w-[19px]" strokeWidth={2} />

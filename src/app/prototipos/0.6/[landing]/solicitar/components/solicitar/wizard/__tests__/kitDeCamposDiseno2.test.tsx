@@ -294,8 +294,8 @@ describe('Lista con display_mode de botones', () => {
     // texto de marca; el otro neutro con borde #C9CEF0 y texto oscuro.
     expect(dni.className).toContain('bg-[rgba(var(--color-primary-rgb),0.1)]');
     expect(dni.className).toContain('text-[var(--color-primary-text)]');
-    expect(ce.className).toContain('border-[#C9CEF0]');
-    expect(ce.className).toContain('text-[#1E2230]');
+    expect(ce.className).toContain('border-[var(--d2-borde-campo)]');
+    expect(ce.className).toContain('text-[var(--d2-texto)]');
     expect(dni.className).toContain('min-h-[52px]');
 
     fireEvent.click(ce);
@@ -339,13 +339,29 @@ describe('IMPORTANTE — foco visible en Diseño 2 (revisión F2)', () => {
   });
 });
 
-describe('Una columna en Diseño 2', () => {
-  it('ignora grid_columns: todo a ancho completo', () => {
-    const { container } = pintarV2(paso([TIPO_DOC, CELULAR_2]));
-    for (const el of container.querySelectorAll('[data-campo]')) {
-      expect(el.className).toContain('col-span-12');
-      expect(el.className).not.toMatch(/sm:col-span-(?!12)/);
-    }
+describe('Ancho de los campos en Diseño 2 (BAL-4966)', () => {
+  it('usa grid_columns / grid_columns_mobile del paso, como Diseño 1', () => {
+    const { container } = pintarV2(paso([
+      { ...TIPO_DOC, grid_columns: 4, grid_columns_mobile: 12 } as WizardField,
+      { ...CELULAR_2, grid_columns: 6, grid_columns_mobile: 6 } as WizardField,
+    ]));
+    const tipo = container.querySelector('[data-campo="document_type"]') as HTMLElement;
+    const celular = container.querySelector('[data-campo="phone_secondary"]') as HTMLElement;
+    expect(tipo.className).toMatch(/(^| )col-span-12( |$)/);
+    expect(tipo.className).toContain('sm:col-span-4');
+    expect(celular.className).toMatch(/(^| )col-span-6( |$)/);
+    expect(celular.className).toContain('sm:col-span-6');
+    // Sigue siendo un campo de Diseño 2.
+    expect(tipo.className).toContain('campo-v2');
+  });
+
+  it('sin grid_columns (null) va a ancho completo', () => {
+    const { container } = pintarV2(paso([
+      { ...TIPO_DOC, grid_columns: null, grid_columns_mobile: null } as unknown as WizardField,
+    ]));
+    const tipo = container.querySelector('[data-campo="document_type"]') as HTMLElement;
+    expect(tipo.className).toMatch(/(^| )col-span-12( |$)/);
+    expect(tipo.className).toContain('sm:col-span-12');
   });
 });
 
@@ -362,8 +378,8 @@ describe('Casilla obligatoria en Diseño 2', () => {
     const casilla = container.querySelector('[data-casilla-v2]');
     expect(casilla).toHaveAttribute('data-casilla-v2', 'neutra');
     const label = container.querySelector('label');
-    expect(label?.className).toContain('border-[#C9CEF0]');
-    expect(label?.className).toContain('bg-white');
+    expect(label?.className).toContain('border-[var(--d2-borde-campo)]');
+    expect(label?.className).toContain('bg-[var(--d2-tarjeta)]');
     expect(label?.className).not.toContain('#F2B632');
     expect(label?.className).not.toContain('#FFF6D8');
     expect(screen.queryByText('Obligatorio')).not.toBeInTheDocument();

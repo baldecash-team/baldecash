@@ -565,7 +565,7 @@ export const DateInput: React.FC<DateInputProps> = ({
               flex items-center gap-2 px-3.5 cursor-pointer
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
               ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
-              ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
+              ${disabled ? 'bg-[var(--d2-campo-apagado)] opacity-70 cursor-not-allowed' : ''}
             ` : `
               flex items-center gap-2 h-11 px-3
               rounded-lg border-2 transition-all duration-200 bg-white cursor-pointer
@@ -575,7 +575,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             onClick={() => !disabled && setIsOpen(true)}
           >
             <Calendar className={v2 ? 'w-4 h-4 text-[var(--color-primary-text)]' : 'w-4 h-4 text-neutral-400'} />
-            <span className={v2 ? `flex-1 text-base ${value ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
+            <span className={v2 ? `flex-1 text-base ${value ? 'text-[var(--d2-texto)]' : 'text-[var(--d2-texto-tenue)]'}` : `flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
               {value ? formatDisplayDate(value) : placeholder}
             </span>
 
@@ -596,7 +596,7 @@ export const DateInput: React.FC<DateInputProps> = ({
             )}
 
             {/* Status icons */}
-            {showSuccess && <Check className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[#0E8C78]' : 'text-[#22c55e]'}`} />}
+            {showSuccess && <Check className={`w-5 h-5 flex-shrink-0 ${v2 ? 'text-[var(--d2-ok)]' : 'text-[#22c55e]'}`} />}
             {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
           </div>
         </PopoverTrigger>

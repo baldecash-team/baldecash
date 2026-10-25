@@ -49,13 +49,13 @@ export function SaludoPrellenadoV2({
         className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] font-['Baloo_2',_sans-serif] text-base font-bold leading-none text-[var(--color-on-primary)]"
       >
         {inicial}
-        <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#0E8C78] ring-2 ring-white">
+        <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--d2-ok-relleno)] ring-2 ring-[var(--d2-tarjeta)]">
           <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
         </span>
       </span>
       <div role="status" className="min-w-[11rem] flex-1">
-        <p className="text-base font-bold leading-snug text-[#1E2230]">¡Hola, {nombre}! 👋</p>
-        <p className="text-sm leading-snug text-[#5B6275]">Ya tenemos algunos de tus datos.</p>
+        <p className="text-base font-bold leading-snug text-[var(--d2-texto)]">¡Hola, {nombre}! 👋</p>
+        <p className="text-sm leading-snug text-[var(--d2-texto-suave)]">Ya tenemos algunos de tus datos.</p>
       </div>
       {onCorregir && (
         <button

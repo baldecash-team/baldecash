@@ -11,6 +11,7 @@
  * criterio. `usePulsoAlCambiar` y `useSalidaAnimada` son los ganchos de JS.
  */
 
+import type React from 'react';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 const CONSULTA_MENOS_MOVIMIENTO = '(prefers-reduced-motion: reduce)';
@@ -109,4 +110,21 @@ export function useSalidaAnimada(ms: number = DURACION_SALIDA_MS): readonly [boo
     [ms],
   );
   return [saliendo, salir] as const;
+}
+
+/**
+ * Desplegables del kit (BAL-4959, pedido de Emilio): «Cambiar plazo o
+ * inicial», «Ver detalle» y el repaso de la cabecera de celular. La altura
+ * se anima con `grid-template-rows: 0fr → 1fr` (sin `max-height` fijo) y el
+ * contenido entra con `opacity` y `translateY(-4px)`. Abrir es más largo y
+ * desacelera; cerrar, más corto. La flecha gira con la misma duración.
+ */
+export const PLEGABLE_ABRIR = { ms: 240, curva: 'cubic-bezier(.2,.8,.2,1)' } as const;
+export const PLEGABLE_CERRAR = { ms: 200, curva: 'cubic-bezier(.4,0,.2,1)' } as const;
+
+/** `transition` de la flecha del botón de un desplegable. */
+export function transicionFlecha(abierto: boolean, menos: boolean): React.CSSProperties {
+  if (menos) return { transition: 'none' };
+  const t = abierto ? PLEGABLE_ABRIR : PLEGABLE_CERRAR;
+  return { transition: `transform ${t.ms}ms ${t.curva}` };
 }
