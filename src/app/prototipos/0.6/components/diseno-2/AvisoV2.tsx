@@ -9,11 +9,16 @@
  *   el lector de pantalla anuncia el texto apenas aparece.
  * - Botón de cerrar con `aria-label`, de 44×44 y con foco visible.
  * - La animación se apaga con `prefers-reduced-motion`.
+ *
+ * Diseño 1 (BAL-5008) usa este mismo aviso con `diseno={1}`: misma lógica y
+ * accesibilidad, con los colores del `Toast` de siempre. Antes el resumen de
+ * Diseño 1 no montaba ningún aviso y, si faltaba un campo de otro paso,
+ * regresaba a ese paso sin decir por qué.
  */
 
 import React, { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 import type { ToastType } from '@/app/prototipos/_shared';
 import { useMenosMovimiento } from './movimiento';
 
@@ -28,19 +33,51 @@ export interface AvisoV2Props {
    * la persona lo cierra o lo corrige (vuelve a enviar).
    */
   duration?: number;
+  /** 1 = colores del `Toast` de Diseño 1; 2 (por defecto) = kit de Diseño 2. */
+  diseno?: 1 | 2;
 }
 
-function tonoDelAviso(type: ToastType) {
+interface TonoDelAviso {
+  caja: string;
+  icono: string;
+  texto: string;
+  cerrar: string;
+  Icono: typeof AlertTriangle;
+}
+
+function tonoDelAviso(type: ToastType): TonoDelAviso {
+  const texto = 'text-[#1E2230]';
+  const cerrar = 'text-[#3A4052] hover:bg-black/5';
   if (type === 'warning' || type === 'error') {
-    return { caja: 'border-[#F2B79A] bg-[#FFF1EB]', icono: 'text-[#C2410C]', Icono: AlertTriangle };
+    return { caja: 'border-[#F2B79A] bg-[#FFF1EB]', icono: 'text-[#C2410C]', texto, cerrar, Icono: AlertTriangle };
   }
   if (type === 'success') {
-    return { caja: 'border-[#BFE6DA] bg-[#E8F7F2]', icono: 'text-[#0B6B5C]', Icono: CheckCircle2 };
+    return { caja: 'border-[#BFE6DA] bg-[#E8F7F2]', icono: 'text-[#0B6B5C]', texto, cerrar, Icono: CheckCircle2 };
   }
-  return { caja: 'border-[#D5D9E6] bg-white', icono: 'text-[var(--color-primary-text)]', Icono: Info };
+  return { caja: 'border-[#D5D9E6] bg-white', icono: 'text-[var(--color-primary-text)]', texto, cerrar, Icono: Info };
 }
 
-export function AvisoV2({ message, type = 'warning', isVisible, onClose, duration = 4000 }: AvisoV2Props) {
+/** Los colores del `Toast` compartido de Diseño 1 (BAL-5008). */
+function tonoDelAvisoD1(type: ToastType): TonoDelAviso {
+  if (type === 'warning') {
+    return {
+      caja: 'border-amber-300 bg-amber-50 shadow-amber-100/50',
+      icono: 'text-[#f59e0b]',
+      texto: 'text-amber-900',
+      cerrar: 'text-amber-900 hover:bg-black/5',
+      Icono: AlertTriangle,
+    };
+  }
+  if (type === 'error') {
+    return { caja: 'border-neutral-800 bg-neutral-800', icono: 'text-[#ef4444]', texto: 'text-white', cerrar: 'text-white hover:bg-white/10', Icono: XCircle };
+  }
+  if (type === 'success') {
+    return { caja: 'border-neutral-800 bg-neutral-800', icono: 'text-[#22c55e]', texto: 'text-white', cerrar: 'text-white hover:bg-white/10', Icono: CheckCircle2 };
+  }
+  return { caja: 'border-neutral-200 bg-white', icono: 'text-[#4654CD]', texto: 'text-neutral-800', cerrar: 'text-neutral-600 hover:bg-black/5', Icono: Info };
+}
+
+export function AvisoV2({ message, type = 'warning', isVisible, onClose, duration = 4000, diseno = 2 }: AvisoV2Props) {
   const menosMovimiento = useMenosMovimiento();
 
   const seCierraSolo = duration > 0 && type !== 'error';
@@ -50,7 +87,7 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
     return () => clearTimeout(t);
   }, [isVisible, seCierraSolo, duration, onClose]);
 
-  const tono = tonoDelAviso(type);
+  const tono = diseno === 1 ? tonoDelAvisoD1(type) : tonoDelAviso(type);
   // Defensa (BAL-4969): si algún día llega algo que no es texto (un `detail`
   // de 422 como lista u objeto), se muestra un texto genérico en vez de
   // tumbar la pantalla: React no pinta objetos.
@@ -63,7 +100,8 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      data-aviso-v2
+      data-aviso-v2={diseno === 2 ? '' : undefined}
+      data-aviso-d1={diseno === 1 ? '' : undefined}
       className="pointer-events-none fixed inset-x-0 top-20 z-[200] flex justify-center px-4"
     >
       <AnimatePresence>
@@ -74,15 +112,15 @@ export function AvisoV2({ message, type = 'warning', isVisible, onClose, duratio
             animate={menosMovimiento ? { opacity: 1 } : { opacity: 1, y: 0 }}
             exit={menosMovimiento ? { opacity: 0 } : { opacity: 0, y: -8 }}
             transition={{ duration: menosMovimiento ? 0 : 0.2 }}
-            className={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border py-1.5 pl-4 pr-1.5 shadow-lg font-['Asap',_sans-serif] ${tono.caja}`}
+            className={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border py-1.5 pl-4 pr-1.5 shadow-lg ${diseno === 2 ? "font-['Asap',_sans-serif]" : ''} ${tono.caja}`}
           >
             <tono.Icono className={`h-5 w-5 flex-shrink-0 ${tono.icono}`} aria-hidden />
-            <p className="flex-1 py-2 text-sm font-medium text-[#1E2230]">{texto}</p>
+            <p className={`flex-1 py-2 text-sm font-medium ${tono.texto}`}>{texto}</p>
             <button
               type="button"
               onClick={onClose}
               aria-label="Cerrar aviso"
-              className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-[#3A4052] cursor-pointer hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg cursor-pointer focus-visible:outline-none focus-visible:ring-2 ${diseno === 2 ? 'focus-visible:ring-[var(--color-primary)]' : 'focus-visible:ring-[#4654CD]'} ${tono.cerrar}`}
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

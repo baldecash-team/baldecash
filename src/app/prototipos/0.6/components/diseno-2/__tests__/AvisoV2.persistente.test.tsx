@@ -26,3 +26,18 @@ describe('AvisoV2 · error persistente', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('AvisoV2 · Diseño 1 (BAL-5008)', () => {
+  it('con diseno={1} usa los colores del Toast de Diseño 1 y mantiene la accesibilidad', () => {
+    render(<AvisoV2 diseno={1} message="Hay campos incompletos" type="warning" isVisible onClose={jest.fn()} />);
+    const region = screen.getByRole('status');
+    expect(region).toHaveAttribute('aria-live', 'polite');
+    expect(region).toHaveAttribute('data-aviso-d1');
+    expect(region).not.toHaveAttribute('data-aviso-v2');
+    expect(region.innerHTML).toMatch(/bg-amber-50/);
+    expect(region.innerHTML).not.toMatch(/Asap/);
+    const cerrar = screen.getByRole('button', { name: 'Cerrar aviso' });
+    expect(cerrar.className).toMatch(/h-11/);
+    expect(cerrar.className).toMatch(/w-11/);
+  });
+});
