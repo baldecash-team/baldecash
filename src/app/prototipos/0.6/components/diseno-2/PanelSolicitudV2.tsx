@@ -44,7 +44,8 @@ import {
 } from '@/app/prototipos/0.6/utils/couponDocument';
 import { useMesPrimeraCuota } from '../lo-quiero/useMesPrimeraCuota';
 import { ProgresoMovilV2 } from './ProgresoV2';
-import { usePulsoAlCambiar } from './movimiento';
+import { transicionFlecha, useMenosMovimiento, usePulsoAlCambiar } from './movimiento';
+import { PlegableV2 } from './PlegableV2';
 import { PRESION_V2 } from './campos/estilosV2';
 import { EVENTO_ABRIR_PLAZO_V2 } from './guardasV2';
 
@@ -333,25 +334,24 @@ function Confianza({ conEnvio = true }: { conEnvio?: boolean }) {
 function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; className?: string }) {
   const [abierto, setAbierto] = useState(false);
   const id = useId();
+  const menos = useMenosMovimiento();
   if (!detalle) return null;
   return (
     <div className={className}>
       <button
         type="button"
         aria-expanded={abierto}
-        aria-controls={abierto ? id : undefined}
+        aria-controls={id}
         onClick={() => setAbierto((v) => !v)}
         data-ver-detalle-v2
         className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         Ver detalle
-        <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+        <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
       </button>
-      {abierto && (
-        <div id={id} role="region" aria-label="Detalle de tu solicitud" className="d2-aparece mt-2 space-y-3 text-left">
-          {detalle}
-        </div>
-      )}
+      <PlegableV2 abierto={abierto} id={id} role="region" aria-label="Detalle de tu solicitud" classNameContenido="mt-2 space-y-3 text-left">
+        {detalle}
+      </PlegableV2>
     </div>
   );
 }
@@ -383,6 +383,7 @@ export interface EnvioDelPanel {
 export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { datos: DatosDelPanel; detalle?: React.ReactNode; envio?: EnvioDelPanel | null; conEnvio?: boolean }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  const menos = useMenosMovimiento();
   const selectorRef = useRef<HTMLDivElement>(null);
   const abrirSelector = useCallback(() => {
     setAbierto(true);
@@ -461,10 +462,10 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
               )}
               {/* El aviso de tope pidió "Cambiar plazo": en el paso que envía
                   el selector no tiene botón propio, se abre acá. */}
-              {abierto && datos.hayQueElegir && (
-                <div ref={selectorRef} className="d2-aparece mt-3 border-t border-[var(--d2-borde)] pt-3">
+              {datos.hayQueElegir && (
+                <PlegableV2 abierto={abierto} id={`${idSelector}-envio`} contenidoRef={selectorRef} classNameContenido="mt-3 border-t border-[var(--d2-borde)] pt-3">
                   <SelectorPlazoInicial datos={datos} />
-                </div>
+                </PlegableV2>
               )}
               <button
                 type="button"
@@ -492,13 +493,11 @@ export function PanelSolicitudV2({ datos, detalle, envio, conEnvio = true }: { d
                 className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cambiar plazo o inicial
-                <ChevronDown className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+                <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
               </button>
-              {abierto && (
-                <div id={idSelector} ref={selectorRef} className="d2-aparece mt-1 border-t border-[var(--d2-borde)] pt-3">
-                  <SelectorPlazoInicial datos={datos} />
-                </div>
-              )}
+              <PlegableV2 abierto={abierto} id={idSelector} contenidoRef={selectorRef} classNameContenido="mt-1 border-t border-[var(--d2-borde)] pt-3">
+                <SelectorPlazoInicial datos={datos} />
+              </PlegableV2>
             </>
           )}
         </div>
@@ -526,6 +525,7 @@ export function CabeceraSolicitudV2({
 }) {
   const [abierto, setAbierto] = useState(false);
   const idSelector = useId();
+  const menos = useMenosMovimiento();
   const panelRef = useRef<HTMLDivElement>(null);
   const pulso = usePulsoAlCambiar(datos.total);
   const abrirDesplegable = useCallback(() => setAbierto(true), []);
@@ -575,9 +575,9 @@ export function CabeceraSolicitudV2({
             <button
               type="button"
               aria-expanded={abierto}
-              // Cerrado, el panel no está en el DOM: apuntar a su id sería
-              // una referencia rota (BAL-4959, hallazgo de la revisión).
-              aria-controls={abierto ? idSelector : undefined}
+              // La caja del desplegable (`PlegableV2`) queda siempre en el
+              // DOM, así que el id nunca es una referencia rota (BAL-4959).
+              aria-controls={idSelector}
               onClick={() => setAbierto((v) => !v)}
               disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
@@ -599,7 +599,7 @@ export function CabeceraSolicitudV2({
                       ? <><span className={`inline-block origin-left ${pulso}`}>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)}</span> · {datos.leyenda}</>
                       : 'Revisa tus datos'}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 motion-reduce:transition-none ${abierto ? 'rotate-180' : ''}`} aria-hidden />
+                  <ChevronDown className={`h-3.5 w-3.5 shrink-0 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
                 </span>
               </span>
             </button>
@@ -612,12 +612,12 @@ export function CabeceraSolicitudV2({
         </div>
         <ProgresoMovilV2 indiceActual={indiceActual} total={totalPasos} />
 
-        {abierto && (datos.principal || detalle) && (
+        {(datos.principal || detalle) && (
+          <PlegableV2 abierto={abierto} id={idSelector}>
           <div
             ref={panelRef}
-            id={idSelector}
             tabIndex={-1}
-            className="d2-aparece max-h-[70vh] overflow-y-auto border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-3 pb-4"
+            className="max-h-[70vh] overflow-y-auto border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-3 pb-4"
           >
             {datos.principal && (<>
             <div className="flex items-start justify-between gap-3">
@@ -645,6 +645,7 @@ export function CabeceraSolicitudV2({
             </>)}
             <VerDetalle detalle={detalle} className={datos.principal ? 'mt-2 border-t border-[var(--d2-borde)] pt-1' : ''} />
           </div>
+          </PlegableV2>
         )}
       </div>
     </header>
