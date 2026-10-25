@@ -272,13 +272,12 @@ describe('StepClient elige el marco según el diseño de la landing', () => {
     }
   });
 
-  it('una landing de tema oscuro (nvidia) queda en Diseño 1 aunque traiga el 2 (BAL-4969, I-2)', async () => {
+  it('una landing de tema oscuro (nvidia) con el 2 usa Diseño 2: tiene versión oscura (BAL-5076)', async () => {
     mockLayout.disenoSolicitud = 2;
     mockLayout.landing = 'nvidia';
     try {
       render(<StepClient />);
-      await screen.findAllByTestId('cuerpo-del-paso');
-      expect(screen.queryByTestId('shell-v2')).not.toBeInTheDocument();
+      expect(await screen.findByTestId('shell-v2')).toBeInTheDocument();
     } finally {
       mockLayout.landing = 'pago-diferido';
     }
