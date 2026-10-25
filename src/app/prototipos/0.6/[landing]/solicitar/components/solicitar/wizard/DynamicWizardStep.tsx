@@ -17,7 +17,7 @@ import { CamposV2Provider, PISTA_V2, TARJETA_V2, TARJETA_V2_ESTILO } from '@/app
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
 import { ayudaDelNumero, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
-import { armarBloques, camposPegados, cascadasEnFila, columnasDeCascada, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
+import { armarBloques, camposPegados, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -361,8 +361,6 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     () => (esV2 && !step.groups?.length ? ordenConPegados(step.fields, pegados) : []),
     [esV2, step, pegados],
   );
-  // Diseño 2: Departamento / Provincia / Distrito en una fila (prototipo).
-  const cascadas = useMemo(() => (esV2 ? cascadasEnFila(step.fields) : new Map<string, { largo: number; indice: number }>()), [esV2, step]);
 
   // Diseño 2 (BAL-4969): los campos visibles al montar el paso entran con la
   // tarjeta; los que aparecen DESPUÉS (una dependencia los destapa, o
@@ -426,12 +424,14 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return (
       <React.Fragment key={field.code}>
         <div
-          // Diseño 2: una sola columna (decisión D7), se ignoran
-          // `grid_columns` / `grid_columns_mobile`; salvo una cascada
-          // (departamento > provincia > distrito), que va en una fila como
-          // en el prototipo. Un "Otra" pegado a su lista va más junto.
+          // El ancho sale de la configuración del paso, en los dos diseños
+          // (BAL-4966, decisión de Emilio; reemplaza a D7 y a la fila de
+          // cascada armada en código): `grid_columns` desde `sm` y
+          // `grid_columns_mobile` debajo, 12 (ancho completo) si vienen
+          // vacíos. Diseño 2 suma sus clases (`campo-v2`, y un "Otra"
+          // pegado a su lista va más junto).
           className={esV2
-            ? `${cascadas.has(field.code) ? columnasDeCascada(cascadas.get(field.code)!.largo, cascadas.get(field.code)!.indice) : 'col-span-12'} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
+            ? `${colMobileClass} ${colClass} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
             : `${colMobileClass} ${colClass}`}
           {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2, ...(pegadoA ? { 'data-pegado-a': pegadoA } : {}) } : {})}
         >
