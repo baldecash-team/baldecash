@@ -89,7 +89,10 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
             style={{ animation: 'anilloConfirmacionV2 2.4s ease-out 0.4s infinite' }}
           />
         )}
-        <span aria-hidden className="absolute inset-0 rounded-full bg-white shadow-[0_14px_34px_rgba(15,20,60,0.3)]" />
+        {/* Medallón de Baldecito: blanco fijo en los dos temas (BAL-4959). Con
+            `style` y no `bg-white`, porque el puente del tema oscuro de
+            `globals.css` vuelve oscuro todo `.bg-white`. */}
+        <span aria-hidden className="absolute inset-0 rounded-full shadow-[0_14px_34px_rgba(15,20,60,0.3)]" style={{ backgroundColor: '#FFFFFF' }} />
         <span className="relative mt-1.5 block">
           <BaldecitoV2
             ancho={86}
