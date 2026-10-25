@@ -1251,7 +1251,7 @@ function StepContent() {
                   <div
                     data-vista-paso4="1"
                     // Con secciones, cada una trae su tarjeta (prototipo).
-                    className={step.groups?.length ? undefined : 'rounded-2xl border border-[#AEB6EE] bg-white p-4 sm:p-7'}
+                    className={step.groups?.length ? undefined : 'rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-white p-4 sm:p-7'}
                     style={step.groups?.length ? undefined : { boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
                   >
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />

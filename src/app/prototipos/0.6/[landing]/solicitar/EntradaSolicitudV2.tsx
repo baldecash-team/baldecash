@@ -48,7 +48,7 @@ export function EntradaSolicitudV2() {
 
   if (isLoading || !isHydrated || !hayEquipo) {
     return (
-      <div className="min-h-screen bg-[#F4F5F8] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--d2-fondo)] flex items-center justify-center">
         <CubeGridSpinner />
       </div>
     );
@@ -56,7 +56,7 @@ export function EntradaSolicitudV2() {
   if (hasError || !navbarProps) return <NotFoundContent homeUrl={routes.home()} />;
 
   return (
-    <div className="min-h-screen bg-[#F4F5F8]" data-entrada-solicitud-v2>
+    <div className="min-h-screen bg-[var(--d2-fondo)]" data-entrada-solicitud-v2>
       <Navbar {...navbarProps} landing={landing} />
       <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
       <LoQuieroModal isOpen onClose={salir} origen="entrada" />

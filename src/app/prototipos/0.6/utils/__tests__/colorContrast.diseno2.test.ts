@@ -45,10 +45,10 @@ describe('colores de texto para el primary de la landing', () => {
   });
 });
 
-describe('admiteDiseno2 (BAL-4969, I-2)', () => {
-  it('zona gamer y las landings de tema oscuro quedan fuera; el resto entra', () => {
+describe('admiteDiseno2 (BAL-4969, I-2; BAL-5076)', () => {
+  it('solo zona gamer queda fuera; las landings de tema oscuro entran (Diseño 2 oscuro, BAL-5076)', () => {
     expect(admiteDiseno2('zona-gamer')).toBe(false);
-    expect(admiteDiseno2('nvidia')).toBe(false);
+    expect(admiteDiseno2('nvidia')).toBe(true);
     expect(admiteDiseno2('pago-diferido')).toBe(true);
     expect(admiteDiseno2('home')).toBe(true);
   });

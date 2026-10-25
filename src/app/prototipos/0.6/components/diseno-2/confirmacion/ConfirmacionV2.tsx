@@ -89,7 +89,7 @@ export function ConfirmacionV2({
   const conEnvio = conDireccion && hayEnvioADomicilio({ pasos: [], overlayVariant, tipoDeProducto });
 
   return (
-    <div data-confirmacion-v2 className="bg-[#F7F8FC]">
+    <div data-confirmacion-v2 className="bg-[var(--d2-fondo-confirmacion)]">
       <CabeceraConfirmacionV2 titulo={texto.titulo} subtitulo={texto.subtitulo} numeroDeSolicitud={data.applicationId} />
 
       {/* Las tarjetas se montan sobre la banda (prototipo: -76 px, 980 px). */}

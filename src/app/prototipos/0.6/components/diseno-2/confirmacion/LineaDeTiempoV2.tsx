@@ -83,13 +83,13 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp, conEnvio = true, e
     // completado, punteada después).
     <section
       aria-labelledby="linea-tiempo-v2-titulo"
-      className="flex flex-col gap-[18px] rounded-[20px] border border-[#E3E6EE] bg-white px-[22px] pb-[22px] pt-6 shadow-[0_14px_36px_rgba(30,34,48,0.08)] sm:px-[26px]"
+      className="flex flex-col gap-[18px] rounded-[20px] border border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-[22px] pb-[22px] pt-6 shadow-[0_14px_36px_rgba(30,34,48,0.08)] sm:px-[26px]"
     >
       <div className="flex flex-col gap-0.5">
-        <h2 id="linea-tiempo-v2-titulo" className="text-[19px] font-bold text-[#1E2230]">
+        <h2 id="linea-tiempo-v2-titulo" className="text-[19px] font-bold text-[var(--d2-texto)]">
           ¿Qué pasa ahora?
         </h2>
-        <p className="text-sm text-[#5B6275]">Te contamos cada avance por WhatsApp.</p>
+        <p className="text-sm text-[var(--d2-texto-suave)]">Te contamos cada avance por WhatsApp.</p>
       </div>
 
       <ol className="flex flex-col">
@@ -99,10 +99,10 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp, conEnvio = true, e
               <span
                 className={`flex h-9 w-9 items-center justify-center rounded-full ${
                   hito.estado === 'completado'
-                    ? 'bg-[#0E8C78] text-white'
+                    ? 'bg-[var(--d2-ok-relleno)] text-white'
                     : hito.estado === 'actual'
                       ? 'border-2 border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)]'
-                      : 'border-2 border-[#C9CEDB] bg-white text-[#5B6275]'
+                      : 'border-2 border-[var(--d2-borde-hito)] bg-[var(--d2-tarjeta)] text-[var(--d2-texto-suave)]'
                 }`}
               >
                 {hito.estado === 'actual' ? (
@@ -118,14 +118,14 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp, conEnvio = true, e
               {i < hitos.length - 1 && (
                 <span
                   className={`my-1 min-h-4 flex-grow ${
-                    hito.estado === 'completado' ? 'w-0.5 rounded-sm bg-[#0E8C78]' : 'w-0 border-l-2 border-dashed border-[#C9CEDB]'
+                    hito.estado === 'completado' ? 'w-0.5 rounded-sm bg-[var(--d2-ok-relleno)]' : 'w-0 border-l-2 border-dashed border-[var(--d2-borde-hito)]'
                   }`}
                 />
               )}
             </span>
             <div className="flex min-w-0 flex-grow flex-col gap-0.5 pb-[18px] pt-1.5">
               <div className="flex items-baseline justify-between gap-2.5">
-                <span className="inline-flex flex-wrap items-center gap-2 text-base font-bold text-[#1E2230]">
+                <span className="inline-flex flex-wrap items-center gap-2 text-base font-bold text-[var(--d2-texto)]">
                   {hito.titulo}
                   <span className="sr-only">{TEXTO_ESTADO[hito.estado]}</span>
                   {hito.estado === 'actual' && (
@@ -134,12 +134,12 @@ export function LineaDeTiempoV2({ horaDeEnvio, plazoWhatsApp, conEnvio = true, e
                     </span>
                   )}
                 </span>
-                <span className="whitespace-nowrap text-[13px] tabular-nums text-[#5B6275]">{hito.tiempo}</span>
+                <span className="whitespace-nowrap text-[13px] tabular-nums text-[var(--d2-texto-suave)]">{hito.tiempo}</span>
               </div>
-              <p className="text-sm leading-[1.4] text-[#5B6275]">{hito.descripcion}</p>
+              <p className="text-sm leading-[1.4] text-[var(--d2-texto-suave)]">{hito.descripcion}</p>
               {hito.estado === 'actual' && (
                 <div
-                  className="relative mt-2 h-1 w-full overflow-hidden rounded-full bg-[#E3E6EE]"
+                  className="relative mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--d2-borde)]"
                   role="img"
                   aria-label="Revisión en curso"
                 >

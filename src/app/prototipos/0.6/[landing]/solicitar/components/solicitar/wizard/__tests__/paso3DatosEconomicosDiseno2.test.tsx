@@ -290,7 +290,7 @@ describe('Cada sección en su propia tarjeta (prototipo de Brenda, BAL-4969)', (
     const conSeccion = tarjetas.filter((t) => t.querySelector('[data-seccion]'));
     expect(conSeccion.length).toBeGreaterThanOrEqual(2);
     for (const t of conSeccion) {
-      expect(t).toHaveClass('rounded-2xl', 'border-[#AEB6EE]');
+      expect(t).toHaveClass('rounded-2xl', 'border-[var(--d2-borde-tarjeta)]');
       expect(t.style.boxShadow).toContain('inset 0 4px 0 0');
       expect(t.querySelectorAll('[data-seccion]')).toHaveLength(1);
     }

@@ -6,7 +6,7 @@
  * Decisión de Emilio (revisión F2): neutra al inicio, sea obligatoria u
  * opcional — fondo blanco, borde gris `#C9CEF0`, sin ámbar y sin una etiqueta
  * "Obligatorio" resaltada. Es la misma regla que la casilla de términos de
- * `LoQuieroModal` (`border-neutral-200 bg-white` cuando no hay error):
+ * `LoQuieroModal` (`border-[var(--d2-borde-gris-2)] bg-[var(--d2-tarjeta)]` cuando no hay error):
  * - neutra: fondo blanco, borde gris;
  * - al intentar continuar sin marcarla (llega `error`): roja, se sacude una
  *   vez y dice el mensaje (el del validador: `required_message` o el genérico);
@@ -49,20 +49,20 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
   // Neutra al inicio (obligatoria u opcional, es la misma caja): decisión de
   // Emilio en la revisión F2. Sin ámbar, sin distinguir `required` acá.
   const caja = checked
-    ? 'border-[#0E8C78] bg-[#E8F7F2]'
+    ? 'border-[var(--d2-ok)] bg-[var(--d2-ok-suave-3)]'
     : conError
-      ? 'border-[#C2410C] bg-[#FFF1EB]'
-      : 'border-[#C9CEF0] bg-white';
+      ? 'border-[var(--d2-error)] bg-[var(--d2-error-suave)]'
+      : 'border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)]';
 
   // Sin badge "Obligatorio": la caja no adelanta nada hasta que haya un error
   // o se marque. `helpText` sigue siendo libre (lo trae el banco de campos).
   const subtitulo = checked ? '¡Listo!' : conError ? error : helpText;
 
   const colorSubtitulo = checked
-    ? 'font-semibold text-[#0B6B5C]'
+    ? 'font-semibold text-[var(--d2-ok-texto)]'
     : conError
-      ? 'font-bold text-[#B23C0A]'
-      : 'text-[#5B6275]';
+      ? 'font-bold text-[var(--d2-error-texto)]'
+      : 'text-[var(--d2-texto-suave)]';
 
   return (
     <div id={id} data-casilla-v2={checked ? 'marcada' : conError ? 'error' : 'neutra'}>
@@ -83,7 +83,7 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           aria-invalid={conError || undefined}
           aria-required={required || undefined}
           className="m-0 h-6 w-6 flex-shrink-0 cursor-pointer sm:h-[22px] sm:w-[22px]"
-          style={{ accentColor: checked ? '#0E8C78' : 'var(--color-primary)' }}
+          style={{ accentColor: checked ? 'var(--d2-ok-relleno)' : 'var(--color-primary)' }}
         />
         {/*
           El label y el subtítulo NO van en `aria-describedby`: el <label>
@@ -93,7 +93,7 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           anuncia solo con aparecer, sin depender de `aria-describedby`.
         */}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[14px] font-bold leading-[1.35] text-[#1E2230] sm:text-[15px]">
+          <span className="text-[14px] font-bold leading-[1.35] text-[var(--d2-texto)] sm:text-[15px]">
             {label}
             {tooltip && (
               // En línea con el texto: con etiquetas largas el globo queda al

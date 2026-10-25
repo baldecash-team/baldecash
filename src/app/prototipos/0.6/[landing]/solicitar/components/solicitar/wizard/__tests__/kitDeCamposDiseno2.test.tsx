@@ -294,8 +294,8 @@ describe('Lista con display_mode de botones', () => {
     // texto de marca; el otro neutro con borde #C9CEF0 y texto oscuro.
     expect(dni.className).toContain('bg-[rgba(var(--color-primary-rgb),0.1)]');
     expect(dni.className).toContain('text-[var(--color-primary-text)]');
-    expect(ce.className).toContain('border-[#C9CEF0]');
-    expect(ce.className).toContain('text-[#1E2230]');
+    expect(ce.className).toContain('border-[var(--d2-borde-campo)]');
+    expect(ce.className).toContain('text-[var(--d2-texto)]');
     expect(dni.className).toContain('min-h-[52px]');
 
     fireEvent.click(ce);
@@ -362,8 +362,8 @@ describe('Casilla obligatoria en Diseño 2', () => {
     const casilla = container.querySelector('[data-casilla-v2]');
     expect(casilla).toHaveAttribute('data-casilla-v2', 'neutra');
     const label = container.querySelector('label');
-    expect(label?.className).toContain('border-[#C9CEF0]');
-    expect(label?.className).toContain('bg-white');
+    expect(label?.className).toContain('border-[var(--d2-borde-campo)]');
+    expect(label?.className).toContain('bg-[var(--d2-tarjeta)]');
     expect(label?.className).not.toContain('#F2B632');
     expect(label?.className).not.toContain('#FFF6D8');
     expect(screen.queryByText('Obligatorio')).not.toBeInTheDocument();

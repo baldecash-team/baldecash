@@ -345,13 +345,13 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                 }
               }}
               style={{ fontSize: '16px' }}
-              className={`w-full pl-10 pr-10 text-[#1E2230] placeholder:text-[#8A90A2] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })} ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full pl-10 pr-10 text-[var(--d2-texto)] placeholder:text-[var(--d2-texto-tenue)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })} ${disabled ? 'bg-[var(--d2-campo-apagado)] opacity-70 cursor-not-allowed' : ''}`}
             />
             <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
               {isSearching && (
                 <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" aria-hidden />
               )}
-              {!isOpen && showSuccess && <Check className="w-5 h-5 text-[#0E8C78]" aria-hidden />}
+              {!isOpen && showSuccess && <Check className="w-5 h-5 text-[var(--d2-ok)]" aria-hidden />}
             </div>
           </div>
         ) : (
@@ -387,7 +387,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             w-full px-3.5 flex items-center justify-between gap-2 cursor-pointer text-left text-base
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
             ${CAJA_V2} ${bordeV2({ error: showError, foco: isOpen, correcto: !!showSuccess })}
-            ${disabled ? 'bg-[#F7F8FA] opacity-70 cursor-not-allowed' : ''}
+            ${disabled ? 'bg-[var(--d2-campo-apagado)] opacity-70 cursor-not-allowed' : ''}
           ` : `
             w-full px-3 flex items-center justify-between gap-2
             rounded-lg border-2 transition-all cursor-pointer text-left
@@ -396,7 +396,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          <span className={v2 ? `truncate ${displayLabel ? 'text-[#1E2230]' : 'text-[#8A90A2]'}` : `truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
+          <span className={v2 ? `truncate ${displayLabel ? 'text-[var(--d2-texto)]' : 'text-[var(--d2-texto-tenue)]'}` : `truncate ${displayLabel ? 'text-neutral-800' : 'text-neutral-400'}`}>
             {displayLabel || placeholder}
           </span>
 
@@ -414,7 +414,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                 <X className="w-3 h-3 text-neutral-500" />
               </button>
             )}
-            {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[#0E8C78]' : 'w-5 h-5 text-[#22c55e]'} />}
+            {showSuccess && <Check className={v2 ? 'w-5 h-5 text-[var(--d2-ok)]' : 'w-5 h-5 text-[#22c55e]'} />}
             {showError && !v2 && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
             <ChevronDown className={`w-5 h-5 ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'} transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>

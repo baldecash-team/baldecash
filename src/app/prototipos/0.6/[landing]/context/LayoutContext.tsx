@@ -154,7 +154,7 @@ interface LayoutContextValue {
   /**
    * "Lo quiero" abre el modal de accesorios, términos y cupón y pasa directo
    * al primer paso del formulario (BAL-4852). Derivado de `disenoSolicitud
-   * === 2` y `admiteDiseno2(landing)` (gamer y tema oscuro quedan fuera,
+   * === 2` y `admiteDiseno2(landing)` (zona gamer queda fuera; el tema oscuro entra desde BAL-5076,
    * BAL-4969 I-2); se conserva con este nombre porque así lo consumen catálogo y
    * ficha. Opcional en el tipo para que los contextos armados a mano (tests,
    * mocks) sigan valiendo; sin el campo es `false`.
@@ -463,7 +463,11 @@ export function LayoutProvider({
   // blanco no se leen. Estas dos variables resuelven el texto legible; Diseño 1
   // no las usa. Los defaults (sin landing) viven en globals.css.
   const onPrimaryColor = colorSobrePrimary(primaryColor);
-  const primaryTextColor = primaryParaTexto(primaryColor);
+  // Tema oscuro (BAL-5076): el texto de marca va sobre la tarjeta oscura del
+  // kit, no sobre blanco. El primary de las landings oscuras (verde NVIDIA)
+  // ya se lee sobre oscuro (8,4:1 sobre --surface); oscurecerlo para blanco
+  // lo dejaría ilegible.
+  const primaryTextColor = dark ? primaryColor : primaryParaTexto(primaryColor);
 
   // Set CSS variables on :root so they're available to portals (modals, drawers)
   useEffect(() => {
@@ -571,7 +575,7 @@ export function LayoutProvider({
     filtroPorUso,
     barraDeOrden,
     disenoSolicitud,
-    // Las landings sin Diseño 2 (gamer, tema oscuro: BAL-4969 I-2) no abren el modal.
+    // Las landings sin Diseño 2 (zona gamer: BAL-4969 I-2) no abren el modal.
     loQuieroModal: disenoSolicitud === 2 && admiteDiseno2(landing),
     disenoResuelto,
     campanaAbierta,

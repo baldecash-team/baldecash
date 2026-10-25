@@ -148,12 +148,12 @@ function ImagenAccesorio({ src, className = '' }: { src?: string | null; classNa
   const [srcRoto, setSrcRoto] = useState<string | null>(null);
   const ok = !!src && srcRoto !== src;
   return (
-    <div className={`flex items-center justify-center overflow-hidden shrink-0 ${ok ? 'bg-white' : 'bg-neutral-100'} ${className}`}>
+    <div className={`flex items-center justify-center overflow-hidden shrink-0 ${ok ? 'bg-[var(--d2-tarjeta)]' : 'bg-[var(--d2-gris)]'} ${className}`}>
       {ok ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="w-full h-full object-contain" loading="lazy" onError={() => setSrcRoto(src)} />
       ) : (
-        <Package className="w-1/3 h-1/3 max-w-8 max-h-8 text-neutral-400" strokeWidth={1.5} aria-hidden />
+        <Package className="w-1/3 h-1/3 max-w-8 max-h-8 text-[var(--d2-icono-tenue)]" strokeWidth={1.5} aria-hidden />
       )}
     </div>
   );
@@ -170,15 +170,15 @@ function TarjetaDelEquipo({ producto, regalos }: { producto: SelectedProduct; re
     .filter(Boolean)
     .join(' · ');
   return (
-    <div data-tarjeta-equipo className="flex items-center gap-3 rounded-[10px] border-[1.5px] border-[#C9CEF0] bg-white p-3 md:gap-4 md:p-4">
+    <div data-tarjeta-equipo className="flex items-center gap-3 rounded-[10px] border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] p-3 md:gap-4 md:p-4">
       <ImagenAccesorio src={producto.image} className="h-[72px] w-[72px] rounded-[10px] md:h-24 md:w-24" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="text-[15px] font-bold leading-snug text-[#1E2230] line-clamp-2">{producto.name}</p>
-        {specs && <p className="text-[13px] text-[#5B6275]">{specs}</p>}
+        <p className="text-[15px] font-bold leading-snug text-[var(--d2-texto)] line-clamp-2">{producto.name}</p>
+        {specs && <p className="text-[13px] text-[var(--d2-texto-suave)]">{specs}</p>}
         {regalos.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {regalos.map((r) => (
-              <span key={r.id} className="inline-flex items-center gap-1 rounded-full bg-[#E3F5F1] px-2 py-0.5 text-[11.5px] font-semibold text-[#0B6B5C]">
+              <span key={r.id} className="inline-flex items-center gap-1 rounded-full bg-[var(--d2-ok-suave)] px-2 py-0.5 text-[11.5px] font-semibold text-[var(--d2-ok-texto)]">
                 <Gift className="h-3 w-3" aria-hidden />
                 {r.gratis ? 'Incluye' : 'Con'} {nombreParaMostrar(r.name)}
               </span>
@@ -751,25 +751,25 @@ function LoQuieroModalContent({
           ...(teclado ? { maxHeight: teclado.visible - 8 } : null),
           ...(arrastre > 0 ? { transform: `translateY(${arrastre}px)`, transition: 'none' } : null),
         }}
-        className={`relative w-full md:mx-4 md:max-w-[880px] bg-white rounded-t-2xl md:rounded-2xl shadow-md flex flex-col max-h-[94dvh] md:max-h-[92vh] outline-none transition-transform duration-200 ${saliendo ? 'd2-sale-hoja' : 'd2-pop-modal'}`}
+        className={`relative w-full md:mx-4 md:max-w-[880px] bg-[var(--d2-tarjeta)] rounded-t-2xl md:rounded-2xl shadow-md flex flex-col max-h-[94dvh] md:max-h-[92vh] outline-none transition-transform duration-200 ${saliendo ? 'd2-sale-hoja' : 'd2-pop-modal'}`}
       >
         {/* Cabecera: en celular es también la zona de arrastre */}
         <div
-          className="shrink-0 border-b border-neutral-100 px-4 md:px-6 pt-2 md:pt-5 pb-3 touch-none select-none md:touch-auto md:select-auto"
+          className="shrink-0 border-b border-[var(--d2-borde-gris)] px-4 md:px-6 pt-2 md:pt-5 pb-3 touch-none select-none md:touch-auto md:select-auto"
           onPointerDown={onArrastreInicio}
           onPointerMove={onArrastreMovimiento}
           onPointerUp={onArrastreFin}
           onPointerCancel={onArrastreFin}
         >
           <div className="md:hidden flex justify-center pb-2" aria-hidden>
-            <span className="block w-10 h-1.5 rounded-full bg-neutral-300" />
+            <span className="block w-10 h-1.5 rounded-full bg-[var(--d2-boton-apagado)]" />
           </div>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h2 id="lo-quiero-titulo" className="font-['Baloo_2',_sans-serif] text-lg md:text-2xl font-bold text-neutral-800 leading-tight">
+              <h2 id="lo-quiero-titulo" className="font-['Baloo_2',_sans-serif] text-lg md:text-2xl font-bold text-[var(--d2-texto-titulo)] leading-tight">
                 {hayAccesorios ? `¿Quieres complementar tu ${nombreDelTipo(selectedProduct?.type)}?` : 'Un paso más y empiezas tu solicitud'}
               </h2>
-              <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[#5B6275] mt-0.5">
+              <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[var(--d2-texto-suave)] mt-0.5">
                 {hayAccesorios
                   ? 'Es opcional. Lo que agregues se suma a tu cuota mensual.'
                   : 'Revisa tu equipo y acepta los términos para continuar.'}
@@ -779,7 +779,7 @@ function LoQuieroModalContent({
               type="button"
               onClick={() => cerrar('x')}
               aria-label="Cerrar"
-              className="w-11 h-11 -mt-1 shrink-0 rounded-full bg-[#F4F5F8] hover:bg-[#E9EBF0] flex items-center justify-center text-[#1E2230] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              className="w-11 h-11 -mt-1 shrink-0 rounded-full bg-[var(--d2-fondo)] hover:bg-[var(--d2-hover)] flex items-center justify-center text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             >
               <X className="w-5 h-5" />
             </button>
@@ -798,7 +798,7 @@ function LoQuieroModalContent({
             <TarjetaDelEquipo producto={selectedProduct} regalos={regalosVisibles} />
           )}
           {estadoAcc === 'error' && accesoriosHabilitados && (
-            <div role="status" className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div role="status" className="flex items-start gap-2 rounded-xl border border-[var(--d2-ambar-borde)] bg-[var(--d2-ambar-suave)] p-3 text-sm text-[var(--d2-ambar-texto)]">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
               <span>No pudimos cargar los accesorios. Puedes continuar sin ellos.</span>
             </div>
@@ -807,14 +807,14 @@ function LoQuieroModalContent({
           {hayAccesorios && (
             <section aria-labelledby="lo-quiero-accesorios">
               <div className="flex items-baseline gap-2 mb-2.5">
-                <h3 id="lo-quiero-accesorios" className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                <h3 id="lo-quiero-accesorios" className="text-xs font-semibold uppercase tracking-wider text-[var(--d2-texto-seccion)]">
                   Accesorios sugeridos
                 </h3>
               </div>
               {estadoAcc === 'cargando' ? (
                 <ul className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3" aria-busy="true" aria-label="Cargando accesorios">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <li key={i} className="h-[76px] md:h-[188px] rounded-xl border border-neutral-100 bg-neutral-50 animate-pulse motion-reduce:animate-none" />
+                    <li key={i} className="h-[76px] md:h-[188px] rounded-xl border border-[var(--d2-borde-gris)] bg-[var(--d2-gris-suave)] animate-pulse motion-reduce:animate-none" />
                   ))}
                 </ul>
               ) : (
@@ -824,16 +824,16 @@ function LoQuieroModalContent({
                     {regalosVisibles.map((r) => (
                       <li
                         key={`regalo-${r.id}`}
-                        className="flex md:flex-col items-center md:items-stretch gap-3 rounded-xl border border-[#BFE6DA] bg-[#F2FBF8] p-2.5 md:p-3"
+                        className="flex md:flex-col items-center md:items-stretch gap-3 rounded-xl border border-[var(--d2-ok-borde)] bg-[var(--d2-ok-suave-6)] p-2.5 md:p-3"
                       >
                         <ImagenAccesorio src={r.image} className="w-14 h-14 md:w-full md:h-20 rounded-lg" />
                         <div className="flex-1 min-w-0 flex flex-col">
-                          <span className="self-start inline-flex items-center gap-1 rounded-full bg-[#DDF3EC] px-2 py-0.5 text-[11px] font-semibold text-[#0B6B5C]">
+                          <span className="self-start inline-flex items-center gap-1 rounded-full bg-[var(--d2-ok-suave-4)] px-2 py-0.5 text-[11px] font-semibold text-[var(--d2-ok-texto)]">
                             <Check className="w-3 h-3" strokeWidth={3} aria-hidden />
                             {r.gratis ? 'Incluido gratis' : 'Incluido en tu equipo'}
                           </span>
-                          <p className="mt-1 text-sm font-semibold text-neutral-800 line-clamp-2 md:min-h-[2.5rem]">{nombreParaMostrar(r.name)}</p>
-                          <p className="hidden md:flex mt-auto items-center gap-1 text-xs text-[#0B6B5C]">
+                          <p className="mt-1 text-sm font-semibold text-[var(--d2-texto-titulo)] line-clamp-2 md:min-h-[2.5rem]">{nombreParaMostrar(r.name)}</p>
+                          <p className="hidden md:flex mt-auto items-center gap-1 text-xs text-[var(--d2-ok-texto)]">
                             <Gift className="w-3.5 h-3.5" aria-hidden /> Ya viene con tu equipo
                           </p>
                         </div>
@@ -848,7 +848,7 @@ function LoQuieroModalContent({
                           className={`relative flex md:flex-col items-center md:items-stretch gap-3 md:gap-2 rounded-xl border-[1.5px] px-3 py-2.5 md:p-2.5 transition-[border-color,background-color] duration-150 ${
                             elegido
                               ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.04)]'
-                              : 'border-[#E3E6EE] bg-white'
+                              : 'border-[var(--d2-borde)] bg-[var(--d2-tarjeta)]'
                           }`}
                         >
                           {/* Foto con el check de "agregado" (prototipo: arriba a la derecha). */}
@@ -861,11 +861,11 @@ function LoQuieroModalContent({
                             )}
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col gap-px md:gap-2">
-                            <p className="text-sm font-semibold text-[#1E2230] line-clamp-2 leading-[1.25] md:min-h-[35px]">{nombre}</p>
+                            <p className="text-sm font-semibold text-[var(--d2-texto)] line-clamp-2 leading-[1.25] md:min-h-[35px]">{nombre}</p>
                             {/* Precio y "Ver detalle" (prototipo): en celular uno debajo del
                                 otro; en escritorio en una fila, con el botón abajo. */}
                             <div className="flex flex-col items-start md:flex-row md:items-center md:justify-between md:gap-1.5">
-                              <span className="text-[13px] md:text-sm font-bold text-[var(--color-primary-text)] md:text-[#1E2230] whitespace-nowrap">
+                              <span className="text-[13px] md:text-sm font-bold text-[var(--color-primary-text)] md:text-[var(--d2-texto)] whitespace-nowrap">
                                 +S/{formatCuotaDeLanding(acc.monthlyQuota, landing)}{sufijo}
                               </span>
                               <button
@@ -887,7 +887,7 @@ function LoQuieroModalContent({
                             className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-full border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                               elegido
                                 ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
-                                : 'bg-white text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
+                                : 'bg-[var(--d2-tarjeta)] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
                             }`}
                           >
                             {elegido ? (
@@ -923,7 +923,7 @@ function LoQuieroModalContent({
             accesorios tengan más alto —filas de 40 px pegadas (la fila entera
             es la zona táctil), la leyenda en una línea arriba y el precio al
             lado del botón—. Escritorio, igual que antes. */}
-        <div data-pie-lo-quiero className="shrink-0 border-t border-neutral-100 px-4 md:px-6 pt-1 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-white rounded-b-2xl">
+        <div data-pie-lo-quiero className="shrink-0 border-t border-[var(--d2-borde-gris)] px-4 md:px-6 pt-1 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-[var(--d2-tarjeta)] rounded-b-2xl">
           {/* Lista simple (BAL-4958, aprobado por Emilio): tres filas iguales,
               sin cajas, alineadas a la izquierda, igual en celular y escritorio.
               - Términos: los enlaces van DENTRO de la frase. Tocar la frase o la
@@ -945,10 +945,10 @@ function LoQuieroModalContent({
               }}
               className={`flex items-center gap-3 rounded-[10px] border-[1.5px] px-3 py-[11px] md:px-4 md:py-3 cursor-pointer select-none transition-colors duration-150 ${
                 aceptaTerminos
-                  ? 'border-[#0E8C78] bg-[#E8F7F2]'
+                  ? 'border-[var(--d2-ok)] bg-[var(--d2-ok-suave-3)]'
                   : errorTerminos
-                    ? `border-[#C2410C] bg-[#FFF1EB] ${intentosTerminos % 2 ? 'd2-sacudida-a' : 'd2-sacudida-b'}`
-                    : 'border-[#F2B632] bg-[#FFF6D8] d2-brillo-consentimiento'
+                    ? `border-[var(--d2-error)] bg-[var(--d2-error-suave)] ${intentosTerminos % 2 ? 'd2-sacudida-a' : 'd2-sacudida-b'}`
+                    : 'border-[var(--d2-aviso-borde)] bg-[var(--d2-aviso-suave)] d2-brillo-consentimiento'
               }`}
             >
               <button
@@ -961,16 +961,16 @@ function LoQuieroModalContent({
                 aria-describedby={errorTerminos && !aceptaTerminos ? 'lo-quiero-terminos-error' : undefined}
                 className={`w-6 h-6 md:w-[22px] md:h-[22px] rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   aceptaTerminos
-                    ? 'bg-[#0E8C78] border-[#0E8C78]'
+                    ? 'bg-[var(--d2-ok-relleno)] border-[var(--d2-ok)]'
                     : errorTerminos
-                      ? 'bg-white border-[#C2410C]'
-                      : 'bg-white border-neutral-400'
+                      ? 'bg-[var(--d2-tarjeta)] border-[var(--d2-error)]'
+                      : 'bg-[var(--d2-tarjeta)] border-[var(--d2-borde-casilla)]'
                 }`}
               >
                 {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
               <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span id="lo-quiero-terminos-texto" className="text-sm font-semibold leading-[1.3] text-[#1E2230]">
+                <span id="lo-quiero-terminos-texto" className="text-sm font-semibold leading-[1.3] text-[var(--d2-texto)]">
                   Acepto los{' '}
                   <a
                     href={routes.legal(landing, 'terminos-y-condiciones')}
@@ -996,7 +996,7 @@ function LoQuieroModalContent({
                   <span
                     id="lo-quiero-terminos-error"
                     role="alert"
-                    className="d2-aparece block text-[12.5px] md:text-[13px] leading-[1.35] font-bold text-[#B23C0A]"
+                    className="d2-aparece block text-[12.5px] md:text-[13px] leading-[1.35] font-bold text-[var(--d2-error-texto)]"
                   >
                     Marca la casilla para continuar.
                   </span>
@@ -1014,20 +1014,20 @@ function LoQuieroModalContent({
                 aria-checked={aceptaPromos}
                 aria-labelledby="lo-quiero-promos-texto"
                 className={`w-6 h-6 md:w-[22px] md:h-[22px] rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
-                  aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-white border-neutral-400'
+                  aceptaPromos ? 'bg-[var(--color-primary)] border-[var(--color-primary)]' : 'bg-[var(--d2-tarjeta)] border-[var(--d2-borde-casilla)]'
                 }`}
               >
                 {aceptaPromos && <Check className="w-3.5 h-3.5 text-[var(--color-on-primary)] d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
-              <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-[13px] md:text-sm font-semibold leading-[1.3] text-[#1E2230]">
-                Quiero recibir promociones <span className="font-normal text-[#8A90A2]">(opcional)</span>
+              <span id="lo-quiero-promos-texto" className="flex-1 min-w-0 text-[13px] md:text-sm font-semibold leading-[1.3] text-[var(--d2-texto)]">
+                Quiero recibir promociones <span className="font-normal text-[var(--d2-texto-tenue)]">(opcional)</span>
               </span>
             </div>
 
           </div>
 
           {isOverQuotaLimit && (
-            <div role="alert" className="d2-aparece mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div role="alert" className="d2-aparece mt-2 flex items-start gap-2 rounded-lg border border-[var(--d2-ambar-borde)] bg-[var(--d2-ambar-suave)] px-3 py-2 text-sm text-[var(--d2-ambar-texto)]">
               <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
               <span>La cuota supera el límite de S/{maxMonthlyQuota}/mes. Quita algún accesorio para continuar.</span>
             </div>
@@ -1048,11 +1048,11 @@ function LoQuieroModalContent({
                   </span>
                   <span className="ml-0.5 text-[15px] font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
                 </p>
-                <p className="truncate text-xs text-[#5B6275]">{leyenda}</p>
+                <p className="truncate text-xs text-[var(--d2-texto-suave)]">{leyenda}</p>
                 {/* Cuota diferida (prototipo, `prod.diferida`): pastilla verde
                     con el mes real de la primera cuota (ws2). */}
                 {esDiferida && mesPrimeraCuota && (
-                  <span data-diferida-v2 className="self-start inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-[#E3F5F1] px-[9px] py-[3px] text-xs font-bold text-[#0B6B5C]">
+                  <span data-diferida-v2 className="self-start inline-flex items-center gap-[5px] whitespace-nowrap rounded-full bg-[var(--d2-ok-suave)] px-[9px] py-[3px] text-xs font-bold text-[var(--d2-ok-texto)]">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <rect x="3" y="5" width="18" height="16" rx="2" />
                       <path d="M16 3v4M8 3v4M3 10h18" />
@@ -1065,7 +1065,7 @@ function LoQuieroModalContent({
                 <div className="flex shrink-0 flex-col items-end">
                   {appliedCoupon ? (
                     <div role="status" className="flex flex-col items-end gap-0.5">
-                      <span className="inline-flex min-h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[#E3F5F1] px-3 text-[13.5px] font-bold text-[#0B6B5C]">
+                      <span className="inline-flex min-h-[30px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--d2-ok-suave)] px-3 text-[13.5px] font-bold text-[var(--d2-ok-texto)]">
                         <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
                         Cupón {appliedCoupon.code}
                         {appliedCoupon.lockedFromUrl && (
@@ -1078,7 +1078,7 @@ function LoQuieroModalContent({
                           type="button"
                           onClick={quitarCuponDeLaFila}
                           aria-label={`Quitar cupón ${appliedCoupon.code}`}
-                          className="-my-2 inline-flex min-h-[44px] items-center rounded-sm px-1 text-[12.5px] font-bold text-[#0B6B5C] underline underline-offset-2 hover:opacity-80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                          className="-my-2 inline-flex min-h-[44px] items-center rounded-sm px-1 text-[12.5px] font-bold text-[var(--d2-ok-texto)] underline underline-offset-2 hover:opacity-80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                         >
                           Quitar
                         </button>
@@ -1104,7 +1104,7 @@ function LoQuieroModalContent({
               <button
                 type="button"
                 onClick={() => cerrar('volver')}
-                className="hidden md:inline-flex min-h-[48px] items-center rounded-xl border-[1.5px] border-[#C9CEF0] bg-white px-[18px] text-[15px] font-semibold text-[#1E2230] cursor-pointer transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+                className="hidden md:inline-flex min-h-[48px] items-center rounded-xl border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] px-[18px] text-[15px] font-semibold text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 hover:bg-[var(--d2-gris-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Volver
               </button>
@@ -1114,7 +1114,7 @@ function LoQuieroModalContent({
                 disabled={botonDeshabilitado}
                 className={`w-full md:w-auto min-h-[48px] px-[22px] rounded-xl text-base font-bold inline-flex items-center justify-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   botonDeshabilitado
-                    ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                    ? 'bg-[var(--d2-boton-apagado)] text-[var(--d2-boton-apagado-texto)] cursor-not-allowed'
                     : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[0_4px_12px_rgba(var(--color-primary-rgb),0.25)] hover:brightness-90 cursor-pointer'
                 }`}
               >
@@ -1130,7 +1130,7 @@ function LoQuieroModalContent({
             </div>
           </div>
           {errorCupon && !appliedCoupon && !cuponAbierto && (
-            <p role="alert" className="d2-aparece mt-1 text-xs font-semibold text-red-600">{errorCupon}</p>
+            <p role="alert" className="d2-aparece mt-1 text-xs font-semibold text-[var(--d2-error-rojo)]">{errorCupon}</p>
           )}
         </div>
       </div>
@@ -1146,27 +1146,27 @@ function LoQuieroModalContent({
             aria-labelledby="lo-quiero-detalle-titulo"
             tabIndex={-1}
             // Hoja de detalle: `bcPop` 0,2 s en escritorio y 0,25 s desde abajo en celular.
-            className={`relative w-full md:mx-4 md:max-w-[440px] bg-white rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none ${detalleSaliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'}`}
+            className={`relative w-full md:mx-4 md:max-w-[440px] bg-[var(--d2-tarjeta)] rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none ${detalleSaliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'}`}
           >
             {/* Hoja "Ver detalle" (prototipo de Brenda): nombre y cerrar arriba,
                 foto, la cuota en su caja gris, la descripción y las
                 características que trae el accesorio, y "Cerrar" + "Agregar". */}
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-5 md:px-[26px] md:pt-[26px] flex flex-col gap-3.5">
               <div className="flex items-start justify-between gap-3">
-                <h3 id="lo-quiero-detalle-titulo" className="text-[19px] md:text-[21px] font-bold text-[#1E2230] leading-tight pt-2">
+                <h3 id="lo-quiero-detalle-titulo" className="text-[19px] md:text-[21px] font-bold text-[var(--d2-texto)] leading-tight pt-2">
                   {nombreParaMostrar(detalle.name, detalle.brand?.name)}
                 </h3>
                 <button
                   type="button"
                   onClick={cerrarDetalle}
                   aria-label="Cerrar detalle"
-                  className="w-11 h-11 shrink-0 rounded-full bg-[#F4F5F8] hover:bg-[#E9EBF0] flex items-center justify-center text-[#1E2230] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  className="w-11 h-11 shrink-0 rounded-full bg-[var(--d2-fondo)] hover:bg-[var(--d2-hover)] flex items-center justify-center text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 >
                   <X className="w-[18px] h-[18px]" />
                 </button>
               </div>
               <ImagenAccesorio src={detalle.image || detalle.thumbnailUrl} className="w-full h-40 rounded-xl p-3" />
-              <div className="rounded-xl bg-[#F4F5F8] px-3.5 py-3 flex flex-col gap-0.5">
+              <div className="rounded-xl bg-[var(--d2-fondo)] px-3.5 py-3 flex flex-col gap-0.5">
                 <p className="leading-none">
                   <span className="text-[22px] font-bold text-[var(--color-primary-text)]">
                     +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
@@ -1174,18 +1174,18 @@ function LoQuieroModalContent({
                   <span className="text-sm font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
                 </p>
                 {detalle.price > 0 && (
-                  <p className="text-[13px] text-[#5B6275]">
+                  <p className="text-[13px] text-[var(--d2-texto-suave)]">
                     S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
                   </p>
                 )}
               </div>
               {detalle.description?.trim() && (detalle.specs?.length ?? 0) > 0 && (
-                <p className="text-[15px] leading-snug text-[#3A4052] whitespace-pre-line">{detalle.description.trim()}</p>
+                <p className="text-[15px] leading-snug text-[var(--d2-texto-2)] whitespace-pre-line">{detalle.description.trim()}</p>
               )}
               {datosDetalle.length > 0 && (
                 <ul className="space-y-1.5">
                   {datosDetalle.map((d) => (
-                    <li key={d} className="flex items-start gap-2 text-sm text-[#3A4052]">
+                    <li key={d} className="flex items-start gap-2 text-sm text-[var(--d2-texto-2)]">
                       <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
                       <span>{d}</span>
                     </li>
@@ -1197,7 +1197,7 @@ function LoQuieroModalContent({
               <button
                 type="button"
                 onClick={cerrarDetalle}
-                className="min-h-[48px] px-5 rounded-xl border-[1.5px] border-[#C9CEF0] bg-white text-[15px] font-semibold text-[#1E2230] cursor-pointer transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+                className="min-h-[48px] px-5 rounded-xl border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] text-[15px] font-semibold text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 hover:bg-[var(--d2-gris-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cerrar
               </button>
@@ -1228,24 +1228,24 @@ function LoQuieroModalContent({
             role="dialog"
             aria-modal="true"
             aria-labelledby="lo-quiero-cupon-titulo"
-            className={`relative w-full max-w-[400px] bg-white rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none ${cuponSaliendo ? 'd2-sale' : 'd2-pop-modal-chico'}`}
+            className={`relative w-full max-w-[400px] bg-[var(--d2-tarjeta)] rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none ${cuponSaliendo ? 'd2-sale' : 'd2-pop-modal-chico'}`}
           >
             <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 id="lo-quiero-cupon-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-neutral-800 leading-tight">
+              <h3 id="lo-quiero-cupon-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-[var(--d2-texto-titulo)] leading-tight">
                 Ingresa tu cupón
               </h3>
               <button
                 type="button"
                 onClick={cerrarCupon}
                 aria-label="Cerrar cupón"
-                className="w-11 h-11 -mr-2 shrink-0 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                className="w-11 h-11 -mr-2 shrink-0 rounded-full bg-[var(--d2-gris)] hover:bg-[var(--d2-hover-gris)] flex items-center justify-center text-[var(--d2-texto-gris)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <CouponInput compacto isRequired={isCouponRequired} />
             {errorCupon && !appliedCoupon && (
-              <p role="alert" className="d2-aparece text-xs font-semibold text-red-600 mt-1.5">{errorCupon}</p>
+              <p role="alert" className="d2-aparece text-xs font-semibold text-[var(--d2-error-rojo)] mt-1.5">{errorCupon}</p>
             )}
           </div>
         </div>

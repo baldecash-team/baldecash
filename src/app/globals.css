@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Diseño 2: tokens de color claro/oscuro (BAL-5076). */
+@import "./d2-tokens.css";
 
 /* Gamer loading fallback — fondo según data-bc-theme del <html> (seteado por script inline en layout) */
 .gamer-loading-fallback {

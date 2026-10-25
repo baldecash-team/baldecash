@@ -176,10 +176,10 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
                 px-3 py-2.5 min-h-[44px] rounded-xl border-2 text-sm font-medium cursor-pointer transition-colors
                 ${v2
                   ? marcado
-                    ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.12)] text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]'
+                    ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.12)] text-[var(--d2-prefijo-texto)]'
                     : hayError
-                      ? 'border-[#C2410C] bg-white text-[#1E2230]'
-                      : 'border-[#C9CEF0] bg-white text-[#1E2230] hover:border-[var(--color-primary)]'
+                      ? 'border-[var(--d2-error)] bg-white text-[var(--d2-texto)]'
+                      : 'border-[var(--d2-borde-campo)] bg-white text-[var(--d2-texto)] hover:border-[var(--color-primary)]'
                   : marcado
                     ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.08)] text-[var(--color-primary)]'
                     : hayError
@@ -214,8 +214,8 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
                   ? marcado
                     ? 'bg-[rgba(var(--color-primary-rgb),0.12)] border-[var(--color-primary)]'
                     : hayError
-                      ? 'bg-white border-[#C2410C]'
-                      : 'bg-white border-[#C9CEF0] hover:border-[var(--color-primary)]'
+                      ? 'bg-white border-[var(--d2-error)]'
+                      : 'bg-white border-[var(--d2-borde-campo)] hover:border-[var(--color-primary)]'
                   : marcado
                     ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
                     : hayError
@@ -227,11 +227,11 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
             >
               <span className="mt-0.5"><Cuadradito marcado={marcado} error={hayError} /></span>
               <span className="min-w-0">
-                <span className={`block font-medium text-sm sm:text-base break-words ${marcado ? (v2 ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]' : 'text-[var(--color-primary)]') : 'text-neutral-800'}`}>
+                <span className={`block font-medium text-sm sm:text-base break-words ${marcado ? (v2 ? 'text-[var(--d2-prefijo-texto)]' : 'text-[var(--color-primary)]') : 'text-neutral-800'}`}>
                   {o.label}
                 </span>
                 {o.description && (
-                  <span className={`block text-xs sm:text-sm mt-0.5 break-words ${marcado ? (v2 ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]/80' : 'text-[rgba(var(--color-primary-rgb),0.7)]') : 'text-neutral-500'}`}>
+                  <span className={`block text-xs sm:text-sm mt-0.5 break-words ${marcado ? (v2 ? 'text-[var(--d2-prefijo-texto)]/80' : 'text-[rgba(var(--color-primary-rgb),0.7)]') : 'text-neutral-500'}`}>
                     {o.description}
                   </span>
                 )}
@@ -329,10 +329,10 @@ interface SubProps {
 /** Solo color de borde + fondo: el ancho del borde lo da la clase estática del contenedor (2px en Diseño 1, 1.5px en Diseño 2). */
 function bordeDelCuadro(hayError: boolean, abierto: boolean, conValor: boolean, v2?: boolean): string {
   if (v2) {
-    if (hayError) return 'border-[#C2410C] bg-[#FFF1EB]';
+    if (hayError) return 'border-[var(--d2-error)] bg-[var(--d2-error-suave)]';
     if (abierto) return 'border-[var(--color-primary)] bg-white';
-    if (conValor) return 'border-[#0E8C78] bg-white';
-    return 'border-[#C9CEF0] hover:border-[var(--color-primary)] bg-white';
+    if (conValor) return 'border-[var(--d2-ok)] bg-white';
+    return 'border-[var(--d2-borde-campo)] hover:border-[var(--color-primary)] bg-white';
   }
   if (hayError) return 'border-[#ef4444] bg-[#ef4444]/5';
   if (abierto) return 'border-[var(--color-primary)] bg-white';
@@ -394,7 +394,7 @@ const Desplegable: React.FC<SubProps & { placeholder: string }> = ({
           ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
-        <span className={`truncate ${resumen ? (v2 ? 'text-[#1E2230]' : 'text-neutral-800') : (v2 ? 'text-[#8A90A2]' : 'text-neutral-400')}`}>{resumen || placeholder}</span>
+        <span className={`truncate ${resumen ? (v2 ? 'text-[var(--d2-texto)]' : 'text-neutral-800') : (v2 ? 'text-[var(--d2-texto-tenue)]' : 'text-neutral-400')}`}>{resumen || placeholder}</span>
         <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${v2 ? 'text-[var(--color-primary-text)]' : 'text-neutral-400'} ${abierto ? 'rotate-180' : ''}`} />
       </button>
       {abierto && (
@@ -515,7 +515,7 @@ const Buscador: React.FC<SubProps> = ({
           value={texto}
           style={{ fontSize: '16px' }}
           className={v2
-            ? 'flex-1 min-w-0 bg-transparent outline-none text-[#1E2230] placeholder:text-[#8A90A2]'
+            ? 'flex-1 min-w-0 bg-transparent outline-none text-[var(--d2-texto)] placeholder:text-[var(--d2-texto-tenue)]'
             : 'flex-1 min-w-0 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400'}
           onFocus={() => {
             setAbierto(true);

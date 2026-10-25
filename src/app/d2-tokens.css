@@ -1,0 +1,226 @@
+/* ============================================================
+   Diseño 2 de la solicitud — tokens de color por tema (BAL-5076).
+
+   Cada color fijo que usaba el kit de Diseño 2 (modal «Lo quiero», pasos,
+   panel «Tu solicitud», puente, confirmación, avisos) es un token `--d2-*`.
+
+   - `:root` = tema CLARO: el valor es EXACTAMENTE el hex (o el color de
+     Tailwind) que había antes en el componente. En claro no cambia nada:
+     `__tests__/tokensD2.test.ts` compara cada token con su valor de antes.
+   - `[data-theme="nvidia"]` = tema OSCURO: mismo criterio que el resto del
+     tema oscuro (LayoutContext pone `data-theme="nvidia"` en <html> para las
+     landings de `DARK_LANDINGS`). Las superficies salen de los tokens de la
+     landing oscura (`--surface-bg`, `--surface`) para que el kit combine con
+     el catálogo y los modales que ya son oscuros.
+
+   Contraste en oscuro (WCAG AA): texto >= 4,5:1 y bordes de controles
+   >= 3:1 contra la superficie donde se pintan. Medido en el reporte
+   `docs/plannings/diseno-2/diseno-2-oscuro-report.md`.
+
+   Los colores del confeti y de Baldecito (ilustración) NO son tokens: son
+   los mismos en los dos temas.
+   ============================================================ */
+:root {
+  /* Superficies */
+  --d2-fondo: #F4F5F8;                 /* fondo de la página del formulario */
+  --d2-fondo-confirmacion: #F7F8FC;    /* fondo de la confirmación          */
+  --d2-tarjeta: #FFFFFF;               /* tarjetas, modal, cajas de campos  */
+  --d2-campo-apagado: #F7F8FA;         /* campo deshabilitado               */
+  --d2-gris-suave: oklch(98.5% 0 0);   /* = neutral-50: esqueletos          */
+  --d2-gris: oklch(97% 0 0);           /* = neutral-100: foto sin imagen    */
+  --d2-hover-gris: oklch(92.2% 0 0);   /* = neutral-200: hover de botones   */
+  --d2-hover: #E9EBF0;                 /* hover del botón cerrar            */
+  --d2-chip: #EEF0F4;                  /* chip «Opcional»                   */
+  --d2-chip-numero: #EDEFF7;           /* N° de solicitud, separadores      */
+  --d2-marca-suave: #F3F5FD;           /* tinte de marca (panel, elegido)   */
+  --d2-marca-suave-2: #EEF0FB;         /* ícono de protección               */
+
+  /* Texto */
+  --d2-texto: #1E2230;                 /* títulos y valores                 */
+  --d2-texto-titulo: oklch(26.9% 0 0); /* = neutral-800: título del modal   */
+  --d2-texto-2: #3A4052;               /* cuerpo secundario                 */
+  --d2-texto-gris: oklch(43.9% 0 0);   /* = neutral-600: ícono cerrar cupón */
+  --d2-texto-suave: #5B6275;           /* descripciones, pistas             */
+  --d2-texto-seccion: oklch(55.6% 0 0);/* = neutral-500: rótulo de sección  */
+  --d2-texto-tenue: #8A90A2;           /* placeholder, «Por elegir»         */
+  --d2-icono-tenue: oklch(70.8% 0 0);  /* = neutral-400: ícono sin foto     */
+  --d2-icono-vacio: oklch(87% 0 0);    /* = neutral-300: ícono sin foto     */
+  --d2-etiqueta: #262C66;              /* etiqueta de los campos            */
+
+  /* Bordes */
+  --d2-borde: #E3E6EE;                 /* separadores y tarjetas suaves     */
+  --d2-borde-gris: oklch(97% 0 0);     /* = neutral-100: cabecera del modal */
+  --d2-borde-gris-2: oklch(92.2% 0 0); /* = neutral-200: modal de NextUI    */
+  --d2-borde-boton: oklch(87% 0 0);    /* = neutral-300: botón secundario   */
+  --d2-borde-casilla: oklch(70.8% 0 0);/* = neutral-400: casilla sin marcar */
+  --d2-borde-control: #D5D9E6;         /* chips de plazo / inicial          */
+  --d2-borde-campo: #C9CEF0;           /* cajas de campos, chips, botones   */
+  --d2-borde-hito: #C9CEDB;            /* hitos pendientes de la línea      */
+  --d2-borde-tarjeta: #AEB6EE;         /* tarjeta del paso                  */
+
+  /* Correcto (verde) */
+  --d2-ok: #0E8C78;                    /* borde e ícono de «correcto»       */
+  --d2-ok-relleno: #0E8C78;            /* fondo lleno con check blanco      */
+  --d2-ok-texto: #0B6B5C;              /* texto sobre el verde suave        */
+  --d2-ok-acento: #0B8A6B;             /* antetítulo y candado              */
+  --d2-ok-suave: #E3F5F1;              /* fondo de ícono / chip verde       */
+  --d2-ok-suave-2: #E6F7F1;            /* chip de regalo                    */
+  --d2-ok-suave-3: #E8F7F2;            /* casilla aceptada, aviso ok        */
+  --d2-ok-suave-4: #DDF3EC;            /* chip «Incluido»                   */
+  --d2-ok-suave-5: #EAF7F2;            /* degradado de la tarjeta final     */
+  --d2-ok-suave-6: #F2FBF8;            /* tarjeta de regalo                 */
+  --d2-ok-borde: #BFE6DA;              /* borde verde suave                 */
+  --d2-ok-claro: oklch(98.2% 0.018 155.826); /* = green-50                  */
+  --d2-ok-claro-texto: oklch(52.7% 0.154 150.069); /* = green-700           */
+  --d2-progreso-ok: #12B76A;           /* puente: pasos hechos              */
+
+  /* Error (naranja) */
+  --d2-error: #C2410C;                 /* borde e ícono de error            */
+  --d2-error-texto: #B23C0A;           /* mensaje de error                  */
+  --d2-error-suave: #FFF1EB;           /* fondo de error                    */
+  --d2-error-borde: #F2B79A;           /* borde suave de error              */
+  --d2-error-rojo: oklch(57.7% 0.245 27.325); /* = red-600: cupón, tope     */
+
+  /* Aviso (ámbar) */
+  --d2-aviso-borde: #F2B632;           /* Términos sin marcar (brillo)      */
+  --d2-aviso-suave: #FFF6D8;           /* Términos sin marcar               */
+  --d2-ambar-suave: oklch(98.7% 0.022 95.277);  /* = amber-50               */
+  --d2-ambar-suave-2: oklch(96.2% 0.059 95.617);/* = amber-100              */
+  --d2-ambar-borde: oklch(92.4% 0.12 95.746);   /* = amber-200              */
+  --d2-ambar-borde-2: oklch(87.9% 0.169 91.605);/* = amber-300              */
+  --d2-ambar-icono: oklch(55.5% 0.163 48.998);  /* = amber-700              */
+  --d2-ambar-texto: oklch(47.3% 0.137 46.201);  /* = amber-800              */
+
+  /* Aviso del equipo (modal «Lo quiero») */
+  --d2-reac-borde: #F5C46B;
+  --d2-reac-suave: #FFF7E6;
+  --d2-reac-icono-fondo: #FFE7B3;
+  --d2-reac-icono: #8A4B00;
+  --d2-reac-titulo: #6B3A00;
+  --d2-info-borde: #C7CEF5;
+  --d2-info-suave: #EEF1FD;
+  --d2-info-icono-fondo: #DCE1FA;
+  --d2-info-icono: #2F3CB0;
+  --d2-info-titulo: #232E8F;
+
+  /* Botón principal apagado */
+  --d2-boton-apagado: oklch(87% 0 0);       /* = neutral-300 */
+  --d2-boton-apagado-texto: oklch(55.6% 0 0);/* = neutral-500 */
+
+  /* Prefijo «+51» / «S/» de los campos */
+  --d2-prefijo-texto: color-mix(in srgb, var(--color-primary-text) 80%, black);
+
+  /* Cabecera de la confirmación: degradado desde --color-primary y su texto */
+  --d2-cabecera-inicio: var(--color-primary);
+  --d2-cabecera-texto: var(--color-on-primary);
+  --d2-cabecera-medio: color-mix(in srgb, var(--color-primary) 85%, black);
+  --d2-cabecera-fin: color-mix(in srgb, var(--color-primary) 70%, black);
+}
+
+[data-theme="nvidia"] {
+  /* Superficies (tokens de la landing oscura) */
+  --d2-fondo: var(--surface-bg);       /* #06060A */
+  --d2-fondo-confirmacion: var(--surface-bg);
+  --d2-tarjeta: var(--surface);        /* #0F0F18 */
+  --d2-campo-apagado: #1A1B26;
+  --d2-gris-suave: #14141F;
+  --d2-gris: #1B1C29;
+  --d2-hover-gris: #262838;
+  --d2-hover: #262838;
+  --d2-chip: #22243A;
+  --d2-chip-numero: #1D1F30;
+  --d2-marca-suave: #161826;
+  --d2-marca-suave-2: #1E2133;
+
+  /* Texto */
+  --d2-texto: #F2F4F8;
+  --d2-texto-titulo: #F2F4F8;
+  --d2-texto-2: #D3D7E2;
+  --d2-texto-gris: #C2C7D3;
+  --d2-texto-suave: #A9AFBE;
+  --d2-texto-seccion: #A9AFBE;
+  --d2-texto-tenue: #9096A8;
+  --d2-icono-tenue: #7C8296;
+  --d2-icono-vacio: #4A4F63;
+  --d2-etiqueta: #E1E4FF;
+
+  /* Bordes */
+  --d2-borde: #262838;
+  --d2-borde-gris: #1D1F2C;
+  --d2-borde-gris-2: #2A2C3C;
+  --d2-borde-boton: #6A7088;
+  --d2-borde-casilla: #7C8296;
+  --d2-borde-control: #6A7088;
+  --d2-borde-campo: #6A7088;
+  --d2-borde-hito: #6A7088;
+  --d2-borde-tarjeta: #2E3350;
+
+  /* Correcto */
+  --d2-ok: #2DD4B4;
+  --d2-ok-relleno: #0E8C78;
+  --d2-ok-texto: #6EE7CB;
+  --d2-ok-acento: #4FD9B0;
+  --d2-ok-suave: #0F2A26;
+  --d2-ok-suave-2: #0F2A26;
+  --d2-ok-suave-3: #0F2A26;
+  --d2-ok-suave-4: #123A33;
+  --d2-ok-suave-5: #0F2A26;
+  --d2-ok-suave-6: #0D201D;
+  --d2-ok-borde: #1F5A4D;
+  --d2-ok-claro: #0F2A26;
+  --d2-ok-claro-texto: #6EE7CB;
+  --d2-progreso-ok: #12B76A;
+
+  /* Error */
+  --d2-error: #FF8A5B;
+  --d2-error-texto: #FFA685;
+  --d2-error-suave: #2A150C;
+  --d2-error-borde: #7A3A1E;
+  --d2-error-rojo: #FF8A80;
+
+  /* Aviso */
+  --d2-aviso-borde: #F2B632;
+  --d2-aviso-suave: #2A220C;
+  --d2-ambar-suave: #241C08;
+  --d2-ambar-suave-2: #3A2C0A;
+  --d2-ambar-borde: #6B5314;
+  --d2-ambar-borde-2: #8A6A18;
+  --d2-ambar-icono: #F5B942;
+  --d2-ambar-texto: #FCD58A;
+
+  /* Aviso del equipo */
+  --d2-reac-borde: #7A5A16;
+  --d2-reac-suave: #221A08;
+  --d2-reac-icono-fondo: #3A2C0A;
+  --d2-reac-icono: #F5B942;
+  --d2-reac-titulo: #FCD58A;
+  --d2-info-borde: #343C6E;
+  --d2-info-suave: #151A33;
+  --d2-info-icono-fondo: #232A52;
+  --d2-info-icono: #A9B3FF;
+  --d2-info-titulo: #C3CBFF;
+
+  /* Botón principal apagado */
+  --d2-boton-apagado: #2A2C3C;
+  --d2-boton-apagado-texto: #9096A8;
+
+  /* Prefijo: en oscuro el primary ya es claro, no se oscurece */
+  --d2-prefijo-texto: var(--color-primary-text);
+
+  /* Cabecera: en oscuro el texto va en blanco. El blanco sobre el verde
+     NVIDIA puro da 2,4:1, así que el degradado arranca oscurecido al 60 %
+     (#476F00, 5,9:1) y baja hasta el 40 % (#2F4A00, 10:1). */
+  --d2-cabecera-inicio: color-mix(in srgb, var(--color-primary) 60%, black);
+  --d2-cabecera-texto: #FFFFFF;
+  --d2-cabecera-medio: color-mix(in srgb, var(--color-primary) 50%, black);
+  --d2-cabecera-fin: color-mix(in srgb, var(--color-primary) 40%, black);
+}
+
+/* Placeholders en la landing oscura: el puente de `globals.css` fuerza
+   `-webkit-text-fill-color` blanco en todos los inputs, y eso también pinta
+   el placeholder de blanco (parece un valor ya escrito). */
+[data-theme="nvidia"] input::placeholder,
+[data-theme="nvidia"] textarea::placeholder {
+  -webkit-text-fill-color: var(--d2-texto-tenue) !important;
+  color: var(--d2-texto-tenue);
+}

@@ -247,7 +247,7 @@ export function ShellV2({
   const totalTexto = `S/${formatCuotaDeLanding(getTotalMonthlyPayment(), landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
   return (
-    <div className="min-h-screen bg-[#F4F5F8] relative">
+    <div className="min-h-screen bg-[var(--d2-fondo)] relative">
       <style>{ESTILOS_V2}</style>
 
       {/* Escritorio: la navbar de siempre. En celular manda la cabecera del equipo. */}
@@ -275,15 +275,15 @@ export function ShellV2({
             </div>
 
             {antetituloDelPaso && (
-              <p className="mb-1 font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-tight text-[#0B8A6B]">{antetituloDelPaso}</p>
+              <p className="mb-1 font-['Baloo_2',_sans-serif] text-[17px] font-bold leading-tight text-[var(--d2-ok-acento)]">{antetituloDelPaso}</p>
             )}
-            <h1 className="font-['Baloo_2',_sans-serif] text-[28px] lg:text-[34px] font-bold leading-[1.1] text-[#1E2230]">
+            <h1 className="font-['Baloo_2',_sans-serif] text-[28px] lg:text-[34px] font-bold leading-[1.1] text-[var(--d2-texto)]">
               {title}
             </h1>
-            {description && <p className="mt-1 text-sm lg:text-base text-[#5B6275]">{description}</p>}
+            {description && <p className="mt-1 text-sm lg:text-base text-[var(--d2-texto-suave)]">{description}</p>}
             {candado === 'arriba' && (
-              <p className="mt-1 flex items-center gap-2 text-sm lg:text-base text-[#5B6275]">
-                <Lock className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
+              <p className="mt-1 flex items-center gap-2 text-sm lg:text-base text-[var(--d2-texto-suave)]">
+                <Lock className="h-4 w-4 shrink-0 text-[var(--d2-ok-acento)]" aria-hidden />
                 <span>
                   Tu información es confidencial<span className="hidden lg:inline"> y la usamos para evaluar tu solicitud</span>.
                 </span>
@@ -329,7 +329,7 @@ export function ShellV2({
                       onClick={accionDeLaFila.onPrimary}
                       disabled={ocupado || !canProceed}
                       className={`inline-flex min-h-[52px] min-w-0 flex-1 items-center justify-center gap-2 rounded-xl px-5 text-base font-bold shadow-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 lg:flex-none lg:px-7 ${
-                        ocupado || !canProceed ? 'bg-neutral-300 text-neutral-500 shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
+                        ocupado || !canProceed ? 'bg-[var(--d2-boton-apagado)] text-[var(--d2-boton-apagado-texto)] shadow-none cursor-not-allowed' : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-90 cursor-pointer'
                       }`}
                     >
                       {/* La ruedita también con `isBusy` (solo navega, ej. a
@@ -345,8 +345,8 @@ export function ShellV2({
                     (Paso 1 del prototipo); sin descripción va bajo el título
                     (Pasos 2 y 3). El resumen no lo lleva. */}
                 {candado === 'abajo' && (
-                  <p className="mt-4 flex items-center gap-2 text-[13px] text-[#5B6275]">
-                    <Lock className="h-4 w-4 shrink-0 text-[#0B8A6B]" aria-hidden />
+                  <p className="mt-4 flex items-center gap-2 text-[13px] text-[var(--d2-texto-suave)]">
+                    <Lock className="h-4 w-4 shrink-0 text-[var(--d2-ok-acento)]" aria-hidden />
                     <span>
                       Tu información es confidencial<span className="hidden lg:inline"> y la usamos para evaluar tu solicitud</span>.
                     </span>

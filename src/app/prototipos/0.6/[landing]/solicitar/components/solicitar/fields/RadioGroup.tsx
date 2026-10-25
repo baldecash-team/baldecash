@@ -148,16 +148,16 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
                   ${elegida
                     ? 'bg-[rgba(var(--color-primary-rgb),0.12)] border-[1.5px] border-[var(--color-primary)]'
-                    : `bg-white border-[1.5px] ${showError ? 'border-[#C2410C]' : 'border-[#C9CEF0]'} hover:border-[var(--color-primary)]`}
+                    : `bg-white border-[1.5px] ${showError ? 'border-[var(--d2-error)]' : 'border-[var(--d2-borde-campo)]'} hover:border-[var(--color-primary)]`}
                   ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
               >
                 <span className="block min-w-0">
-                  <span className={`block font-medium text-sm sm:text-base break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]' : 'text-[#1E2230]'}`}>
+                  <span className={`block font-medium text-sm sm:text-base break-words ${elegida ? 'text-[var(--d2-prefijo-texto)]' : 'text-[var(--d2-texto)]'}`}>
                     {option.label}
                   </span>
                   {option.description && (
-                    <span className={`block text-xs sm:text-sm mt-0.5 break-words ${elegida ? 'text-[color-mix(in_srgb,var(--color-primary-text)_80%,black)]/80' : 'text-[#5B6275]'}`}>
+                    <span className={`block text-xs sm:text-sm mt-0.5 break-words ${elegida ? 'text-[var(--d2-prefijo-texto)]/80' : 'text-[var(--d2-texto-suave)]'}`}>
                       {option.description}
                     </span>
                   )}

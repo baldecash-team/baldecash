@@ -197,10 +197,10 @@ export const TextInput: React.FC<TextInputProps> = ({
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
-        {helpText && <p className="text-[13px] text-[#5B6275]">{helpText}</p>}
+        {helpText && <p className="text-[13px] text-[var(--d2-texto-suave)]">{helpText}</p>}
         <div
           className={`flex items-center overflow-hidden ${CAJA_V2} ${bordeV2({ error: showError, foco: isFocused, correcto: !!showSuccess })} ${
-            disabled ? 'bg-[#F7F8FA] opacity-70' : ''
+            disabled ? 'bg-[var(--d2-campo-apagado)] opacity-70' : ''
           }`}
         >
           {startContent && <span className={PREFIJO_V2}>{startContent}</span>}
@@ -209,7 +209,7 @@ export const TextInput: React.FC<TextInputProps> = ({
             id={`${id}-input`}
             aria-invalid={showError || undefined}
             aria-describedby={error && !hideErrorText ? `${id}-error` : undefined}
-            className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-base text-[#1E2230] outline-none ${PLACEHOLDER_V2} ${
+            className={`h-full min-w-0 flex-1 bg-transparent px-3.5 text-base text-[var(--d2-texto)] outline-none ${PLACEHOLDER_V2} ${
               disabled ? 'cursor-not-allowed' : ''
             }`}
             style={{
@@ -217,9 +217,9 @@ export const TextInput: React.FC<TextInputProps> = ({
               ...(value ? { WebkitTextFillColor: '#1E2230' } : {}),
             }}
           />
-          {endContent && <span className="flex-shrink-0 select-none pr-3 text-base text-[#5B6275]">{endContent}</span>}
+          {endContent && <span className="flex-shrink-0 select-none pr-3 text-base text-[var(--d2-texto-suave)]">{endContent}</span>}
           {isLoading && <Loader2 className="mr-3.5 h-5 w-5 flex-shrink-0 animate-spin text-[var(--color-primary-text)]" />}
-          {!isLoading && showSuccess && <Check className="mr-3.5 h-5 w-5 flex-shrink-0 text-[#0E8C78]" strokeWidth={2.6} />}
+          {!isLoading && showSuccess && <Check className="mr-3.5 h-5 w-5 flex-shrink-0 text-[var(--d2-ok)]" strokeWidth={2.6} />}
         </div>
         {error && !hideErrorText && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}
         {/* BAL-4960: pista a la izquierda y contador a la derecha, misma fila y estilo. */}
