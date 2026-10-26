@@ -9,8 +9,10 @@
  * para personalizar el mensaje. Sin diseño propio: usa el estilo base de la
  * encuesta (`encuesta.module.css`), igual que `/retomar` (ver `RetomarClient`).
  *
- * El backend es idempotente: recargar o tocar el botón dos veces no manda dos
- * POST (el guard de abajo) ni revierte dos veces la decisión.
+ * El guard de abajo (`useRef`) sólo evita el doble POST del doble montaje de
+ * StrictMode en dev. Una recarga de página SÍ manda un POST nuevo —el guard
+ * no sobrevive a eso, vive en memoria del componente—; lo que hace que recargar
+ * o tocar el botón dos veces sea seguro es que el backend es idempotente.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -21,6 +23,7 @@ import {
   isContinuarError,
   type ContinuarDatos,
 } from '@/app/prototipos/0.6/services/continuarApi';
+import { safeKeynuaFirmaUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
 import styles from '@/app/prototipos/0.6/encuesta/[token]/encuesta.module.css';
 
 type Vista = 'loading' | 'si-evaluacion' | 'si-firma' | 'no' | 'closed' | 'invalid' | 'error';
@@ -62,6 +65,9 @@ export function ContinuarClient({ token, acepta }: { token: string; acepta: bool
 
   const sufijoNombre = datos.nombre ? `, ${datos.nombre}` : '';
   const equipo = datos.equipo || 'equipo';
+  // Nunca se confía ciegamente en lo que manda el backend: sólo se pinta el
+  // botón si el link es https y el host es keynua.com (o un subdominio).
+  const linkFirma = safeKeynuaFirmaUrl(datos.link_firma);
 
   return (
     <div className={styles.root}>
@@ -91,9 +97,15 @@ export function ContinuarClient({ token, acepta }: { token: string; acepta: bool
               <>
                 <h2>¡Listo{sufijoNombre}!</h2>
                 <p>Firma tu contrato para separar tu {equipo}.</p>
-                {datos.link_firma && (
+                {linkFirma && (
                   <a
-                    href={datos.link_firma}
+                    href={linkFirma}
+                    // Otra pestaña, como en `eleccion-equipo/[token]/Confirmacion.tsx`:
+                    // la firma de Keynua es un proceso largo (selfie, documento,
+                    // validaciones) y navegar en la misma pestaña perdería esta
+                    // pantalla de confirmación.
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={styles.submit}
                     style={{ display: 'inline-block', marginTop: 20, textDecoration: 'none' }}
                   >
