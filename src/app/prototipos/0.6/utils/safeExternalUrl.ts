@@ -30,3 +30,29 @@ export function safeExternalUrl(
     return fallback;
   }
 }
+
+const KEYNUA_HOST = 'keynua.com';
+
+/**
+ * Valida un `link_firma` de Keynua antes de pintarlo como botón (p. ej. en
+ * `/continuar/si/[token]`). Más estricto que `safeExternalUrl`: ahí basta
+ * cualquier `http:`/`https:`, pero un link de firma que viaja por WhatsApp y
+ * se abre en otra pestaña necesita `https:` sí o sí, y el host tiene que ser
+ * `keynua.com` o un subdominio suyo —si no, es que el backend mandó cualquier
+ * cosa (o algo hostil) y no hay que llevar al cliente ahí.
+ *
+ * Devuelve `null` si no pasa la validación; el call site no renderiza el botón.
+ */
+export function safeKeynuaFirmaUrl(candidate: string | null | undefined): string | null {
+  const safe = safeExternalUrl(candidate);
+  if (!safe) return null;
+
+  try {
+    const url = new URL(safe);
+    if (url.protocol !== 'https:') return null;
+    const host = url.hostname.toLowerCase();
+    return host === KEYNUA_HOST || host.endsWith(`.${KEYNUA_HOST}`) ? safe : null;
+  } catch {
+    return null;
+  }
+}
