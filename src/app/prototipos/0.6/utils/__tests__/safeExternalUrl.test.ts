@@ -1,4 +1,4 @@
-import { safeExternalUrl } from '../safeExternalUrl';
+import { safeExternalUrl, safeFirmaUrl } from '../safeExternalUrl';
 
 const FALLBACK = 'https://wa.me/51958823053';
 
@@ -75,5 +75,38 @@ describe('safeExternalUrl — sin fallback (default vacío)', () => {
 
   it('deja pasar una URL válida tal cual', () => {
     expect(safeExternalUrl('https://wa.link/qqmbg0')).toBe('https://wa.link/qqmbg0');
+  });
+});
+
+describe('safeFirmaUrl — link de firma del «Sí» (Keynua o KYC propio)', () => {
+  const TOKEN = 'Abc123_-xyzXYZ0987654321abcdefghij';
+
+  it.each([
+    'https://sign.keynua.com/index.html?token=abc',
+    `https://baldecash.com/kyc/${TOKEN}`,
+    `https://www.baldecash.com/kyc/${TOKEN}`,
+    `https://baldecash.com/prototipos/0.6/kyc/${TOKEN}`,
+  ])('acepta %s', (url) => {
+    expect(safeFirmaUrl(url)).toBe(url);
+  });
+
+  it.each([
+    'http://sign.keynua.com/index.html?token=abc',
+    'https://sign.keynua.com/index.html',
+    'https://sign.keynua.com/otra?token=abc',
+    'https://app.keynua.com/index.html?token=abc',
+    'https://sign.keynua.com.evil.com/index.html?token=abc',
+    'https://sign.keynua.com@evil.com/index.html?token=abc',
+    'https://sign.keynua.com:8443/index.html?token=abc',
+    `http://baldecash.com/kyc/${TOKEN}`,
+    `https://evil.com/kyc/${TOKEN}`,
+    `https://baldecash.com/otra/${TOKEN}`,
+    'https://baldecash.com/kyc/corto',
+    'javascript:alert(1)',
+    '',
+    null,
+    undefined,
+  ])('rechaza %s', (url) => {
+    expect(safeFirmaUrl(url)).toBeNull();
   });
 });

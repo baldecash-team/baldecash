@@ -13,6 +13,12 @@ export interface ContinuarDecision {
   status: string;
   /** `si` | `no` — sólo viene con `status: "received"`. */
   respuesta?: string;
+  /**
+   * Sólo con «Sí» en la variante firma (aprobada sin firmar): link NUEVO para
+   * firmar (Keynua o el KYC), armado por ws2 en ese momento. `null` si no se
+   * pudo armar; ausente en la variante evaluación y en el «No».
+   */
+  link_firma?: string | null;
 }
 
 export interface ContinuarDatos {
