@@ -31,27 +31,40 @@ export function safeExternalUrl(
   }
 }
 
-const KEYNUA_HOST = 'keynua.com';
+/** Host del link de firma de Keynua (`https://sign.keynua.com/index.html?token=...`). */
+const KEYNUA_FIRMA_HOST = 'sign.keynua.com';
+/** Hosts del KYC propio (`{FRONTEND_URL}/kyc/<token>` en ws2). */
+const KYC_HOSTS = new Set(['baldecash.com', 'www.baldecash.com']);
+/** `/kyc/<token>`, con o sin el prefijo `/prototipos/<versión>` de FRONTEND_URL. */
+const KYC_PATH = /^(\/prototipos\/[0-9.]+)?\/kyc\/[A-Za-z0-9_-]{16,128}$/;
 
 /**
- * Valida un `link_firma` de Keynua antes de pintarlo como botón (p. ej. en
- * `/continuar/si/[token]`). Más estricto que `safeExternalUrl`: ahí basta
- * cualquier `http:`/`https:`, pero un link de firma que viaja por WhatsApp y
- * se abre en otra pestaña necesita `https:` sí o sí, y el host tiene que ser
- * `keynua.com` o un subdominio suyo —si no, es que el backend mandó cualquier
- * cosa (o algo hostil) y no hay que llevar al cliente ahí.
+ * Valida un `link_firma` antes de mandar al cliente ahí (p. ej. el «Sí» de
+ * `/continuar/si/[token]`, que redirige directo a firmar). Más estricto que
+ * `safeExternalUrl`: `https:` sí o sí, sin usuario/clave/puerto, y SOLO dos
+ * formas — las mismas que valida ws2:
  *
- * Devuelve `null` si no pasa la validación; el call site no renderiza el botón.
+ * - Keynua: `https://sign.keynua.com/index.html?token=...`
+ * - KYC propio: `https://baldecash.com[/prototipos/<v>]/kyc/<token>`
+ *
+ * Cualquier otra cosa es que el backend mandó algo que no corresponde (o algo
+ * hostil). Devuelve `null` si no pasa; el call site no redirige.
  */
-export function safeKeynuaFirmaUrl(candidate: string | null | undefined): string | null {
+export function safeFirmaUrl(candidate: string | null | undefined): string | null {
   const safe = safeExternalUrl(candidate);
   if (!safe) return null;
 
   try {
     const url = new URL(safe);
-    if (url.protocol !== 'https:') return null;
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return null;
     const host = url.hostname.toLowerCase();
-    return host === KEYNUA_HOST || host.endsWith(`.${KEYNUA_HOST}`) ? safe : null;
+    if (host === KEYNUA_FIRMA_HOST) {
+      return url.pathname === '/index.html' && url.searchParams.get('token') ? safe : null;
+    }
+    if (KYC_HOSTS.has(host)) {
+      return KYC_PATH.test(url.pathname) && !url.search && !url.hash ? safe : null;
+    }
+    return null;
   } catch {
     return null;
   }

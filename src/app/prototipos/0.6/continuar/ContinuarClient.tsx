@@ -22,6 +22,12 @@
  * es la idempotencia del backend, no el guard. El flujo "No" no depende de
  * ninguno de los dos: por diseño, nunca envía solo.
  *
+ * Variante firma (aprobada sin firmar): si el POST del «Sí» trae un
+ * `link_firma` válido (`safeFirmaUrl`: Keynua o el KYC propio), se va DIRECTO
+ * a firmar con `window.location.replace` — ws2 lo arma nuevo en cada «Sí».
+ * Sin link: el texto de la variante + «Tu respuesta quedó registrada» y el
+ * WhatsApp de atención.
+ *
  * Sin diseño propio: usa el estilo base de la encuesta (`encuesta.module.css`),
  * igual que `/retomar` (ver `RetomarClient`).
  */
@@ -34,11 +40,13 @@ import {
   isContinuarError,
   type ContinuarDatos,
 } from '@/app/prototipos/0.6/services/continuarApi';
-import { safeKeynuaFirmaUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
+import { safeFirmaUrl } from '@/app/prototipos/0.6/utils/safeExternalUrl';
+import { BLIP_ADVISOR_URL } from '@/app/prototipos/0.6/admision/_components/tokens';
 import styles from '@/app/prototipos/0.6/encuesta/[token]/encuesta.module.css';
 
 type Vista =
   | 'loading'
+  | 'redirect'
   | 'confirm'
   | 'si-evaluacion'
   | 'si-firma'
@@ -91,6 +99,14 @@ export function ContinuarClient({ token, acepta }: { token: string; acepta: bool
       return;
     }
     const respuesta = r.respuesta === 'no' ? 'no' : 'si';
+    // «Sí» en la variante firma: directo a firmar. Nunca se confía ciegamente
+    // en el backend: sólo Keynua (`sign.keynua.com`) o el KYC propio.
+    const linkFirma = respuesta === 'si' ? safeFirmaUrl(r.link_firma) : null;
+    if (linkFirma) {
+      setVista('redirect');
+      window.location.replace(linkFirma);
+      return;
+    }
     // El nombre, el equipo, la variante y si corresponde link de firma vienen
     // del GET. Si falla, no se adivina variante: se cae al texto neutro.
     const d = await datosContinuar(token);
@@ -124,18 +140,15 @@ export function ContinuarClient({ token, acepta }: { token: string; acepta: bool
 
   const sufijoNombre = datos.nombre ? `, ${datos.nombre}` : '';
   const equipo = datos.equipo || 'equipo';
-  // Nunca se confía ciegamente en lo que manda el backend: sólo se pinta el
-  // botón si el link es https y el host es keynua.com (o un subdominio).
-  const linkFirma = safeKeynuaFirmaUrl(datos.link_firma);
 
   const conIcono: Vista[] = ['si-evaluacion', 'si-firma', 'si-neutral', 'no'];
 
   return (
     <div className={styles.root}>
       <div className={styles.shell}>
-        {vista === 'loading' ? (
-          <div className={styles.loading} role="status">
-            Registrando tu respuesta…
+        {vista === 'loading' || vista === 'redirect' ? (
+          <div className={styles.loading} role="status" data-testid={`continuar-${vista}`}>
+            {vista === 'redirect' ? 'Te llevamos a firmar tu contrato…' : 'Registrando tu respuesta…'}
           </div>
         ) : (
           <div className={styles.thanks} data-testid={`continuar-${vista}`}>
@@ -187,23 +200,14 @@ export function ContinuarClient({ token, acepta }: { token: string; acepta: bool
               <>
                 <h2>¡Listo{sufijoNombre}!</h2>
                 <p>Firma tu contrato para separar tu {equipo}.</p>
-                {linkFirma ? (
-                  <a
-                    href={linkFirma}
-                    // Otra pestaña, como en `eleccion-equipo/[token]/Confirmacion.tsx`:
-                    // la firma de Keynua es un proceso largo (selfie, documento,
-                    // validaciones) y navegar en la misma pestaña perdería esta
-                    // pantalla de confirmación.
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.submit}
-                    style={{ display: 'inline-block', marginTop: 20, textDecoration: 'none' }}
-                  >
-                    Firmar mi contrato
+                <p>Tu respuesta quedó registrada.</p>
+                <p>
+                  Si necesitas ayuda para firmar, escríbenos por{' '}
+                  <a href={BLIP_ADVISOR_URL} target="_blank" rel="noopener noreferrer">
+                    WhatsApp
                   </a>
-                ) : (
-                  <p>Te enviaremos el link para firmar por este medio.</p>
-                )}
+                  .
+                </p>
               </>
             )}
             {vista === 'si-neutral' && (
