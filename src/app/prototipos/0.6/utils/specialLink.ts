@@ -82,6 +82,26 @@ export function captureSpecialLink(landing: string, search: URLSearchParams): vo
   }
 }
 
+/**
+ * Aperturas ya contadas en esta carga de página. Solo la primera carga de la
+ * ficha cuenta (`registrar_apertura=1`); el doble efecto de StrictMode y los
+ * refetch no. Un F5 recarga el módulo y vuelve a contar, como debe.
+ */
+const aperturasContadas = new Set<string>();
+
+/** true la primera vez por (landing, ficha, token) en esta carga de página. */
+export function tomarRegistroDeApertura(landing: string, slug: string, token: string): boolean {
+  const k = `${landing}|${slug}|${token}`;
+  if (aperturasContadas.has(k)) return false;
+  aperturasContadas.add(k);
+  return true;
+}
+
+/** Solo para tests. */
+export function __resetAperturasContadas(): void {
+  aperturasContadas.clear();
+}
+
 export function getSpecialLinkToken(landing: string): string | null {
   try {
     return sessionStorage.getItem(key(landing));

@@ -378,7 +378,8 @@ function DetailContent() {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    fetchProductDetail(landing, slug)
+    // Primera carga de la ficha: la única que cuenta como apertura del link especial.
+    fetchProductDetail(landing, slug, undefined, { registrarApertura: true })
       .then((result) => {
         if (cancelled) return;
         if (result) {

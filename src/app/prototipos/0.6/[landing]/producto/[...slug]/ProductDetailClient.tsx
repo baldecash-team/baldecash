@@ -305,7 +305,8 @@ function ProductDetailContent() {
       setApiError(null);
 
       try {
-        const data = await fetchProductDetail(landing, slug);
+        // Primera carga de la ficha: la única que cuenta como apertura del link especial.
+        const data = await fetchProductDetail(landing, slug, undefined, { registrarApertura: true });
         if (data) {
           // Link especial muerto (vencido, usado, anulado o desconocido): se
           // suelta para que el formulario y el lead guard no lo arrastren.

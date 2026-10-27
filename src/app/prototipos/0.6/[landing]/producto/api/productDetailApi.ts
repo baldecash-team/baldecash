@@ -27,7 +27,7 @@ import {
   ComboAccessory,
 } from '../types/detail';
 import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../../../utils/deferredDelivery';
-import { getSpecialLinkToken } from '../../../utils/specialLink';
+import { getSpecialLinkToken, tomarRegistroDeApertura } from '../../../utils/specialLink';
 
 // API base URL - uses environment variable or falls back to localhost
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -652,12 +652,26 @@ export interface ProductDetailResult {
  * Query del `/detail` de la landing: la frecuencia y, si hay un link especial
  * guardado para esta landing, su token. Sin ninguno de los dos, queda vacía y
  * la URL es la de siempre.
+ *
+ * `registrarApertura` (solo la primera carga de la ficha): agrega
+ * `registrar_apertura=1` para que el backend cuente la apertura del link. Va
+ * una sola vez por carga de página; los refetch por frecuencia y los planes
+ * del formulario nunca lo mandan.
  */
-function detailQuery(landing: string, paymentFrequency?: string): string {
+function detailQuery(
+  landing: string,
+  paymentFrequency?: string,
+  apertura?: { slug: string },
+): string {
   const qs = new URLSearchParams();
   if (paymentFrequency) qs.set('payment_frequency', paymentFrequency);
   const acceso = getSpecialLinkToken(landing);
-  if (acceso) qs.set('acceso', acceso);
+  if (acceso) {
+    qs.set('acceso', acceso);
+    if (apertura && tomarRegistroDeApertura(landing, apertura.slug, acceso)) {
+      qs.set('registrar_apertura', '1');
+    }
+  }
   const query = qs.toString();
   return query ? `?${query}` : '';
 }
@@ -682,9 +696,14 @@ export interface FetchError {
  * - Product is within availability dates
  * - Landing and product are active
  */
-export async function fetchProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<ProductDetailResult | null> {
+export async function fetchProductDetail(
+  landing: string,
+  slug: string,
+  paymentFrequency?: string,
+  options?: { registrarApertura?: boolean },
+): Promise<ProductDetailResult | null> {
   try {
-    const params = detailQuery(landing, paymentFrequency);
+    const params = detailQuery(landing, paymentFrequency, options?.registrarApertura ? { slug } : undefined);
     const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail${params}`, {
       method: 'GET',
       headers: {

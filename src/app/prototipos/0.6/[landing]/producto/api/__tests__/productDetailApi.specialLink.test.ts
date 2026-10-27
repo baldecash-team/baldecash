@@ -4,6 +4,7 @@
  * resultado trae qué producto abrió el pase o por qué no sirvió.
  */
 import { fetchProductDetail, fetchProductPaymentPlans } from '../productDetailApi';
+import { __resetAperturasContadas } from '../../../../utils/specialLink';
 
 function apiResponse(extra: Record<string, unknown> = {}) {
   return {
@@ -31,7 +32,10 @@ function mockFetch(payload: unknown) {
 }
 const urlLlamada = () => String(fetchMock.mock.calls[0][0]);
 
-beforeEach(() => sessionStorage.clear());
+beforeEach(() => {
+  sessionStorage.clear();
+  __resetAperturasContadas();
+});
 afterEach(() => jest.restoreAllMocks());
 
 describe('fetchProductDetail con link especial', () => {
@@ -86,5 +90,30 @@ describe('fetchProductPaymentPlans con link especial', () => {
     mockFetch(apiResponse());
     await fetchProductPaymentPlans('home', '42');
     expect(urlLlamada()).toMatch(/\/products\/42\/detail$/);
+  });
+});
+
+describe('registrar_apertura: solo la primera carga de la ficha cuenta', () => {
+  const urlN = (n: number) => String(fetchMock.mock.calls[n][0]);
+
+  it('la primera carga lo manda una vez; el doble efecto y el refetch por frecuencia no', async () => {
+    sessionStorage.setItem('baldecash-home-special-link', 'tok');
+    mockFetch(apiResponse({ special_link_product_id: 42 }));
+    await fetchProductDetail('home', 'laptop-oculta', undefined, { registrarApertura: true });
+    await fetchProductDetail('home', 'laptop-oculta', undefined, { registrarApertura: true }); // StrictMode
+    await fetchProductDetail('home', 'laptop-oculta', 'semanal'); // PricingCalculator
+    await fetchProductPaymentPlans('home', '42', 'mensual'); // formulario
+    expect(urlN(0)).toContain('registrar_apertura=1');
+    expect(urlN(0)).toContain('acceso=tok');
+    for (const n of [1, 2, 3]) {
+      expect(urlN(n)).toContain('acceso=tok');
+      expect(urlN(n)).not.toContain('registrar_apertura');
+    }
+  });
+
+  it('sin token no se agrega nada a la URL', async () => {
+    mockFetch(apiResponse());
+    await fetchProductDetail('home', 'laptop-oculta', undefined, { registrarApertura: true });
+    expect(urlLlamada()).toMatch(/\/detail$/);
   });
 });

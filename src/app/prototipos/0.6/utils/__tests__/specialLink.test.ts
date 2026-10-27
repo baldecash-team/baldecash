@@ -7,6 +7,8 @@ import {
   urlSinAcceso,
   ACCESO_EARLY_SCRIPT,
   PENDING_SPECIAL_LINK_KEY,
+  tomarRegistroDeApertura,
+  __resetAperturasContadas,
 } from '../specialLink';
 
 describe('specialLink', () => {
@@ -113,6 +115,16 @@ describe('specialLink', () => {
       expect(getSpecialLinkToken('home')).toBe('abc');
       jest.runAllTimers();
       expect(window.location.search).toBe('?term=12');
+    });
+  });
+
+  describe('tomarRegistroDeApertura', () => {
+    beforeEach(() => __resetAperturasContadas());
+
+    it('solo la primera carga de la ficha cuenta (StrictMode y refetch no)', () => {
+      expect(tomarRegistroDeApertura('home', 'laptop', 'abc')).toBe(true);
+      expect(tomarRegistroDeApertura('home', 'laptop', 'abc')).toBe(false);
+      expect(tomarRegistroDeApertura('home', 'laptop', 'otro')).toBe(true);
     });
   });
 });
