@@ -18,7 +18,7 @@ import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/u
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
-import { captureSpecialLink, clearSpecialLink, avisoDelLinkEspecial } from '@/app/prototipos/0.6/utils/specialLink';
+import { captureSpecialLink, clearSpecialLink, avisoDelLinkEspecial, specialLinkTokenFor } from '@/app/prototipos/0.6/utils/specialLink';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -758,6 +758,8 @@ function DetailContent() {
         storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size'),
       } : undefined,
       paymentPlans: cartPaymentPlans.length > 0 ? cartPaymentPlans : undefined,
+      // Link especial (BAL-5191): solo si el pase abrió este producto.
+      specialLinkToken: specialLinkTokenFor(landing, data?.specialLinkProductId, product.id),
     };
     try {
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));

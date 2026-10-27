@@ -27,6 +27,7 @@ import {
 import { useProductOptional, type SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { specialLinkTokenFor } from '@/app/prototipos/0.6/utils/specialLink';
 import { ReacondicionadosGradoCuota } from '../../reacondicionados/ReacondicionadosGradoCuota';
 import { targetSlugForGrade, currentGrade, gradosDelDetalle } from '../../copia-home/gradeSelector';
 
@@ -89,6 +90,11 @@ interface ProductDetailProps {
   cartItems?: string[];
   // Availability flag - when false, disables cart/solicitar actions
   isAvailable?: boolean;
+  /**
+   * Link especial (BAL-5191): id del producto que abrió el pase de `?acceso=`.
+   * Si es este, el `SelectedProduct` sale marcado con el token.
+   */
+  specialLinkProductId?: number;
   // Default pricing from catalog card or URL params
   defaultTerm?: number;
   defaultInitialPercent?: number;
@@ -178,6 +184,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   readOnlyNotice,
   onOfferSelectionChange,
   loQuieroModal = false,
+  specialLinkProductId,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -658,6 +665,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       paymentFrequency: pricingSelection?.paymentFrequency ?? 'mensual',
       // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
       comboId: combo?.id,
+      specialLinkToken: specialLinkTokenFor(landing, specialLinkProductId, product.id),
     };
 
     // Save to localStorage

@@ -526,6 +526,7 @@ function ProductDetailContent() {
             || !!apiData.product.grade
           }
           isAvailable={isAvailable}
+          specialLinkProductId={apiData.specialLinkProductId}
           defaultTerm={defaultTerm ?? apiData.defaultTerm}
           defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
           defaultFrequency={defaultFrequency}

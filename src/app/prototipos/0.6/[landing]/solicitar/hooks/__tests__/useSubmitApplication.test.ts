@@ -299,6 +299,25 @@ describe('useSubmitApplication', () => {
       expect(msg).toContain('campaña');
     });
 
+    it.each([
+      ['SPECIAL_LINK_DNI_MISMATCH', 'Este link es personal y no corresponde a tu DNI.'],
+      ['SPECIAL_LINK_INVALID', 'Tu link especial venció o ya se usó. Pídele uno nuevo a tu asesora.'],
+    ])('%s: mensaje del link especial con tildes', async (code, esperado) => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: code,
+        error: 'Tu link especial vencio o ya se uso.',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(result.current.error).toBe(esperado);
+    });
+
     it('un codigo desconocido cae al mensaje del API', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: false,
@@ -621,6 +640,41 @@ describe('useSubmitApplication', () => {
         };
         expect(payload.product_data.payment_frequency).toBe('quincenal');
         expect(payload.product_data.products?.[0].payment_frequency).toBe('quincenal');
+      });
+    });
+
+    // Link especial (BAL-5191): el equipo no visible viaja con su pase.
+    describe('special_link_token', () => {
+      const mutable = mockSelectedProduct as { specialLinkToken?: string };
+      const KEY = 'baldecash-test-landing-special-link';
+      afterEach(() => { delete mutable.specialLinkToken; sessionStorage.clear(); });
+
+      it('sin pase la clave no viaja (payload de siempre)', async () => {
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-S0' });
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+        const payload = mockSubmitApplication.mock.calls[0][0] as { product_data: Record<string, unknown> };
+        expect('special_link_token' in payload.product_data).toBe(false);
+      });
+
+      it('con pase manda el token y lo borra al enviar bien', async () => {
+        mutable.specialLinkToken = 'tok-123';
+        sessionStorage.setItem(KEY, 'tok-123');
+        mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-S1' });
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+        const payload = mockSubmitApplication.mock.calls[0][0] as { product_data: { special_link_token?: string } };
+        expect(payload.product_data.special_link_token).toBe('tok-123');
+        expect(sessionStorage.getItem(KEY)).toBeNull();
+      });
+
+      it('si el envío falla, el token se queda para reintentar', async () => {
+        mutable.specialLinkToken = 'tok-123';
+        sessionStorage.setItem(KEY, 'tok-123');
+        mockSubmitApplication.mockResolvedValueOnce({ success: false, error_code: 'ALGO' });
+        const { result } = renderHook(() => useSubmitApplication());
+        await act(async () => { await result.current.submit(); });
+        expect(sessionStorage.getItem(KEY)).toBe('tok-123');
       });
     });
   });

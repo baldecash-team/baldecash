@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { getSpecialLinkToken } from '@/app/prototipos/0.6/utils/specialLink';
 
 const LEAD_ID_PREFIX = 'baldecash-lead-';
 const LEAD_LANDING_PREFIX = 'baldecash-lead-landing-';
@@ -89,6 +90,8 @@ export function useLeadGuard(landing: string) {
   // null = aún verificando, true/false = resultado final
   const [hasAccess, setHasAccess] = useState<boolean | null>(() => {
     if (typeof window === 'undefined') return true;
+    // Link especial (BAL-5191): el pase ya identifica al estudiante; no se le pide el lead.
+    if (getSpecialLinkToken(landing)) return true;
     // Si no está marcada como lead, permitir acceso optimistamente (API verificará)
     if (!isLeadLandingType(landing)) return null;
     // Está marcada como lead: chequear lead_id
@@ -96,6 +99,11 @@ export function useLeadGuard(landing: string) {
   });
 
   useEffect(() => {
+    if (getSpecialLinkToken(landing)) {
+      setHasAccess(true);
+      return;
+    }
+
     const redirectToForm = () => {
       window.location.replace(`${routes.landingHome(landing)}#lead-form`);
     };

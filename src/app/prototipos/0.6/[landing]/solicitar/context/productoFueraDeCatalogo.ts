@@ -64,7 +64,10 @@ export function admiteRecalculoDeCuota(product: SelectedProduct): boolean {
   return !estaFueraDelCatalogo(product);
 }
 
-/** Los productos que sí se validan contra el catálogo. */
+/**
+ * Los productos que sí se validan contra el catálogo. El del link especial
+ * tampoco: no se ve en el catálogo a propósito y lo valida el submit.
+ */
 export function soloLosDelCatalogo(products: SelectedProduct[]): SelectedProduct[] {
-  return products.filter(p => !estaFueraDelCatalogo(p));
+  return products.filter(p => !estaFueraDelCatalogo(p) && !p.specialLinkToken);
 }

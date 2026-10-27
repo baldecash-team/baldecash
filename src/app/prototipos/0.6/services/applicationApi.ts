@@ -95,6 +95,8 @@ export interface SubmitApplicationRequest {
     }[];
     insurance_id?: number;
     insurance_ids?: number[];
+    /** Token del link especial (equipo no visible). Solo si el pase abrió este producto. */
+    special_link_token?: string;
   };
   /** Optional coupon code for discount */
   coupon_code?: string;

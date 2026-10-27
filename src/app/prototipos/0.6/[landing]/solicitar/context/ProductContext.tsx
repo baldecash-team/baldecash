@@ -184,6 +184,12 @@ export interface SelectedProduct {
   // resuelta contra el simulador. No se le piden planes, no se valida su
   // disponibilidad y su cuota no se recalcula. Ver `productoFueraDeCatalogo`.
   outOfCatalog?: boolean;
+  /**
+   * Link especial (BAL-5191): el equipo no está visible en el catálogo y lo
+   * abre un pase personal. No se valida contra el catálogo (lo dejaría como
+   * "no disponible"); el backend lo valida en el submit con el DNI del pase.
+   */
+  specialLinkToken?: string;
 }
 
 export type { Accessory, InsurancePlan };

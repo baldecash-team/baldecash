@@ -33,6 +33,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { saveOtpHandoff } from '../utils/otpHandoff';
 import { saveEnvioAnticipadoHandoff } from '../utils/envioAnticipadoHandoff';
 import { resolveComboId } from '../utils/comboFromSlug';
+import { clearSpecialLink } from '@/app/prototipos/0.6/utils/specialLink';
 import {
   isDemoLanding,
   buildDemoApplication,
@@ -618,6 +619,10 @@ export function useSubmitApplication(
               ? { insurance_id: parseInt(insuranceId, 10) }
               : {}
           ),
+          // Link especial (BAL-5191): sin pase la clave no viaja.
+          ...(primaryProduct.specialLinkToken
+            ? { special_link_token: primaryProduct.specialLinkToken }
+            : {}),
         };
 
         // Cambiar a "processing" antes de enviar (si estábamos en uploading)
@@ -651,6 +656,10 @@ export function useSubmitApplication(
           setSubmitStage('success');
 
           setSubmitSucceeded(true);
+
+          // El pase del link especial muere con la solicitud (ws2 lo consume):
+          // se suelta siempre, también con `keepData`/`stayInWizard`.
+          clearSpecialLink(landing);
 
           // Capturar el DNI ANTES de limpiar el form, para prellenar el gate de OTP.
           const capturedDocumentNumber = extractDocumentNumber(mappedFormData);
@@ -870,6 +879,10 @@ export function useSubmitApplication(
             COUPON_USER_LIMIT_REACHED:
               'Ya usaste este cupón en otra solicitud. Quítalo para enviar ' +
               'esta solicitud.',
+            // Link especial (BAL-5191): ws2 los manda sin tildes.
+            SPECIAL_LINK_DNI_MISMATCH: 'Este link es personal y no corresponde a tu DNI.',
+            SPECIAL_LINK_INVALID:
+              'Tu link especial venció o ya se usó. Pídele uno nuevo a tu asesora.',
           };
           const msg =
             (result.error_code ? MENSAJES[result.error_code] : undefined) ||
