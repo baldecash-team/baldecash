@@ -12,6 +12,7 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { captureSpecialLink, clearSpecialLink, avisoDelLinkEspecial } from '@/app/prototipos/0.6/utils/specialLink';
 
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -80,6 +81,10 @@ function ProductDetailContent() {
    * `product.id` hacía que el suelto apareciera en favoritos sin tocarlo.
    */
   const pageKey = cardKey({ slug });
+
+  // Link especial (BAL-5191): guardar `?acceso=` antes del lead guard y del
+  // primer fetch del detalle, que lo leen del storage. Idempotente.
+  if (typeof window !== 'undefined') captureSpecialLink(landing, searchParams);
 
   // Lead guard — DEBE ir antes de otros hooks (no puede haber return antes de hooks)
   const hasLeadAccess = useLeadGuard(landing);
@@ -300,8 +305,12 @@ function ProductDetailContent() {
       setApiError(null);
 
       try {
-        const data = await fetchProductDetail(landing, slug);
+        // Primera carga de la ficha: la única que cuenta como apertura del link especial.
+        const data = await fetchProductDetail(landing, slug, undefined, { registrarApertura: true });
         if (data) {
+          // Link especial muerto (vencido, usado, anulado o desconocido): se
+          // suelta para que el formulario y el lead guard no lo arrastren.
+          if (avisoDelLinkEspecial(data.specialLinkError)) clearSpecialLink(landing);
           setApiData(data);
           analytics.trackProductView({
             product_id: data.product.id,
@@ -356,6 +365,7 @@ function ProductDetailContent() {
   }
 
   const isAvailable = apiData.isAvailable;
+  const avisoLinkEspecial = avisoDelLinkEspecial(apiData.specialLinkError);
 
   // Detección de reacondicionado (misma lógica que las variantes copia-home):
   // por condición o por el nombre ("Semi Nuevo"). Solo los seminuevos de
@@ -457,6 +467,16 @@ function ProductDetailContent() {
           paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
       >
+        {avisoLinkEspecial && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
+            <div
+              role="alert"
+              className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            >
+              {avisoLinkEspecial}
+            </div>
+          </div>
+        )}
         {detailVariant === 'grades-mobile' ? (
           <CopiaHomeMobileDetail
             apiData={apiData}
@@ -507,6 +527,7 @@ function ProductDetailContent() {
             || !!apiData.product.grade
           }
           isAvailable={isAvailable}
+          specialLinkProductId={apiData.specialLinkProductId}
           defaultTerm={defaultTerm ?? apiData.defaultTerm}
           defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
           defaultFrequency={defaultFrequency}

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
+import { specialLinkTokenFor } from '@/app/prototipos/0.6/utils/specialLink';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -314,6 +315,8 @@ export function CopiaHomeMobileDetail({
       // no ve que esta eligiendo pagar la inicial en dos partes.
       paymentPlans,
       comboId: apiData.combo?.id,
+      // Link especial (BAL-5191): solo si el pase abrió este producto.
+      specialLinkToken: specialLinkTokenFor(landing, apiData.specialLinkProductId, product.id),
     };
     try {
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selected));

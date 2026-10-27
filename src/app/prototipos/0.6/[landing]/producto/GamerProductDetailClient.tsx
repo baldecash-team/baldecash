@@ -18,6 +18,7 @@ import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/u
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { captureSpecialLink, clearSpecialLink, avisoDelLinkEspecial, specialLinkTokenFor } from '@/app/prototipos/0.6/utils/specialLink';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -153,6 +154,10 @@ function DetailContent() {
    * por `product.id` hacía que el suelto apareciera en favoritos sin tocarlo.
    */
   const pageKey = cardKey({ slug });
+
+  // Link especial (BAL-5191): guardar `?acceso=` antes del primer fetch del
+  // detalle, que lo lee del storage. Idempotente.
+  if (typeof window !== 'undefined') captureSpecialLink(landing, searchParams);
 
   // Note: we write directly to localStorage instead of using context setters
   // because each page has its own ProductProvider instance.
@@ -373,10 +378,13 @@ function DetailContent() {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    fetchProductDetail(landing, slug)
+    // Primera carga de la ficha: la única que cuenta como apertura del link especial.
+    fetchProductDetail(landing, slug, undefined, { registrarApertura: true })
       .then((result) => {
         if (cancelled) return;
         if (result) {
+          // Link especial muerto: se suelta para que el formulario no lo arrastre.
+          if (avisoDelLinkEspecial(result.specialLinkError)) clearSpecialLink(landing);
           setData(result);
           analytics.trackProductView({
             product_id: result.product.id,
@@ -751,6 +759,8 @@ function DetailContent() {
         storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size'),
       } : undefined,
       paymentPlans: cartPaymentPlans.length > 0 ? cartPaymentPlans : undefined,
+      // Link especial (BAL-5191): solo si el pase abrió este producto.
+      specialLinkToken: specialLinkTokenFor(landing, data?.specialLinkProductId, product.id),
     };
     try {
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));
@@ -1081,6 +1091,14 @@ function DetailContent() {
 
       {/* MAIN CONTENT */}
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: 'calc(var(--gamer-nav-height, 64px) + clamp(12px, 3vw, 24px)) clamp(8px, 3vw, 16px) 48px' }} className="detail-main product-font">
+        {avisoDelLinkEspecial(data?.specialLinkError) && (
+          <div
+            role="alert"
+            className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          >
+            {avisoDelLinkEspecial(data?.specialLinkError)}
+          </div>
+        )}
         {/* BREADCRUMB */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'clamp(12px, 2.5vw, 14px)', fontFamily: F.raj, flexWrap: 'nowrap', marginBottom: 16, overflow: 'hidden' }}>
           <button onClick={() => router.push(routes.landingHome(landing))} style={{ background: 'none', border: 'none', color: isDark ? '#a0a0a0' : '#737373', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', padding: 0, textDecoration: 'none' }}>Inicio</button>
