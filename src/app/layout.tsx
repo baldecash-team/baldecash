@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { JsonLd } from "./JsonLd";
 import { GA_MEASUREMENT_ID } from "@/lib/ga";
+import { ACCESO_EARLY_SCRIPT } from "@/app/prototipos/0.6/utils/specialLink";
 
 const asap = Asap({
   variable: "--font-asap",
@@ -100,6 +101,10 @@ export default function RootLayout({
         {/* Preconnect a orígenes en ruta crítica del LCP. next/font ya self-hostea
             las fuentes de Google, así que NO se requiere preconnect a fonts.* */}
         <link rel="preconnect" href="https://baldecash.s3.amazonaws.com" crossOrigin="anonymous" />
+        {/* Link especial: sacar `?acceso=` (llave personal del estudiante) de la
+            barra ANTES de que carguen GA/GTM y React, para que ningún hit de
+            analítica lleve el token en la URL. Lo deja en sessionStorage. */}
+        <script dangerouslySetInnerHTML={{ __html: ACCESO_EARLY_SCRIPT }} />
         {/* Tema gamer: (1) aplicar data-bc-theme ANTES del primer paint leyendo localStorage.
             (2) wrappear localStorage.setItem para que cualquier cambio de tema sincronice el atributo en <html>.
             Así las pantallas de carga siempre heredan el tema actual aun cuando el user haya toggleado mid-flow. */}

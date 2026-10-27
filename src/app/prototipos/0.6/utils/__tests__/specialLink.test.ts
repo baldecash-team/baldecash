@@ -4,6 +4,9 @@ import {
   clearSpecialLink,
   specialLinkTokenFor,
   avisoDelLinkEspecial,
+  urlSinAcceso,
+  ACCESO_EARLY_SCRIPT,
+  PENDING_SPECIAL_LINK_KEY,
 } from '../specialLink';
 
 describe('specialLink', () => {
@@ -63,6 +66,53 @@ describe('specialLink', () => {
 
     it('sin motivo no muestra nada', () => {
       expect(avisoDelLinkEspecial(undefined)).toBeNull();
+    });
+  });
+
+  describe('el token no queda en la URL (GA4 manda la URL completa)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+      window.history.replaceState(null, '', '/');
+    });
+
+    it('urlSinAcceso quita solo acceso y conserva el resto', () => {
+      expect(urlSinAcceso('https://baldecash.com/home/producto/x/?term=12&acceso=abc&initial=0#f'))
+        .toBe('/home/producto/x/?term=12&initial=0#f');
+      expect(urlSinAcceso('/home/producto/x/?acceso=abc')).toBe('/home/producto/x/');
+      expect(urlSinAcceso('/home/producto/x/?term=12')).toBeNull();
+    });
+
+    it('el script temprano guarda el token y limpia la barra antes que gtag', () => {
+      window.history.replaceState(null, '', '/home/producto/laptop/?term=12&acceso=abc&frecuency=semanal');
+      // eslint-disable-next-line no-new-func
+      new Function(ACCESO_EARLY_SCRIPT)();
+      expect(window.location.search).toBe('?term=12&frecuency=semanal');
+      expect(window.location.href).not.toContain('abc');
+      expect(sessionStorage.getItem(PENDING_SPECIAL_LINK_KEY)).toBe('abc');
+    });
+
+    it('el script temprano no toca páginas que no son ficha', () => {
+      window.history.replaceState(null, '', '/home/?acceso=abc');
+      // eslint-disable-next-line no-new-func
+      new Function(ACCESO_EARLY_SCRIPT)();
+      expect(window.location.search).toBe('?acceso=abc');
+      expect(sessionStorage.getItem(PENDING_SPECIAL_LINK_KEY)).toBeNull();
+    });
+
+    it('la ficha pasa el token pendiente a la llave de su landing', () => {
+      sessionStorage.setItem(PENDING_SPECIAL_LINK_KEY, 'abc');
+      captureSpecialLink('home', new URLSearchParams('term=12'));
+      expect(getSpecialLinkToken('home')).toBe('abc');
+      expect(sessionStorage.getItem(PENDING_SPECIAL_LINK_KEY)).toBeNull();
+    });
+
+    it('si el token llega en la URL (navegación SPA), lo saca de la barra', () => {
+      jest.useFakeTimers();
+      window.history.replaceState(null, '', '/home/producto/laptop/?term=12&acceso=abc');
+      captureSpecialLink('home', new URLSearchParams(window.location.search));
+      expect(getSpecialLinkToken('home')).toBe('abc');
+      jest.runAllTimers();
+      expect(window.location.search).toBe('?term=12');
     });
   });
 });
