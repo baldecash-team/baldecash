@@ -27,6 +27,7 @@ import {
   ComboAccessory,
 } from '../types/detail';
 import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../../../utils/deferredDelivery';
+import { getSpecialLinkToken } from '../../../utils/specialLink';
 
 // API base URL - uses environment variable or falls back to localhost
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -291,6 +292,10 @@ interface ApiProductDetailResponse {
   payment_frequencies?: string[] | null;
   default_term?: number | null;
   default_initial?: number | null;
+  /** Link especial (BAL-5191): id del producto que abrió el pase de `?acceso=`. */
+  special_link_product_id?: number | null;
+  /** Link especial: motivo si el token vino y no sirvió (expired, consumed, ...). */
+  special_link_error?: string | null;
 }
 
 // ============================================
@@ -637,6 +642,24 @@ export interface ProductDetailResult {
   certifications: Certification[];
   isAvailable: boolean;
   paymentFrequencies?: string[];
+  /** Link especial: el pase abrió este producto (aunque no se vea en el catálogo). */
+  specialLinkProductId?: number;
+  /** Link especial: el token vino y no sirvió; trae el motivo del backend. */
+  specialLinkError?: string;
+}
+
+/**
+ * Query del `/detail` de la landing: la frecuencia y, si hay un link especial
+ * guardado para esta landing, su token. Sin ninguno de los dos, queda vacía y
+ * la URL es la de siempre.
+ */
+function detailQuery(landing: string, paymentFrequency?: string): string {
+  const qs = new URLSearchParams();
+  if (paymentFrequency) qs.set('payment_frequency', paymentFrequency);
+  const acceso = getSpecialLinkToken(landing);
+  if (acceso) qs.set('acceso', acceso);
+  const query = qs.toString();
+  return query ? `?${query}` : '';
 }
 
 export interface FetchError {
@@ -661,7 +684,7 @@ export interface FetchError {
  */
 export async function fetchProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<ProductDetailResult | null> {
   try {
-    const params = paymentFrequency ? `?payment_frequency=${encodeURIComponent(paymentFrequency)}` : '';
+    const params = detailQuery(landing, paymentFrequency);
     const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail${params}`, {
       method: 'GET',
       headers: {
@@ -690,6 +713,8 @@ export async function fetchProductDetail(landing: string, slug: string, paymentF
       paymentFrequencies: data.payment_frequencies ?? undefined,
       defaultTerm: data.default_term ?? undefined,
       defaultInitial: data.default_initial ?? undefined,
+      specialLinkProductId: data.special_link_product_id ?? undefined,
+      specialLinkError: data.special_link_error ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching product detail:', error);
@@ -776,7 +801,8 @@ export async function fetchProductPaymentPlans(landing: string, productId: strin
     // Use the detail endpoint but only extract payment_plans. Pasar la frecuencia
     // (semanal/quincenal) es obligatorio para celulares: sin ella el backend
     // devuelve los planes de la frecuencia default y la cuota/plazo no coinciden.
-    const params = paymentFrequency ? `?payment_frequency=${encodeURIComponent(paymentFrequency)}` : '';
+    // Con link especial va también `acceso`: sin él, el equipo oculto no trae planes.
+    const params = detailQuery(landing, paymentFrequency);
     const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${productId}/detail${params}`, {
       method: 'GET',
       headers: {
