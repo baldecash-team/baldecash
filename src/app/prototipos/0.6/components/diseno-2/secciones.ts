@@ -19,23 +19,21 @@ const TIPOS_DE_LISTA = new Set<WizardField['type']>(['select', 'autocomplete', '
 const TIPOS_DE_TEXTO = new Set<WizardField['type']>(['text', 'textarea', 'number']);
 
 /**
- * El único valor que destapa el campo, si todas sus condiciones `show`
- * apuntan a exactamente un valor de la lista padre. `null` si hay más de
- * un valor (una condición `in`/`equals` con varias opciones, o varios
- * grupos con valores distintos) o si el operador no compara contra un
- * valor fijo (`is_empty`, `greater_than`, etc.) — en esos casos el campo
- * nunca puede ser una "Otra" (BAL-4965): depende de más de una opción.
+ * Los valores de la lista que destapan el campo, juntando todos sus grupos
+ * `show` (BAL-5205: «¿Cuál institución?» la destapa un «Otros» por cada tipo
+ * de institución). `null` si algún operador no compara contra un valor fijo
+ * (`is_empty`, `greater_than`, etc.): ese campo nunca puede ser una "Otra".
  */
-function valorUnicoQueMuestra(muestran: DependencyGroup[]): string | null {
+export function valoresQueMuestran(muestran: DependencyGroup[]): string[] | null {
   const valores = new Set<string>();
   for (const g of muestran) {
     for (const c of g.conditions) {
       if (c.operator !== 'equals' && c.operator !== 'in') return null;
       if (c.value == null) return null;
-      for (const v of Array.isArray(c.value) ? c.value : [c.value]) valores.add(v);
+      for (const v of Array.isArray(c.value) ? c.value : [c.value]) valores.add(String(v));
     }
   }
-  return valores.size === 1 ? Array.from(valores)[0] : null;
+  return valores.size > 0 ? Array.from(valores) : null;
 }
 
 /**
@@ -47,21 +45,31 @@ function etiquetaEsOtra(etiqueta: string): boolean {
   return normalizarBusqueda(etiqueta).startsWith('otr');
 }
 
+/** Lo elegido en una lista, con su etiqueta (`formData[codigo]`). */
+export type OpcionElegida = (codigoLista: string) => { value?: string; label?: string } | undefined;
+
 /**
  * "Otra (escríbela)": el campo de texto que aparece por condición de una
- * lista del MISMO paso (requisito 4) Y cuyo único valor que lo destapa
- * corresponde a una opción "Otra" de esa lista (BAL-4965). Devuelve
+ * lista del MISMO paso (requisito 4) Y cuyos valores que lo destapan son
+ * TODOS opciones «Otr…» de esa lista (BAL-4965; BAL-5205: pueden ser varias,
+ * como los «Otros» de universidad e instituto). Devuelve
  * `hijo → lista que lo destapa`.
+ *
+ * Listas remotas (institución, carrera: `options_source` sin `options` en el
+ * paso): el paso no trae las etiquetas. Ahí se mira la opción ELEGIDA
+ * (`opcionElegida`, la etiqueta que guardó el formulario): si es una de las
+ * que destapan el campo, tiene que llamarse «Otr…»; si no lo es, el campo
+ * está oculto y queda pegado. Sin `opcionElegida`, no se pegan.
  *
  * Un campo de texto condicionado a una lista que NO es su "Otra" (Rubro bajo
  * "Negocio", Empleador bajo "Sueldo", Número de RUC bajo "¿Tienes RUC?"...)
  * no es una "Otra" pegada: es una pregunta de seguimiento normal, y se pinta
  * y resume como cualquier otro campo. Solo cuenta si TODAS las condiciones
- * de sus grupos `show` miran a la misma lista y al mismo valor único; un
- * campo que depende de dos campos, o de dos valores de la misma lista
- * (`in` con varias opciones), no es "Otra" de ninguna.
+ * de sus grupos `show` miran a la misma lista y a opciones «Otr…» de esa
+ * lista; un campo que depende de dos campos, o de una opción que no es
+ * «Otr…» (`in` con «Negocio» y «Otro»), no es "Otra" de ninguna.
  */
-export function camposPegados(step: Pick<WizardStep, 'fields'>): Map<string, string> {
+export function camposPegados(step: Pick<WizardStep, 'fields'>, opcionElegida?: OpcionElegida): Map<string, string> {
   const porCodigo = new Map(step.fields.map((f) => [f.code, f]));
   const pegados = new Map<string, string>();
   for (const f of step.fields) {
@@ -74,10 +82,21 @@ export function camposPegados(step: Pick<WizardStep, 'fields'>): Map<string, str
     const [padre] = Array.from(padres);
     const lista = porCodigo.get(padre);
     if (!lista || lista.code === f.code || !TIPOS_DE_LISTA.has(lista.type)) continue;
-    const valor = valorUnicoQueMuestra(muestran);
-    if (valor === null) continue;
-    const opcion = (lista.options ?? []).find((o) => String(o.value) === valor);
-    if (!opcion || !etiquetaEsOtra(opcion.label)) continue;
+    const valores = valoresQueMuestran(muestran);
+    if (!valores) continue;
+    const opciones = lista.options ?? [];
+    if (opciones.length === 0 && lista.options_source) {
+      if (!opcionElegida) continue;
+      const elegida = opcionElegida(padre);
+      const laDestapa = elegida?.value != null && valores.includes(String(elegida.value));
+      if (laDestapa && !(elegida?.label && etiquetaEsOtra(elegida.label))) continue;
+    } else {
+      const todosSonOtra = valores.every((v) => {
+        const o = opciones.find((op) => String(op.value) === v);
+        return !!o && etiquetaEsOtra(o.label);
+      });
+      if (!todosSonOtra) continue;
+    }
     pegados.set(f.code, padre);
   }
   return pegados;

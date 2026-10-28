@@ -12,6 +12,7 @@ import {
   resumenDeSeccion,
   seccionCompleta,
   textoDelCampo,
+  valoresQueMuestran,
 } from '../secciones';
 import { coincide, eleccionAutomatica, minimoDeLetras, normalizarBusqueda } from '../campos/busquedaV2';
 
@@ -123,6 +124,63 @@ describe('camposPegados / ordenConPegados', () => {
       }],
     });
     expect(camposPegados({ fields: [INCOME_SOURCE, variasOpciones] }).size).toBe(0);
+  });
+
+  // BAL-5205: «¿Cuál institución?» la destapan varias opciones «Otros» de la
+  // lista (una por tipo de institución). Ya no hace falta un valor único:
+  // basta con que TODOS los valores que la destapan sean opciones «Otr…».
+  const pegadoPor = (code: string, padre: string, valores: string[]) =>
+    campo(code, {
+      dependency_groups: valores.map((v) => ({
+        action: 'show' as const,
+        logic: 'and' as const,
+        conditions: [{ depends_on_field: padre, operator: 'equals' as const, value: v }],
+      })),
+    });
+  const listaCon = (code: string, opciones: [string, string][]) =>
+    campo(code, { type: 'autocomplete', options: opciones.map(([value, label]) => ({ value, label })) } as Partial<WizardField>);
+
+  it('BAL-5205: pega «¿Cuál institución?» aunque la muestren varias opciones «Otr…» de la lista', () => {
+    const fields = [
+      listaCon('institution', [['1', 'UCV'], ['39381', 'Otros'], ['39627', 'Otra institución']]),
+      pegadoPor('other_institution', 'institution', ['39381', '39627']),
+    ];
+    expect(camposPegados({ fields }).get('other_institution')).toBe('institution');
+  });
+
+  it('BAL-5205: no pega si alguno de los valores no es una opción «Otr…»', () => {
+    const fields = [
+      listaCon('institution', [['1', 'UCV'], ['39381', 'Otros']]),
+      pegadoPor('other_institution', 'institution', ['39381', '1']),
+    ];
+    expect(camposPegados({ fields }).has('other_institution')).toBe(false);
+  });
+
+  // Institución y carrera buscan sus opciones en ws2 (`options_source`): el
+  // paso no trae `options` y la etiqueta de lo elegido solo se conoce en el
+  // formulario (`formData[lista].label`). Sin esa etiqueta no se pega.
+  const INSTITUCION_REMOTA = campo('institution', { type: 'autocomplete', options_source: 'study-centers', options: [] } as Partial<WizardField>);
+  const OTRA_INSTITUCION = campo('other_institution', {
+    label: '¿Cuál institución?',
+    dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'institution', operator: 'in', value: ['39381', '39382', '39383'] }] }],
+  });
+
+  it('BAL-5205: lista remota sin la opción elegida a la vista no pega (como antes)', () => {
+    expect(camposPegados({ fields: [INSTITUCION_REMOTA, OTRA_INSTITUCION] }).size).toBe(0);
+  });
+
+  it('BAL-5205: lista remota pega si lo elegido que la destapa se llama «Otr…»', () => {
+    const fields = [INSTITUCION_REMOTA, OTRA_INSTITUCION];
+    expect(camposPegados({ fields }, () => ({ value: '39381', label: 'Otros' })).get('other_institution')).toBe('institution');
+    // Elegida una institución cualquiera: el «¿Cuál…?» está oculto y sigue pegado.
+    expect(camposPegados({ fields }, () => ({ value: '7', label: 'UCV' })).get('other_institution')).toBe('institution');
+    // Lo que la destapa no se llama «Otr…»: no es una «Otra», no se pega.
+    expect(camposPegados({ fields }, () => ({ value: '39381', label: 'Universidad X' })).size).toBe(0);
+  });
+
+  it('valoresQueMuestran junta los valores de todos los grupos, o null si no son fijos', () => {
+    expect(valoresQueMuestran(OTRA_INSTITUCION.dependency_groups!)).toEqual(['39381', '39382', '39383']);
+    expect(valoresQueMuestran([{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'email', operator: 'is_not_empty', value: null }] }])).toBeNull();
   });
 });
 

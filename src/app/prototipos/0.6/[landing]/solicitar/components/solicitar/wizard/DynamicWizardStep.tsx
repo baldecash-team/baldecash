@@ -18,6 +18,9 @@ import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/camp
 import { ayudaDelNumero, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
 import { armarBloques, camposPegados, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
+import { OtraEnElCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/OtraEnElCampoV2';
+import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/useErroresAlSalir';
+import { useFieldTracking } from '../../../hooks/useFieldTracking';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -180,6 +183,9 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 }) => {
   const { getFieldValue, getFieldLabel, updateField, formData, getAllDynamicOptions } = useWizard();
   const { deferredPayment, landing } = useLayout();
+  // El «¿Cuál…?» escrito en el mismo campo (BAL-5205) no pasa por DynamicField:
+  // su foco y salida se registran acá, igual que los de cualquier campo.
+  const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
 
   // El legacy corre un mes el primer pago cuando la landing es diferida.
   const isDeferred = Boolean(deferredPayment?.enabled);
@@ -350,8 +356,52 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   const errorVisibleDe = (codigo: string) =>
     mostrarErrorDe(codigo) && (!!formData[codigo]?.error || !!erroresLocales[codigo]);
 
-  // Diseño 2 (F5): "Otra (escríbela)" pegado bajo la lista que lo destapa.
-  const pegados = useMemo(() => (esV2 ? camposPegados(step) : new Map<string, string>()), [esV2, step]);
+  // Diseño 2 (F5): "Otra (escríbela)" pegada a la lista que la destapa; desde
+  // BAL-5205 se escribe en el MISMO campo de la lista (`OtraEnElCampoV2`).
+  // Institución y carrera buscan sus opciones en ws2 y el paso no trae sus
+  // etiquetas: para ellas cuenta la etiqueta de lo elegido. La firma evita
+  // recalcular a cada tecla: solo cambia cuando cambia lo elegido en esas listas.
+  const firmaListasRemotas = esV2
+    ? step.fields
+      .filter((f) => f.options_source && !f.options?.length)
+      .map((f) => `${f.code}=${String(formData[f.code]?.value ?? '')}|${formData[f.code]?.label ?? ''}`)
+      .join(';')
+    : '';
+  const pegados = useMemo(
+    () => (esV2
+      ? camposPegados(step, (codigo) => ({
+        value: formData[codigo]?.value as string | undefined,
+        label: formData[codigo]?.label,
+      }))
+      : new Map<string, string>()),
+    // `formData` entra por `firmaListasRemotas`: solo importa lo elegido en las listas remotas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [esV2, step, firmaListasRemotas],
+  );
+  // Al revés: lista → su «¿Cuál…?».
+  const pegadoDeLaLista = useMemo(() => {
+    const m = new Map<string, string>();
+    pegados.forEach((lista, pegado) => m.set(lista, pegado));
+    return m;
+  }, [pegados]);
+  const camposPorCodigo = useMemo(() => new Map(step.fields.map((f) => [f.code, f])), [step.fields]);
+
+  // Qué paso ya terminó de montar. La caja del «¿Cuál…?» que aparece en ese
+  // primer render (la persona vuelve a un paso que ya estaba en «Otro») no
+  // toma el foco; la que aparece después (acaba de elegir «Otro») sí.
+  const pasoMontadoRef = useRef<string | null>(null);
+  useEffect(() => {
+    pasoMontadoRef.current = step.code;
+  }, [step.code]);
+
+  /** «Ver opciones»: vacía la lista y su «¿Cuál…?» y vuelve a la lista, sin errores todavía. */
+  const verOpciones = (codigoLista: string, codigoOtra: string) => {
+    updateField(codigoOtra, '');
+    updateField(codigoLista, '');
+    reiniciarCampoTocado(codigoOtra);
+    reiniciarCampoTocado(codigoLista);
+    setPorEnfocar(codigoLista);
+  };
   // Bloques (con secciones) u orden (sin secciones): solo cambian con el paso.
   const bloques = useMemo(
     () => (esV2 && step.groups?.length ? armarBloques(step, pegados) : []),
@@ -374,7 +424,10 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   const pintarCampo = (field: WizardField) => {
     // Hide wrapper for invisible fields so grid gap doesn't create empty space
     if (!fieldVisibility[field.code]) return null;
-    const pegadoA = esV2 ? pegados.get(field.code) : undefined;
+    // BAL-5205: el «¿Cuál…?» ya no se pinta aparte; va dentro del campo de su lista.
+    if (esV2 && pegados.has(field.code)) return null;
+    const codigoOtra = esV2 ? pegadoDeLaLista.get(field.code) : undefined;
+    const campoOtra = codigoOtra && fieldVisibility[codigoOtra] ? camposPorCodigo.get(codigoOtra) : undefined;
 
     // Use grid_columns from API (default to 12 = full width)
     const cols = field.grid_columns || 12;
@@ -428,14 +481,33 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
           // (BAL-4966, decisión de Emilio; reemplaza a D7 y a la fila de
           // cascada armada en código): `grid_columns` desde `sm` y
           // `grid_columns_mobile` debajo, 12 (ancho completo) si vienen
-          // vacíos. Diseño 2 suma sus clases (`campo-v2`, y un "Otra"
-          // pegado a su lista va más junto).
+          // vacíos. Diseño 2 suma sus clases (`campo-v2`).
           className={esV2
-            ? `${colMobileClass} ${colClass} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
+            ? `${colMobileClass} ${colClass} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200`
             : `${colMobileClass} ${colClass}`}
-          {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2, ...(pegadoA ? { 'data-pegado-a': pegadoA } : {}) } : {})}
+          {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2 } : {})}
         >
-          {plegado ? (
+          {campoOtra ? (
+            // BAL-5205: la lista está en su «Otr…»: en su lugar, la caja del
+            // «¿Cuál…?» con su etiqueta, su error y su `data-campo` (la guía,
+            // «Continuar» y el error al salir lo encuentran como siempre).
+            <div data-campo={campoOtra.code}>
+              <OtraEnElCampoV2
+                id={campoOtra.code}
+                etiqueta={campoOtra.label}
+                valor={String(formData[campoOtra.code]?.value ?? '')}
+                placeholder={campoOtra.placeholder || undefined}
+                pista={campoOtra.hint}
+                error={errorVisibleDe(campoOtra.code) ? formData[campoOtra.code]?.error ?? undefined : undefined}
+                // Si el paso ya llegó en «Otro», no abre el teclado solo.
+                enfocarAlMontar={pasoMontadoRef.current === step.code}
+                onCambiar={(v) => updateField(campoOtra.code, v)}
+                onEnfocar={() => onFieldFocus(campoOtra.code)}
+                onVerOpciones={() => verOpciones(field.code, campoOtra.code)}
+                onSalir={() => onFieldBlur(campoOtra.code, !!String(getFieldValue(campoOtra.code) ?? '').trim())}
+              />
+            </div>
+          ) : plegado ? (
             <AgregarOpcionalV2 label={field.label} onAbrir={() => abrirPlegado(field.code)} />
           ) : (
             <EntradaDelCampo
