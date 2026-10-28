@@ -58,6 +58,16 @@ function texto(valor: string | string[] | undefined): string {
 }
 
 /**
+ * `true` si el documento escrito no puede mostrar el nombre de su dueño:
+ * - fuera de la whitelist (manda el modal de no invitado), o
+ * - link especial de otro DNI o que ya no sirve.
+ * Vale para todo saludo con nombre: el del Paso 1 y el del panel lateral.
+ */
+export function saludoBloqueado(valores: Valores): boolean {
+  return valores._whitelist_blocked === 'true' || valores._special_link_blocked === 'true';
+}
+
+/**
  * El nombre para "¡Hola, {Nombre}!" (y "¡Último paso, {Nombre}!"), o `null`
  * si no hay saludo. Sale, en este orden:
  *
@@ -73,8 +83,7 @@ function texto(valor: string | string[] | undefined): string {
  */
 export function nombreDelSaludo(field: WizardField, valores: Valores): string | null {
   if (!CODIGOS_DOCUMENTO_TITULAR.includes(field.code)) return null;
-  // Documento fuera de la whitelist: manda el modal de no invitado, no se saluda.
-  if (valores._whitelist_blocked === 'true') return null;
+  if (saludoBloqueado(valores)) return null;
   const estado = valores[`_prefill_status_${field.code}`];
   if (estado !== undefined && estado !== 'found') return null;
   const codigoNombre = campoDelNombre(field.prefill_config);

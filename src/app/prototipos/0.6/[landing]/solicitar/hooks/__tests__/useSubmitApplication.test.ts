@@ -255,6 +255,48 @@ describe('useSubmitApplication', () => {
       });
     });
 
+    it.each([
+      ['SPECIAL_LINK_DNI_MISMATCH', 'Este link es personal y no corresponde a tu DNI.'],
+      ['SPECIAL_LINK_INVALID', 'Tu link especial venció o ya se usó. Pídele uno nuevo a tu asesora.'],
+    ])('%s va al aviso fijo, no al toast', async (code, texto) => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: code,
+        error: 'texto sin tildes del backend',
+      });
+
+      const onToast = jest.fn();
+      const onLinkEspecialRechazado = jest.fn();
+      const onUnidadTomada = jest.fn();
+      const { result } = renderHook(() =>
+        useSubmitApplication({ onToast, onUnidadTomada, onLinkEspecialRechazado }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onLinkEspecialRechazado).toHaveBeenCalledWith(texto);
+      expect(onToast).not.toHaveBeenCalled();
+      expect(onUnidadTomada).not.toHaveBeenCalled();
+    });
+
+    it('sin aviso fijo, SPECIAL_LINK_DNI_MISMATCH cae al toast de siempre', async () => {
+      mockSubmitApplication.mockResolvedValueOnce({
+        success: false,
+        error_code: 'SPECIAL_LINK_DNI_MISMATCH',
+        error: 'x',
+      });
+
+      const onToast = jest.fn();
+      const { result } = renderHook(() => useSubmitApplication({ onToast }));
+
+      await act(async () => {
+        await result.current.submit();
+      });
+
+      expect(onToast).toHaveBeenCalledWith('Este link es personal y no corresponde a tu DNI.', 'error');
+    });
+
     it('sin modal, UNIT_OUT_OF_STOCK cae al toast de siempre', async () => {
       // Un caller que no maneje el canal nuevo no puede quedarse sin aviso.
       mockSubmitApplication.mockResolvedValueOnce({

@@ -25,6 +25,7 @@ import { AnimatePresence } from 'framer-motion';
 
 import { StepSuccessMessage } from '../celebration/StepSuccessMessage';
 import { SubmitOverlay } from '../submit/SubmitOverlay';
+import { AvisoLinkEspecialRechazado } from '../submit/AvisoLinkEspecialRechazado';
 
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
@@ -49,7 +50,7 @@ import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
-import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR, saludoBloqueado } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { AvisoUnidadTomadaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoUnidadTomadaV2';
 import { irAlPrimerErrorV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
@@ -173,7 +174,10 @@ export function usePasoDelWizard(opciones: {
   // solo rechaza al pulsarlo. Un boton que se ve activo y no hace nada se lee
   // como que la pagina fallo; deshabilitado dice "falta algo" sin ambiguedad.
   // El motivo lo explica el modal de DocumentNumberField.
-  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true';
+  // Link especial con un DNI que no es el del pase (o el pase ya no sirve): el
+  // mismo bloqueo. El motivo va debajo del campo del documento.
+  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true'
+    || formData['_special_link_blocked']?.value === 'true';
 
   // Event tracker
   const tracker = useEventTrackerOptional();
@@ -191,12 +195,22 @@ export function usePasoDelWizard(opciones: {
   // (volver al catalogo y elegir otro equipo) justo cuando el envio fallo y la
   // persona no sabe si su solicitud entro.
   const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+  // El link especial rechazado al enviar: aviso fijo, no toast.
+  const [linkEspecialRechazado, setLinkEspecialRechazado] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
+    onLinkEspecialRechazado: setLinkEspecialRechazado,
     consentimientoEnPantalla,
   });
+
+  const avisoLinkEspecial = (
+    <AvisoLinkEspecialRechazado
+      mensaje={linkEspecialRechazado}
+      onCerrar={() => setLinkEspecialRechazado(null)}
+    />
+  );
 
   // El z-index del wrapper va explicito y NO se puede sacar. `ModalAviso` es
   // `z-50` y la navbar del wizard tambien: mientras el modal se montaba DESPUES
@@ -339,6 +353,9 @@ export function usePasoDelWizard(opciones: {
   const stepMotivational = useMemo((): WizardMotivational | null => {
     if (!step) return null;
     if (isVipLanding) return step.motivational;
+    // DNI bloqueado (link especial de otro DNI o fuera de la whitelist): el
+    // nombre que encontró la búsqueda es de otra persona, no se saluda.
+    if (saludoBloqueado(formValues)) return step.motivational;
 
     const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
     if (prefillStatus !== 'found') return step.motivational;
@@ -357,7 +374,7 @@ export function usePasoDelWizard(opciones: {
       subtitle: 'Ya casi terminamos este paso, sigue adelante.',
       illustration: step.motivational?.illustration || '',
     };
-  }, [step, formData, isVipLanding]);
+  }, [step, formData, formValues, isVipLanding]);
 
   // Track form_abandon on beforeunload (when user closes/reloads mid-form)
   useEffect(() => {
@@ -431,6 +448,13 @@ export function usePasoDelWizard(opciones: {
       const wlField = formData['_whitelist_field']?.value as string | undefined;
       if (wlField) {
         document.getElementById(wlField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    if (formData['_special_link_blocked']?.value === 'true') {
+      const slField = formData['_special_link_field']?.value as string | undefined;
+      if (slField) {
+        document.getElementById(slField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
     }
@@ -574,6 +598,7 @@ export function usePasoDelWizard(opciones: {
       )}
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       {modalUnidadTomada}
+      {avisoLinkEspecial}
     </>
   );
 
@@ -590,7 +615,7 @@ export function usePasoDelWizard(opciones: {
     showErrors: submitted,
     celebrando: showCelebration,
     motivational: stepMotivational,
-    firstName: formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || ''),
+    firstName: formData['_prefill_status_document_number']?.value === 'found' && !saludoBloqueado(formValues) ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || ''),
     submitSucceeded,
     overlays,
   };
