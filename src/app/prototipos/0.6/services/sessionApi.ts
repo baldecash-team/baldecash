@@ -10,6 +10,7 @@
  * en solicitud.
  *
  * El endpoint del backend solo rellena huecos: nunca pisa un valor ya puesto.
+ * Salvo `phone` (BAL-5253), donde gana el último.
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -22,6 +23,30 @@ export interface SessionPatchFields {
   fingerprint_hash?: string | null;
   user_agent?: string | null;
   entry_url?: string | null;
+  /**
+   * Celular de Datos personales (BAL-5253): para contactar a quien abandona
+   * antes de enviar. Aprobado por legal. Nunca viaja en eventos ni a Sentry.
+   */
+  phone?: string | null;
+}
+
+/** Código del campo del celular de la persona (el mismo en Diseño 1 y 2). */
+const CAMPO_CELULAR = 'phone';
+
+/**
+ * El celular a guardar en la sesión al pasar un paso, o `null` si el paso no
+ * tiene ese campo o quedó vacío. Solo el celular de la persona: no el del
+ * familiar ni el secundario.
+ */
+export function celularDelPaso(
+  campos: ReadonlyArray<{ code: string }> | undefined,
+  valores: Record<string, string | string[] | undefined>
+): string | null {
+  if (!campos?.some((c) => c.code === CAMPO_CELULAR)) return null;
+  const valor = valores[CAMPO_CELULAR];
+  if (typeof valor !== 'string') return null;
+  const digitos = valor.replace(/\D/g, '');
+  return digitos || null;
 }
 
 /**
