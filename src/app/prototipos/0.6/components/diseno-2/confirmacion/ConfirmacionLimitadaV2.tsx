@@ -6,10 +6,9 @@
  * (`LimitedConfirmationContent`): sin nombre, equipo ni cuota, porque el
  * `application_code` es adivinable y esos datos piden la prueba de
  * titularidad que da el token. Solo el N.° de solicitud y el contacto.
+ * Sin Baldecito, como la cabecera de la vista completa (BAL-5203).
  */
 import React from 'react';
-import { BaldecitoV2 } from '../BaldecitoV2';
-import { useMenosMovimiento } from '../movimiento';
 import { ContactInfo } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/components/received';
 import type { ApplicationStatusData } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/types/applicationStatus';
 
@@ -20,14 +19,10 @@ export interface ConfirmacionLimitadaV2Props {
 
 export function ConfirmacionLimitadaV2({ applicationData, onGoHome }: ConfirmacionLimitadaV2Props) {
   const numero = applicationData.reference || applicationData.code;
-  const reducido = useMenosMovimiento();
   return (
     <div data-confirmacion-v2-limitada className="bg-[var(--d2-fondo-confirmacion)]">
       <div className="mx-auto max-w-2xl px-4 py-10 text-center sm:px-6 sm:py-14">
-        <span className="mx-auto block w-fit">
-          <BaldecitoV2 ancho={74} animado={!reducido} flotar={{ duracion: 3, demora: 0 }} saludar={{ duracion: 1.6, demora: 0 }} />
-        </span>
-        <h1 className="mt-4 font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--d2-texto)]">
+        <h1 className="font-['Baloo_2',_sans-serif] text-2xl font-bold text-[var(--d2-texto)]">
           ¡Recibimos tu solicitud!
         </h1>
         <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--d2-chip-numero)] px-4 py-2">

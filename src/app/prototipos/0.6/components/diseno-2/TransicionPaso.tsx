@@ -3,8 +3,8 @@
 /**
  * Transición entre pasos de Diseño 2: "¡Un paso más!" (BAL-4959).
  *
- * Baldecito (el SVG del prototipo, `BaldecitoV2`) salta por el camino de los
- * pasos, del que se completó al siguiente. Dura ~2,7 s y después avisa `onComplete`, que es donde sigue la
+ * El camino de los pasos (nodos con su nombre y la barra) se llena del que se
+ * completó al siguiente. Dura ~2,7 s y después avisa `onComplete`, que es donde sigue la
  * navegación de siempre (`usePasoDelWizard`). Un clic, Enter, Espacio o
  * Escape la saltan y navegan al instante.
  *
@@ -12,14 +12,15 @@
  * `StepSuccessMessage`, porque ese callback puede enviar la solicitud y un
  * aviso de más sería un envío de más.
  *
- * Con `prefers-reduced-motion` no hay movimiento: Baldecito aparece ya en el
- * paso siguiente y la pantalla dura menos.
+ * Con `prefers-reduced-motion` no hay movimiento: el camino ya aparece lleno
+ * hasta el paso siguiente y la pantalla dura menos.
  *
- * Movimiento (BAL-4969): el del puente del prototipo de Brenda — fundido de
- * entrada (`bcFadeIn` 0,2 s), salto de Baldecito (`bcHop` 0,9 s con
- * cubic-bezier(.45,0,.3,1)), chispas al llegar (`bcBurst`) y textos que entran
- * escalonados (`bcPop` 0,4 s). Todo con `transform`/`opacity`; las keyframes
- * viven en `globals.css` (`d2*`).
+ * Movimiento (BAL-4969): fundido de entrada (`bcFadeIn` 0,2 s), check del paso
+ * hecho, la barra que se llena, el anillo del paso que sigue y textos que
+ * entran escalonados (`bcPop` 0,4 s). Todo con `transform`/`opacity`; las
+ * keyframes viven en `globals.css` (`d2*`).
+ *
+ * BAL-5203 (Brenda, 27-oct): sin Baldecito ni sus chispas; solo el progreso.
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
@@ -29,23 +30,10 @@ import { getStepSlug } from '@/app/prototipos/0.6/services/wizardApi';
 import { etiquetaCortaDelPaso, etiquetaDelPaso } from './ProgresoV2';
 import { useMenosMovimiento } from './movimiento';
 import { Check, ArrowRight } from 'lucide-react';
-import { BaldecitoV2 } from './BaldecitoV2';
 import { getMessage } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/celebration/StepSuccessMessage';
 
 export const DURACION_TRANSICION_MS = 2700;
 export const DURACION_TRANSICION_REDUCIDA_MS = 1200;
-
-/** Chispas de la llegada: color, dx y dy en px (las del prototipo). */
-const CHISPAS: ReadonlyArray<readonly [string, number, number]> = [
-  ['#FFD666', -26, -30],
-  ['#19C3A6', 28, -26],
-  ['var(--color-primary)', -34, 4],
-  ['#9AA5F0', 34, 8],
-  ['#FFD666', 4, -40],
-  ['#5FD3BE', -14, 30],
-  ['var(--color-primary)', 18, 32],
-  ['#FFD666', 40, -10],
-];
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -160,17 +148,18 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
       data-transicion-v2
     >
       <div className="flex w-full max-w-[420px] flex-col items-center text-center">
-        {/* Camino con Baldecito (puente del prototipo de Brenda) */}
-        <div className="relative h-[188px] w-[308px] max-w-full sm:[zoom:1.2]" aria-hidden>
-          <span className="absolute left-[22px] right-[22px] top-[142px] h-1 rounded-full bg-[var(--d2-borde)]" />
+        {/* Progreso: los pasos con sus nombres y la barra (BAL-5203: sin
+            Baldecito; el camino arranca arriba, sin el hueco del salto). */}
+        <div data-progreso-puente className="relative h-[60px] w-[308px] max-w-full sm:[zoom:1.2]" aria-hidden>
+          <span className="absolute left-[22px] right-[22px] top-[14px] h-1 rounded-full bg-[var(--d2-borde)]" />
           <span
-            className="absolute left-[22px] top-[142px] h-1 rounded-full bg-[var(--d2-progreso-ok)]"
+            className="absolute left-[22px] top-[14px] h-1 rounded-full bg-[var(--d2-progreso-ok)]"
             style={{ width: desde * GAP }}
           />
           {avanza && (
             <span
               data-camino-lleno
-              className="absolute top-[142px] h-1 origin-left rounded-full bg-[var(--d2-progreso-ok)]"
+              className="absolute top-[14px] h-1 origin-left rounded-full bg-[var(--d2-progreso-ok)]"
               style={{ left: x(desde), width: GAP, ...an('d2Llenado', 0.9, 0.35, 'ease-in-out') }}
             />
           )}
@@ -180,7 +169,7 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
             return (
               <React.Fragment key={`${nombre}-${i}`}>
                 <span
-                  className={`absolute top-[128px] flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                  className={`absolute top-0 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                     hecho
                       ? 'bg-[var(--d2-progreso-ok)] text-white'
                       : sigue
@@ -196,7 +185,7 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
                 </span>
                 <span
                   data-etiqueta-puente
-                  className={`absolute top-[166px] w-[88px] truncate px-1 text-center text-xs ${
+                  className={`absolute top-[38px] w-[88px] truncate px-1 text-center text-xs ${
                     hecho ? 'font-semibold text-[var(--d2-ok-texto)]' : sigue ? 'font-bold text-[var(--color-primary-text)]' : 'text-[var(--d2-texto-tenue)]'
                   }`}
                   style={{ left: x(i) - 44 }}
@@ -206,42 +195,6 @@ export function TransicionPaso({ pasos, etiquetas, pasoCompletado, onComplete }:
               </React.Fragment>
             );
           })}
-          {/* Chispas al llegar (`bcBurst`). */}
-          {!reducido && avanza &&
-            CHISPAS.map(([color, dx, dy], i) => (
-              <span
-                key={i}
-                data-chispa
-                className="absolute top-[140px] h-2 w-2"
-                style={
-                  {
-                    left: x(hasta) - 4,
-                    background: color,
-                    borderRadius: i % 2 ? 2 : 999,
-                    opacity: 0,
-                    '--dx': `${dx}px`,
-                    '--dy': `${dy}px`,
-                    animation: 'd2Chispa 0.75s ease-out 1.25s both',
-                  } as React.CSSProperties
-                }
-              />
-            ))}
-          {/* Baldecito salta del paso hecho al que sigue (`bcHop`). */}
-          <span
-            data-viajero
-            className="absolute top-[61px] block origin-bottom"
-            style={
-              {
-                left: x(desde) - 32,
-                '--d2-salto': `${avanza ? GAP : 0}px`,
-                ...(reducido || !avanza
-                  ? { transform: `translate(${avanza ? GAP : 0}px, 0)` }
-                  : { animation: 'd2Salto 0.9s cubic-bezier(0.45, 0, 0.3, 1) 0.35s both' }),
-              } as unknown as React.CSSProperties
-            }
-          >
-            <BaldecitoV2 ancho={64} animado={!reducido} />
-          </span>
         </div>
 
         <h2

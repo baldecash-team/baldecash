@@ -1,18 +1,18 @@
 'use client';
 
 /**
- * Cabecera azul de `ConfirmacionV2` (F8, BAL-4967): confeti, Baldecito con
- * anillo animado, la píldora "Solicitud N.° …" y el título + subtítulo.
+ * Cabecera azul de `ConfirmacionV2` (F8, BAL-4967): confeti, la píldora
+ * "Solicitud N.° …" y el título + subtítulo. Sin Baldecito (BAL-5203: Brenda
+ * prefiere ahorrar el espacio; no se reemplaza por nada y la píldora sube).
  *
  * El texto lo decide `textoCabeceraV2` (quien llama arma `titulo`/`subtitulo`
- * ya resueltos); esta pieza solo pinta. El confeti y el anillo respetan
+ * ya resueltos); esta pieza solo pinta. El confeti respeta
  * `prefers-reduced-motion` con `useMenosMovimiento` (`../movimiento`), la
  * única fuente del kit de Diseño 2: lee `matchMedia`, así que los tests lo
  * pueden probar apagado.
  */
 
 import React from 'react';
-import { BaldecitoV2 } from '../BaldecitoV2';
 import { useMenosMovimiento } from '../movimiento';
 import { piezasDeConfeti } from './confeti';
 
@@ -49,10 +49,6 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
           8% { opacity: 1; }
           100% { opacity: 0; transform: translate3d(var(--sway, 24px), 400px, 0) rotate(620deg); }
         }
-        @keyframes anilloConfirmacionV2 {
-          0% { transform: scale(1); opacity: 0.55; }
-          100% { transform: scale(1.55); opacity: 0; }
-        }
       `}</style>
 
       {/* Confeti: decorativo, nunca se anuncia a lectores de pantalla. */}
@@ -78,33 +74,7 @@ export function CabeceraConfirmacionV2({ titulo, subtitulo, numeroDeSolicitud }:
         ))}
       </div>
 
-      {/* Baldecito del prototipo (SVG, BAL-4959): flota y saluda dentro del
-          círculo blanco, con el anillo que se expande detrás. */}
-      <div className="relative mx-auto flex h-[136px] w-[136px] items-center justify-center">
-        {!reducido && (
-          <span
-            aria-hidden
-            data-anillo-baldecito
-            className="absolute inset-0 rounded-full border-2 border-white/55"
-            style={{ animation: 'anilloConfirmacionV2 2.4s ease-out 0.4s infinite' }}
-          />
-        )}
-        {/* Medallón de Baldecito: blanco fijo en los dos temas (BAL-4959). Con
-            `style` y no `bg-white`, porque el puente del tema oscuro de
-            `globals.css` vuelve oscuro todo `.bg-white`. */}
-        <span aria-hidden className="absolute inset-0 rounded-full shadow-[0_14px_34px_rgba(15,20,60,0.3)]" style={{ backgroundColor: '#FFFFFF' }} />
-        <span className="relative mt-1.5 block">
-          <BaldecitoV2
-            ancho={86}
-            animado={!reducido}
-            flotar={{ duracion: 3, demora: 0 }}
-            saludar={{ duracion: 1.6, demora: 0 }}
-            etiqueta="Baldecito celebrando"
-          />
-        </span>
-      </div>
-
-      <div className="relative mt-1 inline-flex items-center gap-2 rounded-full border border-white/[0.28] bg-white/[0.14] px-3 py-[5px] text-[13px] font-semibold tabular-nums text-[var(--d2-cabecera-texto)]">
+      <div className="relative inline-flex items-center gap-2 rounded-full border border-white/[0.28] bg-white/[0.14] px-3 py-[5px] text-[13px] font-semibold tabular-nums text-[var(--d2-cabecera-texto)]">
         <span className="h-2 w-2 rounded-full bg-[#5FD3BE]" aria-hidden />
         Solicitud N.° {numeroDeSolicitud}
       </div>
