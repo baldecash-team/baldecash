@@ -17,7 +17,7 @@ import { CamposV2Provider, PISTA_V2, TARJETA_V2, TARJETA_V2_ESTILO } from '@/app
 import { AgregarOpcionalV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/AgregarOpcionalV2';
 import { ayudaDelNumero, nombreDelSaludo } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { SeccionPlegable } from '@/app/prototipos/0.6/components/diseno-2/SeccionPlegable';
-import { armarBloques, camposPegados, ordenConPegados, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
+import { armarBloques, camposPegados, ordenConPegados, otrasEnElCampo, resumenDeSeccion, seccionCompleta } from '@/app/prototipos/0.6/components/diseno-2/secciones';
 import { OtraEnElCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/OtraEnElCampoV2';
 import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/useErroresAlSalir';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
@@ -379,12 +379,16 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [esV2, step, firmaListasRemotas],
   );
-  // Al revés: lista → su «¿Cuál…?».
+  // BAL-5227: de esas, las que se escriben DENTRO del campo de la lista
+  // (`other_inline`, por campo del paso). Las apagadas siguen pegadas (orden
+  // y sección junto a su lista) pero se pintan aparte, debajo de la lista.
+  const enElCampo = useMemo(() => otrasEnElCampo(step, pegados), [step, pegados]);
+  // Al revés: lista → su «¿Cuál…?» dentro del campo.
   const pegadoDeLaLista = useMemo(() => {
     const m = new Map<string, string>();
-    pegados.forEach((lista, pegado) => m.set(lista, pegado));
+    enElCampo.forEach((lista, pegado) => m.set(lista, pegado));
     return m;
-  }, [pegados]);
+  }, [enElCampo]);
   const camposPorCodigo = useMemo(() => new Map(step.fields.map((f) => [f.code, f])), [step.fields]);
 
   // Qué paso ya terminó de montar. La caja del «¿Cuál…?» que aparece en ese
@@ -435,8 +439,11 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   const pintarCampo = (field: WizardField) => {
     // Hide wrapper for invisible fields so grid gap doesn't create empty space
     if (!fieldVisibility[field.code]) return null;
-    // BAL-5205: el «¿Cuál…?» ya no se pinta aparte; va dentro del campo de su lista.
-    if (esV2 && pegados.has(field.code)) return null;
+    // BAL-5205: el «¿Cuál…?» ya no se pinta aparte; va dentro del campo de su
+    // lista. BAL-5227: salvo que el paso lo apague (`other_inline: false`):
+    // entonces va aparte, pegado debajo de su lista, como antes.
+    if (esV2 && enElCampo.has(field.code)) return null;
+    const pegadoA = esV2 ? pegados.get(field.code) : undefined;
     const codigoOtra = esV2 ? pegadoDeLaLista.get(field.code) : undefined;
     const campoOtra = codigoOtra && fieldVisibility[codigoOtra] ? camposPorCodigo.get(codigoOtra) : undefined;
 
@@ -494,9 +501,9 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
           // `grid_columns_mobile` debajo, 12 (ancho completo) si vienen
           // vacíos. Diseño 2 suma sus clases (`campo-v2`).
           className={esV2
-            ? `${colMobileClass} ${colClass} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200`
+            ? `${colMobileClass} ${colClass} campo-v2 rounded-xl px-2 py-1 -mx-2 transition-[box-shadow,background-color] duration-200${pegadoA ? ' -mt-3' : ''}`
             : `${colMobileClass} ${colClass}`}
-          {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2 } : {})}
+          {...(esV2 ? { 'data-campo': field.code, 'data-estado': estadoV2, ...(pegadoA ? { 'data-pegado-a': pegadoA } : {}) } : {})}
         >
           {campoOtra ? (
             // BAL-5205: la lista está en su «Otr…»: en su lugar, la caja del

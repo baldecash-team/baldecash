@@ -403,6 +403,55 @@ describe('BAL-5205: «Otro» se escribe en el mismo campo', () => {
   });
 });
 
+describe('BAL-5227: «Otro» dentro del campo se apaga por campo del paso', () => {
+  const OTRO_CICLO_APARTE = { ...OTRO_CICLO, other_inline: false } as WizardField;
+
+  it('apagado: con «Otro» elegido la lista sigue y el «¿Cuál ciclo?» va aparte, justo debajo y en la misma sección', () => {
+    formData = { semester: { value: 'otro', label: 'Otro' } };
+    const { container } = pintarV2(paso([CICLO, MONTO, OTRO_CICLO_APARTE], { groups: [GRUPOS[1], GRUPOS[0]] }));
+    const ciclo = container.querySelector<HTMLElement>('[data-campo="semester"]')!;
+    // La lista no se reemplaza.
+    expect(screen.getByText('Ciclo Actual')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver opciones' })).toBeNull();
+    expect(container.querySelector('[data-otra-en-el-campo]')).toBeNull();
+    // El «¿Cuál ciclo?» es su propio campo, fuera del de la lista…
+    const caja = screen.getByRole('textbox', { name: /¿Cuál ciclo\?/ });
+    expect(ciclo).not.toContainElement(caja);
+    const otro = container.querySelector<HTMLElement>('[data-campo="other_semester"]')!;
+    expect(otro).toContainElement(caja);
+    expect(otro).toHaveAttribute('data-pegado-a', 'semester');
+    // …debajo de su lista y en su sección, aunque el paso lo traiga al final y sin sección.
+    expect(ordenDeCampos(container)).toEqual(['semester', 'other_semester', 'tuition_amount']);
+    expect(otro.closest('[data-seccion]')).toHaveAttribute('data-seccion', 'tus_estudios');
+    // Elegir «Otro» no le roba el foco a la lista.
+    expect(caja).not.toHaveFocus();
+  });
+
+  it('apagado: lo escrito va a other_semester como siempre', () => {
+    formData = { semester: { value: 'otro', label: 'Otro' } };
+    pintarV2(paso([CICLO, OTRO_CICLO_APARTE]));
+    fireEvent.change(screen.getByRole('textbox', { name: /¿Cuál ciclo\?/ }), { target: { value: 'Décimo' } });
+    expect(updateField.mock.calls.some(([codigo, valor]) => codigo === 'other_semester' && valor === 'Décimo')).toBe(true);
+  });
+
+  it('prendido (`true`) es igual que sin la llave: dentro del campo', () => {
+    formData = { semester: { value: 'otro' } };
+    const { container } = pintarV2(paso([CICLO, { ...OTRO_CICLO, other_inline: true } as WizardField]));
+    const caja = screen.getByRole('textbox', { name: '¿Cuál ciclo?' });
+    expect(container.querySelector('[data-campo="semester"]')).toContainElement(caja);
+    expect(screen.getByRole('button', { name: 'Ver opciones' })).toBeInTheDocument();
+  });
+
+  it('Diseño 1 ignora la llave: igual que siempre', () => {
+    formData = { semester: { value: 'otro' } };
+    const v1 = pintarV1(paso([CICLO, MONTO, OTRO_CICLO_APARTE]));
+    expect(screen.getByText('Ciclo Actual')).toBeInTheDocument();
+    expect(screen.getByText('¿Cuál ciclo?')).toBeInTheDocument();
+    expect(v1.container.querySelector('[data-pegado-a]')).toBeNull();
+    expect(v1.container.querySelector('[data-campo]')).toBeNull();
+  });
+});
+
 describe('Tarjetas de opción (RadioGroup) en Diseño 2', () => {
   it('radiogroup con radios, aria-checked y sin <input type="radio"> anidado', () => {
     formData = { tuition_payer: { value: 'pago_la_mitad' } };

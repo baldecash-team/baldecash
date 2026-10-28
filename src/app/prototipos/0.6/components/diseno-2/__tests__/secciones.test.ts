@@ -6,6 +6,7 @@ import type { WizardField } from '@/app/prototipos/0.6/services/wizardApi';
 import {
   armarBloques,
   camposPegados,
+  otrasEnElCampo,
   ordenConPegados,
   etiquetaCorta,
   parteDelResumen,
@@ -312,5 +313,43 @@ describe('Buscador de Diseño 2', () => {
     expect(eleccionAutomatica(varias, 'ingen', 3)).toBeNull();
     expect(eleccionAutomatica(una, 'pa', 3)).toBeNull();
     expect(eleccionAutomatica([{ label: 'A', disabled: true }], 'aaa', 3)).toBeNull();
+  });
+});
+
+describe('BAL-5227: «Otro» dentro del campo es configurable por campo del paso', () => {
+  const OTRO_CICLO_APARTE = { ...OTRO_CICLO, other_inline: false } as WizardField;
+
+  it('sin la llave cuenta como prendido: el «¿Cuál ciclo?» va dentro del campo de la lista', () => {
+    const step = { fields: [CICLO, MONTO, OTRO_CICLO] };
+    expect(otrasEnElCampo(step, camposPegados(step))).toEqual(new Map([['other_semester', 'semester']]));
+  });
+
+  it('en `true` también va dentro del campo', () => {
+    const step = { fields: [CICLO, MONTO, { ...OTRO_CICLO, other_inline: true } as WizardField] };
+    expect(otrasEnElCampo(step, camposPegados(step)).get('other_semester')).toBe('semester');
+  });
+
+  it('en `false` no va dentro del campo, pero sigue pegado a su lista (orden y sección)', () => {
+    const step = { fields: [CICLO, MONTO, OTRO_CICLO_APARTE] };
+    const pegados = camposPegados(step);
+    expect(otrasEnElCampo(step, pegados).size).toBe(0);
+    // Debajo de su lista, como antes de BAL-5205: no se va al final del paso.
+    expect(pegados.get('other_semester')).toBe('semester');
+    expect(ordenConPegados(step.fields, pegados).map((f) => f.code)).toEqual(['semester', 'other_semester', 'tuition_amount']);
+    const bloques = armarBloques(
+      { fields: step.fields, groups: [{ code: 'g', name: 'G', order: 0, is_collapsible: true, field_codes: ['semester'] }] },
+      pegados,
+    );
+    expect(bloques[0].campos.map((f) => f.code)).toEqual(['semester', 'other_semester']);
+  });
+
+  it('cada campo decide solo: uno apagado no apaga al de otra lista', () => {
+    const INSTITUCION_LOCAL = campo('institution', { type: 'select', options: [{ value: '1', label: 'UCV' }, { value: '9', label: 'Otros' }] } as Partial<WizardField>);
+    const OTRA_INSTITUCION = campo('other_institution', {
+      hidden: true,
+      dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'institution', operator: 'equals', value: '9' }] }],
+    });
+    const step = { fields: [INSTITUCION_LOCAL, OTRA_INSTITUCION, CICLO, OTRO_CICLO_APARTE] };
+    expect(otrasEnElCampo(step, camposPegados(step))).toEqual(new Map([['other_institution', 'institution']]));
   });
 });
