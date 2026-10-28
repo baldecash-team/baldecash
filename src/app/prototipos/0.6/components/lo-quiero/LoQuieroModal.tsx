@@ -30,7 +30,6 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { getLandingAccessories, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
-import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import {
@@ -41,7 +40,7 @@ import {
 } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { WizardConfigProvider, useWizardConfig } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
-import { CouponInput, useQuitarCupon } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
+import { CouponInput, useCuponVisible, useQuitarCupon } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
 import { getTermUnit } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/etiquetaDePlazo';
 import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 // I6 (BAL-4969): la cuota se escribe como en el panel, el Shell y la confirmación
@@ -473,12 +472,8 @@ function LoQuieroModalContent({
   );
 
   // ── Cupón ────────────────────────────────────────────────────────────────
-  const [muestraCupon, setMuestraCupon] = useState(true);
-  useEffect(() => {
-    fetchLandingConfig(landing).then((cfg) => setMuestraCupon(cfg.features.has_coupon));
-  }, [landing]);
   const [errorCupon, setErrorCupon] = useState<string | null>(null);
-  const cuponVisible = muestraCupon || isCouponRequired;
+  const cuponVisible = useCuponVisible(landing, isCouponRequired);
   const quitarCupon = useQuitarCupon();
 
   // El cupón se escribe en un modal chico encima de este (BAL-4958). La

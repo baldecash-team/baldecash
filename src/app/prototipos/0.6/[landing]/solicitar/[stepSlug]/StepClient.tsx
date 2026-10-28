@@ -1015,6 +1015,7 @@ function StepContent() {
         return (
           <>
             <ShellV2
+              cuponObligatorio={isCouponRequired}
               currentStep={step.url_slug || step.code}
               step={step}
               title={step.title}
@@ -1215,6 +1216,7 @@ function StepContent() {
       return (
         <>
           <ShellV2
+            cuponObligatorio={isCouponRequired}
             currentStep={step.url_slug || step.code}
             step={step}
             title={encabezado.titulo}
@@ -1396,6 +1398,7 @@ function StepContent() {
       <>
         {paso.overlays}
         <ShellV2
+          cuponObligatorio={isCouponRequired}
           currentStep={step.url_slug || step.code}
           step={paso.step ?? step}
           title={step.title}

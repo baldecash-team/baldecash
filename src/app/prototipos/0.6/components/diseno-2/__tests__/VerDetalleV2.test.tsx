@@ -9,6 +9,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PanelSolicitudV2, CabeceraSolicitudV2, textoDelDiaDePago } from '../PanelSolicitudV2';
 import { BarraInferiorV2 } from '../BarraInferiorV2';
 
+// El cupón del panel (BAL-5203) vive en su propio módulo; acá no hay ProductProvider.
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon', () => ({
+  CouponInput: () => null,
+  useCuponVisible: () => false,
+  useQuitarCupon: () => jest.fn(),
+}));
+
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/hooks/useTecladoVirtualAbierto', () => ({
   useTecladoVirtualAbierto: () => false,
 }));
@@ -31,6 +38,8 @@ const datos = (overrides: Record<string, unknown> = {}) =>
     total: 159,
     frecuencia: 'mensual',
     leyenda: '24 meses · Sin inicial',
+    textoPlazo: '24 meses',
+    textoInicial: 'Sin inicial',
     regalos: [],
     mesPrimeraCuota: null,
     hayQueElegir: false,

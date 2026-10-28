@@ -7,6 +7,13 @@ import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { PanelSolicitudV2, extrasDeLaCuota } from '../PanelSolicitudV2';
 
+// El cupón del panel (BAL-5203) vive en su propio módulo; acá no hay ProductProvider.
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon', () => ({
+  CouponInput: () => null,
+  useCuponVisible: () => false,
+  useQuitarCupon: () => jest.fn(),
+}));
+
 const datos = (overrides: Record<string, unknown> = {}) =>
   ({
     principal: { id: '1', name: 'Laptop Test', shortName: 'Laptop Test', image: null, paymentPlans: [], initialPercent: 0 },
@@ -17,6 +24,8 @@ const datos = (overrides: Record<string, unknown> = {}) =>
     total: 267,
     frecuencia: 'mensual',
     leyenda: '24 meses · Sin inicial',
+    textoPlazo: '24 meses',
+    textoInicial: 'Sin inicial',
     regalos: [],
     mesPrimeraCuota: null,
     hayQueElegir: false,

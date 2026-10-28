@@ -113,6 +113,11 @@ export interface ShellV2Props {
    * confidencialidad. Los demás pasos llevan Atrás y Continuar en línea.
    */
   pasoResumen?: boolean;
+  /**
+   * La landing pide el cupón para continuar (`isCouponRequired`): el
+   * "¿Tienes un cupón?" del panel de escritorio lo dice (BAL-5203).
+   */
+  cuponObligatorio?: boolean;
 }
 
 /**
@@ -171,6 +176,7 @@ export function ShellV2({
   accionMovil,
   atrasMovil,
   pasoResumen = false,
+  cuponObligatorio = false,
 }: ShellV2Props) {
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
@@ -362,6 +368,7 @@ export function ShellV2({
                 datos={datosDelPanel}
                 detalle={detalle}
                 conEnvio={conEnvio}
+                cuponObligatorio={cuponObligatorio}
                 // El paso que envía lleva su "Enviar" también en el panel (prototipo).
                 envio={
                   isLastStep && accionPrincipal && !sinNavegacion
