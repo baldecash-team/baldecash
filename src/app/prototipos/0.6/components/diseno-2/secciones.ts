@@ -103,6 +103,23 @@ export function camposPegados(step: Pick<WizardStep, 'fields'>, opcionElegida?: 
 }
 
 /**
+ * BAL-5227: de las "Otra" pegadas (`camposPegados`), las que Diseño 2 escribe
+ * DENTRO del campo de su lista (`OtraEnElCampoV2`, BAL-5205). Es un ajuste
+ * por campo del paso (`other_inline`, admin2): sin la llave cuenta como
+ * prendido. Las apagadas siguen en `camposPegados` (orden y sección junto a
+ * su lista) pero se pintan como campo aparte, debajo de la lista, como antes
+ * de BAL-5205 y como en Diseño 1.
+ */
+export function otrasEnElCampo(step: Pick<WizardStep, 'fields'>, pegados: Map<string, string>): Map<string, string> {
+  const apagados = new Set(step.fields.filter((f) => f.other_inline === false).map((f) => f.code));
+  const enElCampo = new Map<string, string>();
+  pegados.forEach((lista, codigo) => {
+    if (!apagados.has(codigo)) enElCampo.set(codigo, lista);
+  });
+  return enElCampo;
+}
+
+/**
  * Orden del paso con cada "Otra" justo después de su lista. Si la lista
  * también tiene su propia "Otra" pegada, se respeta el orden del paso entre
  * hermanos.

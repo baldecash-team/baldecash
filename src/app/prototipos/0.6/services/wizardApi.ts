@@ -208,6 +208,13 @@ export interface WizardField {
    * de siempre (Diseño 1 lo muestra, Diseño 2 no). El máximo se respeta igual.
    */
   show_counter?: boolean;
+  /**
+   * BAL-5227: en un «¿Cuál…?» que aparece por una opción «Otr…» de una lista,
+   * si Diseño 2 lo escribe DENTRO del campo de la lista (BAL-5205). Se apaga
+   * por campo del paso en admin2; solo viene (en `false`) cuando está
+   * apagado: sin la llave cuenta como `true`. Diseño 1 lo ignora.
+   */
+  other_inline?: boolean;
 }
 
 /** Sección de un paso (Diseño 2). Se pinta en F5/F6; en F2 solo se tolera. */
