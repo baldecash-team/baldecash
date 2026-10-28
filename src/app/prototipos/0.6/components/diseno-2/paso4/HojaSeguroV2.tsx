@@ -7,9 +7,11 @@
  *
  * Como el prototipo: nombre y "×" arriba, la cuota en una caja gris con el
  * total en cuotas, las coberturas con ✓ verde, la nota, el proveedor con
- * "Ver términos y condiciones" y abajo "Cerrar" + "Agregar a mi solicitud"
- * (en celular, solo el botón principal a todo lo ancho). Escritorio: ventana
- * de 500 px con `bcPop` 0,2 s; celular: hoja desde abajo con `bcPop` 0,25 s.
+ * "Ver términos y condiciones" y abajo "Cerrar" + "Agregar a mi solicitud".
+ * Desde BAL-5203 (punto 10) va sobre `ModalV2`: franja del color de la
+ * landing con el nombre, cuerpo con la cuota y las coberturas, y el pie con
+ * «Cerrar» + «Agregar a mi solicitud» (escritorio: ventana de 500 px;
+ * celular: hoja con manija que se cierra al arrastrarla).
  *
  * Lo que arregló el QA en celular (BAL-4969, bug 1) se mantiene: va en un
  * portal a `<body>` por encima de la barra fija, es `role="dialog"` modal,
@@ -21,15 +23,12 @@
  * no ofrece agregar desde la hoja, igual que en Diseño 1.
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { getModalConfig } from '@/app/prototipos/0.6/[landing]/solicitar/components/upsell/InsuranceDetailModal';
 import type { InsurancePlan } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/utils/formatCuota';
-import { useSalidaAnimada } from '../movimiento';
-
-const ENFOCABLE = 'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { BOTON_PRIMARIO_V2, BOTON_SECUNDARIO_V2, ModalV2 } from '../ModalV2';
 
 /** Las coberturas en una lista plana (la multiasistencia trae grupos). */
 export function coberturasDelPlan(tipo: string): string[] {
@@ -48,50 +47,11 @@ export interface HojaSeguroV2Props {
 }
 
 export function HojaSeguroV2({ plan, elegido, onAlternar, onCerrar, landing, frecuencia }: HojaSeguroV2Props) {
-  const hojaRef = useRef<HTMLDivElement>(null);
-  const [saliendo, salir] = useSalidaAnimada();
-  const cerrar = useCallback(() => {
-    salir(onCerrar);
-  }, [salir, onCerrar]);
-
-  // Foco adentro al abrir; de vuelta a quien la abrió al cerrar. Escape
-  // cierra y Tab no sale de la hoja. El fondo no se desplaza.
-  const abierta = plan !== null;
-  useEffect(() => {
-    if (!abierta) return;
-    const anterior = document.activeElement as HTMLElement | null;
-    const hoja = hojaRef.current;
-    hoja?.focus();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        cerrar();
-        return;
-      }
-      if (e.key !== 'Tab' || !hoja) return;
-      const enfocables = Array.from(hoja.querySelectorAll<HTMLElement>(ENFOCABLE));
-      if (enfocables.length === 0) return;
-      const primero = enfocables[0];
-      const ultimo = enfocables[enfocables.length - 1];
-      if (e.shiftKey && (document.activeElement === primero || document.activeElement === hoja)) {
-        e.preventDefault();
-        ultimo.focus();
-      } else if (!e.shiftKey && document.activeElement === ultimo) {
-        e.preventDefault();
-        primero.focus();
-      }
-    };
-    document.addEventListener('keydown', alTeclear);
-    return () => {
-      document.removeEventListener('keydown', alTeclear);
-      document.body.style.overflow = overflow;
-      anterior?.focus?.();
-    };
-  }, [abierta, cerrar]);
-
-  if (!plan || typeof document === 'undefined') return null;
+  // El plan que se está cerrando: la hoja sale con su animación y recién
+  // después el padre suelta el plan (`onCerrar`).
+  const [planCerrado, setPlanCerrado] = useState<InsurancePlan | null>(null);
+  if (!plan) return null;
+  const cerrar = () => setPlanCerrado(plan);
 
   const config = getModalConfig(plan.insuranceType);
   const coberturas = coberturasDelPlan(plan.insuranceType);
@@ -103,40 +63,42 @@ export function HojaSeguroV2({ plan, elegido, onAlternar, onCerrar, landing, fre
     ? `S/${formatCuotaDeLanding(plan.totalPrice, landing)} en ${plan.paymentMonths} cuotas`
     : null;
   const textoAlternar = elegido ? 'Quitar de mi solicitud' : 'Agregar a mi solicitud';
-  const idTitulo = `hoja-seguro-v2-${plan.id}`;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-end justify-center md:items-start md:overflow-y-auto md:pb-6 md:pt-[min(220px,12vh)]" data-hoja-seguro-v2>
-      <div
-        className={`absolute inset-0 bg-[rgba(20,24,40,0.45)] ${saliendo ? 'd2-fundido-sale' : 'd2-fundido'}`}
-        aria-hidden="true"
-        onClick={cerrar}
-      />
-      <div
-        ref={hojaRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={idTitulo}
-        tabIndex={-1}
-        className={`relative flex max-h-[calc(100dvh-12px)] w-full flex-col gap-3 overflow-y-auto overscroll-contain rounded-t-[22px] bg-[var(--d2-tarjeta)] px-5 pb-[calc(24px+env(safe-area-inset-bottom))] pt-3 shadow-[0_20px_48px_rgba(20,24,40,0.25)] outline-none md:max-h-none md:w-[500px] md:gap-3.5 md:overflow-visible md:rounded-[18px] md:p-[26px] ${
-          saliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'
-        }`}
-      >
-        <div className="h-1 w-10 self-center rounded-full bg-[var(--d2-borde-campo)] md:hidden" aria-hidden="true" />
-        <div className="flex items-start justify-between gap-3 md:gap-4">
-          <h2 id={idTitulo} className="pt-2 text-[20px] font-bold leading-tight text-[var(--d2-texto)] md:text-[21px]">
-            {plan.name}
-          </h2>
-          <button
-            type="button"
-            onClick={cerrar}
-            aria-label="Cerrar"
-            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--d2-fondo)] text-[var(--d2-texto)] transition-colors duration-150 hover:bg-[var(--d2-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-          >
-            <X className="h-[18px] w-[18px]" aria-hidden />
+  return (
+    <ModalV2
+      abierto={plan !== planCerrado}
+      onCerrar={cerrar}
+      onSalidaTerminada={() => {
+        setPlanCerrado(null);
+        onCerrar();
+      }}
+      icono={ShieldCheck}
+      titulo={plan.name}
+      subtitulo="¿Qué cubre esta protección?"
+      idTitulo={`hoja-seguro-v2-${plan.id}`}
+      datos={{ 'data-hoja-seguro-v2': true }}
+      pie={
+        <>
+          <button type="button" onClick={cerrar} className={`${BOTON_SECUNDARIO_V2} ${config.infoOnly ? 'flex-1 md:flex-none' : ''}`}>
+            Cerrar
           </button>
-        </div>
-
+          {!config.infoOnly && (
+            <button
+              type="button"
+              data-alternar-seguro-v2
+              onClick={() => {
+                onAlternar();
+                cerrar();
+              }}
+              className={`${BOTON_PRIMARIO_V2} flex-1 md:flex-none`}
+            >
+              {textoAlternar}
+            </button>
+          )}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5 rounded-xl bg-[var(--d2-fondo)] px-3.5 py-3">
           <span className="text-[22px] font-bold text-[var(--color-primary-text)]">{cuota}</span>
           {total && <span className="text-[13px] text-[var(--d2-texto-suave)]">{total}</span>}
@@ -163,34 +125,8 @@ export function HojaSeguroV2({ plan, elegido, onAlternar, onCerrar, landing, fre
             Ver términos y condiciones
           </a>
         </p>
-
-        <div className="flex flex-col gap-3 md:flex-row md:justify-end">
-          <button
-            type="button"
-            onClick={cerrar}
-            className={`hidden min-h-[48px] cursor-pointer rounded-xl border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] px-5 text-[15px] font-semibold text-[var(--d2-texto)] transition-colors duration-150 hover:bg-[var(--d2-gris-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 md:inline-flex md:items-center ${
-              config.infoOnly ? '!inline-flex justify-center' : ''
-            }`}
-          >
-            Cerrar
-          </button>
-          {!config.infoOnly && (
-            <button
-              type="button"
-              data-alternar-seguro-v2
-              onClick={() => {
-                onAlternar();
-                cerrar();
-              }}
-              className="min-h-[52px] cursor-pointer rounded-xl bg-[var(--color-primary)] px-5 text-base font-bold text-[var(--color-on-primary)] transition-colors duration-150 hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 md:min-h-[48px] md:text-[15px]"
-            >
-              {textoAlternar}
-            </button>
-          )}
-        </div>
       </div>
-    </div>,
-    document.body,
+    </ModalV2>
   );
 }
 

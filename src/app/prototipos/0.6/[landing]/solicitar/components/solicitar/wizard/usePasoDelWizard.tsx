@@ -50,6 +50,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { AvisoUnidadTomadaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoUnidadTomadaV2';
 import { irAlPrimerErrorV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 
@@ -205,7 +206,16 @@ export function usePasoDelWizard(opciones: {
   // justo cuando el envio fallo y la persona no sabe si su solicitud entro.
   // `60` y no mas: es el mismo escalon del banner de promo, que ya estaba por
   // encima del modal y tiene que seguir estandolo.
-  const modalUnidadTomada = unidadTomada ? (
+  // Diseño 2: el mismo aviso sobre el modal base del kit (BAL-5203, punto 10);
+  // va en su propio portal por encima de la navbar. `AvisoUnidadTomadaV2` ya
+  // se cierra solo con `mensaje=null` (gatea `abierto` adentro), pero acá
+  // también se gatea el montaje: sin `unidadTomada` no hay nada que mostrar,
+  // igual que en la rama de Diseño 1.
+  const modalUnidadTomada = diseno2 ? (
+    unidadTomada ? (
+      <AvisoUnidadTomadaV2 mensaje={unidadTomada} onElegirOtro={() => router.push(routes.catalogo(landing))} />
+    ) : null
+  ) : unidadTomada ? (
     <div className="relative z-[60]">
       <ModalAviso
         titulo="Ese equipo ya no está disponible"

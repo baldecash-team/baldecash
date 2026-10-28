@@ -726,7 +726,7 @@ function LoQuieroModalContent({
                             onClick={() => alternarAccesorio(acc)}
                             aria-pressed={elegido}
                             aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
-                            className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-full border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                            className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-xl border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                               elegido
                                 ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
                                 : 'bg-[var(--d2-tarjeta)] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
