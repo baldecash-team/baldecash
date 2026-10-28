@@ -53,7 +53,10 @@ export function nombreOVacio(userName: string | null | undefined): string | null
 
 function fraseWhatsApp(telefono: string | null | undefined, horas: number): string {
   const limpio = (telefono || '').trim();
-  const destino = limpio ? ` al +51 ${limpio}` : '';
+  // El número va con espacios que no se cortan: así «+51» nunca queda al
+  // final de una línea y el resto en la siguiente (Emilio, 28-oct).
+  const numero = `+51 ${limpio}`.replace(/ /g, ' ');
+  const destino = limpio ? ` al ${numero}` : '';
   return `Ya la estamos revisando. Te avisamos el resultado por WhatsApp${destino} en máximo ${horas} horas.`;
 }
 

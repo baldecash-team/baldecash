@@ -120,6 +120,13 @@ export type EventType =
   | 'form_step_validation_error'
   // Error de un campo al salir de él (Diseño 2, `useErroresAlSalir`, BAL-4969).
   | 'form_field_error'
+  // «Otro» escrito en el mismo campo (Diseño 2, BAL-5205/BAL-5207): la lista
+  // se vuelve caja y «Ver opciones» la devuelve. Ver `DynamicWizardStep.tsx`.
+  | 'form_field_other_open'
+  | 'form_field_other_back'
+  // Buscador de institución y carrera (BAL-5210): qué busca, cuántos
+  // resultados y si eligió. Ver `useInstitutionSearchTracking.ts`.
+  | 'institution_search'
   | 'form_submit_success'
   | 'form_submit_error'
   | 'coupon_applied'
@@ -180,6 +187,16 @@ export type EventType =
   | 'lo_quiero_modal_coupon_applied'
   | 'lo_quiero_modal_close'
   | 'lo_quiero_modal_continue'
+  // BAL-5207: lo que faltaba medir en Diseño 2. Mismos nombres que
+  // ALL_EVENT_TYPES de ws2 (`app/schemas/user_event.py`).
+  | 'lo_quiero_modal_continue_blocked'
+  | 'lo_quiero_modal_accessories_expand'
+  | 'lo_quiero_modal_accessories_collapse'
+  | 'plan_change_panel_toggle'
+  | 'plan_term_change_panel'
+  | 'plan_initial_change_panel'
+  | 'form_section_toggle'
+  | 'summary_detail_toggle'
   // Phase 14: Admisión (OTP correo + autoservicio de video) — eventos por link/etapa
   | 'admission_link_open'
   | 'admission_stage_enter'

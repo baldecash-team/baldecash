@@ -10,6 +10,13 @@ import { hayEnvioADomicilio, subtituloDelPaso4, pidenDiaDePago, SUBTITULO_PASO4_
 import { PanelSolicitudV2 } from '../PanelSolicitudV2';
 import { LineaDeTiempoV2 } from '../confirmacion/LineaDeTiempoV2';
 
+// El cupón del panel (BAL-5203) vive en su propio módulo; acá no hay ProductProvider.
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon', () => ({
+  CouponInput: () => null,
+  useCuponVisible: () => false,
+  useQuitarCupon: () => jest.fn(),
+}));
+
 const conDireccion = [{ fields: [{ code: 'address', type: 'address' }] }];
 const sinDireccion = [{ fields: [{ code: 'first_name', type: 'text' }] }];
 
@@ -55,6 +62,8 @@ describe('panel "Tu solicitud"', () => {
     total: 159,
     frecuencia: 'mensual',
     leyenda: '24 meses',
+    textoPlazo: '24 meses',
+    textoInicial: 'Sin inicial',
     regalos: [],
     mesPrimeraCuota: null,
     hayQueElegir: false,

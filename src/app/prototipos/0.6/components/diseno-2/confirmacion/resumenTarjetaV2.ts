@@ -29,6 +29,19 @@ export interface ResumenTarjetaV2 {
    * lo pinta en su bloque «BaldeCash te regala» y Diseño 2 en su propia fila.
    */
   regaloBaldecash: string | null;
+  /** Foto del equipo (solo con un equipo; con varios no hay una sola foto). */
+  imagen: string | null;
+  /** Cada regalo por separado: en celular una cápsula con todos se partía mal. */
+  regalos: string[];
+  /** Accesorios pagados, con su cuota (los regalos van en `regalo`). */
+  accesorios: LineaConCuota[];
+  /** Seguros elegidos, con su cuota. */
+  seguros: LineaConCuota[];
+}
+
+export interface LineaConCuota {
+  nombre: string;
+  cuota: string;
 }
 
 export interface OpcionesTarjetaV2 {
@@ -87,6 +100,15 @@ export function resumenDeTarjetaV2(
 
   const regaloBaldecash = data.regaloBaldecash?.name?.trim() || null;
 
+  // Foto, accesorios y seguros elegidos: la persona tiene que ver todo lo que
+  // pidió (Emilio, 28-oct). Montos tal cual los manda el backend.
+  const imagen = data.products.length === 1 ? data.products[0].image?.trim() || null : null;
+  const accesorios = (data.accessories || [])
+    .filter((a) => !a.isGift)
+    .map((a) => ({ nombre: a.name, cuota: formatPrecio(a.monthlyQuota, landingSlug) }));
+  const listaDeSeguros = data.insurances?.length ? data.insurances : data.insurance ? [data.insurance] : [];
+  const seguros = listaDeSeguros.map((s) => ({ nombre: s.name, cuota: formatPrecio(s.monthlyPrice, landingSlug) }));
+
   return {
     nombreEquipo,
     leyenda,
@@ -97,5 +119,9 @@ export function resumenDeTarjetaV2(
     entrega,
     regalo,
     regaloBaldecash,
+    regalos,
+    imagen,
+    accesorios,
+    seguros,
   };
 }

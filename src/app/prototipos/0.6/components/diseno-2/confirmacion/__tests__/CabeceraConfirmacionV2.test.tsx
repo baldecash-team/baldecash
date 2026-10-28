@@ -45,13 +45,28 @@ describe('CabeceraConfirmacionV2', () => {
     expect(container.querySelectorAll('[data-confeti-pieza]')).toHaveLength(26);
   });
 
-  it('con reduced-motion: no hay confeti ni anillo animado', () => {
+  it('sin Baldecito (BAL-5203): la píldora es lo primero de la cabecera', () => {
+    mockMatchMedia(false);
+    const { container } = render(
+      <CabeceraConfirmacionV2 titulo="t" subtitulo="s" numeroDeSolicitud="APP-1" />,
+    );
+    expect(container.querySelector('[data-baldecito-v2]')).toBeNull();
+    expect(container.querySelector('[data-anillo-baldecito]')).toBeNull();
+    expect(screen.queryByLabelText('Baldecito celebrando')).toBeNull();
+    const cabecera = container.querySelector('[data-cabecera-confirmacion-v2]')!;
+    // Hijos visibles: decorado, <style>, confeti y después la píldora.
+    const contenido = Array.from(cabecera.children).filter(
+      (n) => n.tagName !== 'STYLE' && n.getAttribute('aria-hidden') === null,
+    );
+    expect(contenido[0].textContent).toContain('Solicitud N.° APP-1');
+  });
+
+  it('con reduced-motion: no hay confeti', () => {
     mockMatchMedia(true);
     const { container } = render(
       <CabeceraConfirmacionV2 titulo="t" subtitulo="s" numeroDeSolicitud="APP-1" />,
     );
     expect(container.querySelectorAll('[data-confeti-pieza]')).toHaveLength(0);
-    expect(container.querySelector('[data-anillo-baldecito]')).toBeNull();
   });
 
   it('pinta título y subtítulo tal como llegan', () => {

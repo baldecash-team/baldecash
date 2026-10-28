@@ -1,7 +1,7 @@
 /**
  * BAL-4959: el puente entre pasos sigue el prototipo de Brenda — títulos por
- * paso, Baldecito en SVG que salta al paso que sigue, etiquetas bajo cada
- * nodo y, con menos movimiento, todo quieto en su posición final.
+ * paso, etiquetas bajo cada nodo y, con menos movimiento, todo quieto en su
+ * posición final. BAL-5203: sin Baldecito, solo el progreso.
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
@@ -32,28 +32,28 @@ describe('TransicionPaso — puente del prototipo', () => {
     expect(tituloDelPuente(4, 4)).toBe('¡Información completa!');
   });
 
-  it('Baldecito en SVG salta 88 px (4 pasos) con bcHop y hay etiquetas bajo los nodos', () => {
+  it('sin Baldecito (BAL-5203): solo el progreso, con etiquetas bajo los nodos', () => {
     simular(false);
     render(<TransicionPaso pasos={PASOS} pasoCompletado={1} onComplete={jest.fn()} />);
     expect(screen.getByRole('heading', { name: '¡Buen comienzo!' })).toBeInTheDocument();
-    const viajero = document.querySelector<HTMLElement>('[data-viajero]')!;
-    expect(viajero.querySelector('[data-baldecito-v2]')).not.toBeNull();
-    expect(viajero.style.animation).toContain('d2Salto 0.9s cubic-bezier(0.45, 0, 0.3, 1) 0.35s');
-    expect(viajero.style.getPropertyValue('--d2-salto')).toBe('88px');
+    expect(document.querySelector('[data-viajero]')).toBeNull();
+    expect(document.querySelector('[data-baldecito-v2]')).toBeNull();
+    expect(document.querySelectorAll('[data-chispa]')).toHaveLength(0);
+    expect(document.querySelector('[data-progreso-puente]')).not.toBeNull();
     for (const n of PASOS) expect(screen.getByText(n)).toBeInTheDocument();
-    expect(document.querySelectorAll('[data-chispa]')).toHaveLength(8);
+    // La barra del paso que se acaba de completar se llena (88 px con 4 pasos).
+    const lleno = document.querySelector<HTMLElement>('[data-camino-lleno]')!;
+    expect(lleno.style.width).toBe('88px');
+    expect(lleno.style.animation).toContain('d2Llenado');
     expect(screen.getByText('Sigue: Académicos')).toBeInTheDocument();
   });
 
-  it('con menos movimiento: Baldecito ya en el paso que sigue, sin animaciones ni chispas', () => {
+  it('con menos movimiento: el camino ya lleno, sin animaciones', () => {
     simular(true);
     render(<TransicionPaso pasos={PASOS} pasoCompletado={2} onComplete={jest.fn()} />);
-    const viajero = document.querySelector<HTMLElement>('[data-viajero]')!;
-    expect(viajero.style.animation).toBe('');
-    expect(viajero.style.transform).toBe('translate(88px, 0)');
-    expect(document.querySelectorAll('[data-chispa]')).toHaveLength(0);
-    const partes = Array.from(document.querySelectorAll<SVGGElement>('[data-baldecito-v2] g'));
-    expect(partes.every((g) => !g.style.animation)).toBe(true);
+    const lleno = document.querySelector<HTMLElement>('[data-camino-lleno]')!;
+    expect(lleno.style.animation).toBe('');
+    expect(document.querySelector('[data-viajero]')).toBeNull();
   });
 
   it('etiquetas cortas bajo los nodos, separadas, y «Sigue:» con el nombre del paso', () => {

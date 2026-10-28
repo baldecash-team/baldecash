@@ -21,16 +21,14 @@
 
 import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
-import { AlertTriangle, ArrowRight, Check, ChevronDown, Gift, Lock, Package, Tag, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, ChevronDown, Gift, Lock, Package, ShoppingBag, Tag } from 'lucide-react';
 
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { getLandingAccessories, resolveEcosistema } from '@/app/prototipos/0.6/services/landingApi';
-import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import {
@@ -41,7 +39,7 @@ import {
 } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { WizardConfigProvider, useWizardConfig } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardConfigContext';
 import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
-import { CouponInput, useQuitarCupon } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
+import { CouponInput, useCuponVisible, useQuitarCupon } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon';
 import { getTermUnit } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/product/etiquetaDePlazo';
 import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 // I6 (BAL-4969): la cuota se escribe como en el panel, el Shell y la confirmación
@@ -51,7 +49,8 @@ import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[la
 import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
 import { useMesPrimeraCuota } from './useMesPrimeraCuota';
 import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
-import { prefiereMenosMovimiento, useSalidaAnimada } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
+import { prefiereMenosMovimiento } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
+import { BOTON_PRIMARIO_V2, BOTON_SECUNDARIO_V2, ModalV2 } from '@/app/prototipos/0.6/components/diseno-2/ModalV2';
 import { datosUtiles, nombreParaMostrar, ordenarPorCategoria } from './presentacionAccesorios';
 import { CajaAvisoDelEquipo, type AvisoDelEquipo } from './avisoDelEquipo';
 
@@ -95,14 +94,8 @@ interface LoQuieroModalProps {
   avisos?: AvisoDelEquipo[];
 }
 
-/** Arrastrar la hoja hacia abajo más de esto (px) la cierra, en celular. */
-const UMBRAL_ARRASTRE = 100;
-
-/** Cuántos accesorios se ven antes de "Ver todos". Pendiente de confirmar con Brenda. */
+/** Espacios de la grilla antes de abrir el resto. Si sobran, el último es la tarjeta «+N más». */
 const ACCESORIOS_VISIBLES = 8;
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Plazo en cuotas literales, que es lo que espera el endpoint de accesorios.
@@ -250,7 +243,6 @@ function LoQuieroModalContent({
   const { isCouponRequired } = flujo;
   const accesoriosHabilitados = !flujo.isLoading && flujo.isEnabled('accessories');
 
-  const panelRef = useRef<HTMLDivElement>(null);
   const terminosRef = useRef<HTMLButtonElement>(null);
 
   // ── Apertura: limpiar accesorios de un intento anterior + evento ──────────
@@ -274,89 +266,21 @@ function LoQuieroModalContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Foco atrapado, Escape y scroll del fondo ──────────────────────────────
+  // ── Capas: el modal, el detalle del accesorio y el cupón ────────────────
+  // Cada capa es un `ModalV2` (BAL-5203, punto 10): foco adentro, Escape y Tab
+  // solo de la de más arriba (el cupón cierra solo el cupón), foco de vuelta
+  // a quien la abrió y salida animada antes de desmontarse.
+  const [abierto, setAbierto] = useState(true);
   const [detalle, setDetalle] = useState<Accessory | null>(null);
-  const detalleRef = useRef<HTMLDivElement>(null);
-  // Tarjeta que abrió el detalle: al cerrarlo, el foco vuelve ahí.
-  const origenDetalleRef = useRef<HTMLElement | null>(null);
-  const cerrarRef = useRef<(motivo: string) => void>(() => {});
-  const cerrarDetalleRef = useRef<() => void>(() => {});
-  const detalleAbiertoRef = useRef(false);
-  detalleAbiertoRef.current = !!detalle;
+  const [detalleAbierto, setDetalleAbierto] = useState(false);
   // Modal del cupón (BAL-4958): la capa de más arriba.
   const [cuponAbierto, setCuponAbierto] = useState(false);
-  const cuponCapaRef = useRef<HTMLDivElement>(null);
   const filaCuponRef = useRef<HTMLButtonElement>(null);
   const cuponAbiertoRef = useRef(false);
   cuponAbiertoRef.current = cuponAbierto;
   const cerrarCuponRef = useRef<() => void>(() => {});
 
-  // Salidas animadas (BAL-4969): cada capa se va con su animación y recién
-  // después se desmonta. Con menos movimiento, de una.
-  const [saliendo, salirModal] = useSalidaAnimada();
-  const [detalleSaliendo, salirDetalle] = useSalidaAnimada();
-  const [cuponSaliendo, salirCupon] = useSalidaAnimada();
-
-  const cerrarDetalle = useCallback(() => {
-    salirDetalle(() => {
-      setDetalle(null);
-      const origenFoco = origenDetalleRef.current;
-      requestAnimationFrame(() => origenFoco?.focus());
-    });
-  }, [salirDetalle]);
-  cerrarDetalleRef.current = cerrarDetalle;
-
-  useEffect(() => {
-    if (detalle) detalleRef.current?.focus();
-  }, [detalle]);
-
-  useEffect(() => {
-    const anterior = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-    const overflowPrevio = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      // Con el cupón o el detalle encima, Escape y Tab son de esa capa: Escape
-      // cierra solo la de más arriba, no el modal entero.
-      const capa = cuponAbiertoRef.current
-        ? cuponCapaRef.current
-        : detalleAbiertoRef.current
-          ? detalleRef.current
-          : panelRef.current;
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        if (cuponAbiertoRef.current) cerrarCuponRef.current();
-        else if (detalleAbiertoRef.current) cerrarDetalleRef.current();
-        else cerrarRef.current('escape');
-        return;
-      }
-      if (e.key !== 'Tab' || !capa) return;
-      const nodos = Array.from(capa.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (n) => n.offsetParent !== null,
-      );
-      if (nodos.length === 0) return;
-      const primero = nodos[0];
-      const ultimo = nodos[nodos.length - 1];
-      const activo = document.activeElement;
-      if (e.shiftKey && (activo === primero || activo === capa)) {
-        e.preventDefault();
-        ultimo.focus();
-      } else if (!e.shiftKey && activo === ultimo) {
-        e.preventDefault();
-        primero.focus();
-      } else if (!capa.contains(activo)) {
-        e.preventDefault();
-        primero.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = overflowPrevio;
-      anterior?.focus?.();
-    };
-  }, []);
+  const cerrarDetalle = useCallback(() => setDetalleAbierto(false), []);
 
   // ── Accesorios: mismo endpoint y parámetros que /solicitar ────────────────
   const [accesorios, setAccesorios] = useState<Accessory[]>([]);
@@ -442,7 +366,24 @@ function LoQuieroModalContent({
     [regalos, accesorios],
   );
   const hayAccesorios = accesoriosHabilitados && (estadoAcc === 'cargando' || ofrecibles.length > 0);
-  const accesoriosVisibles = verTodos ? ofrecibles : ofrecibles.slice(0, ACCESORIOS_VISIBLES);
+  // Si no caben todos, el último espacio es la tarjeta «+N más» (Emilio, 27-oct).
+  const hayMas = ofrecibles.length > ACCESORIOS_VISIBLES;
+  const enLaGrilla = hayMas ? ACCESORIOS_VISIBLES - 1 : ACCESORIOS_VISIBLES;
+  const accesoriosVisibles = verTodos ? ofrecibles : ofrecibles.slice(0, enLaGrilla);
+  const escondidos = ofrecibles.slice(enLaGrilla);
+  const seccionAccesoriosRef = useRef<HTMLElement>(null);
+  // «+N más» / «Ver menos»: cuánta gente quiere ver más accesorios que los
+  // de la grilla (BAL-5207).
+  const abrirTodos = () => {
+    setVerTodos(true);
+    analytics.track('lo_quiero_modal_accessories_expand', { hidden_count: escondidos.length, product_id: productoId });
+  };
+  const verMenos = () => {
+    setVerTodos(false);
+    analytics.track('lo_quiero_modal_accessories_collapse', { product_id: productoId });
+    // Sin esto la persona queda abajo, mirando un hueco: se la regresa al título.
+    seccionAccesoriosRef.current?.scrollIntoView({ block: 'start', behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
+  };
 
   const alternarAccesorio = useCallback(
     (acc: Accessory) => {
@@ -473,30 +414,17 @@ function LoQuieroModalContent({
   );
 
   // ── Cupón ────────────────────────────────────────────────────────────────
-  const [muestraCupon, setMuestraCupon] = useState(true);
-  useEffect(() => {
-    fetchLandingConfig(landing).then((cfg) => setMuestraCupon(cfg.features.has_coupon));
-  }, [landing]);
   const [errorCupon, setErrorCupon] = useState<string | null>(null);
-  const cuponVisible = muestraCupon || isCouponRequired;
+  const cuponVisible = useCuponVisible(landing, isCouponRequired);
   const quitarCupon = useQuitarCupon();
 
   // El cupón se escribe en un modal chico encima de este (BAL-4958). La
   // validación y la aplicación son las de `CouponInput`, que vive adentro.
   const abrirCupon = useCallback(() => setCuponAbierto(true), []);
-  const cerrarCupon = useCallback(() => {
-    salirCupon(() => {
-      setCuponAbierto(false);
-      // La fila se vuelve a pintar (con o sin cupón): se busca después del render.
-      requestAnimationFrame(() => filaCuponRef.current?.focus());
-    });
-  }, [salirCupon]);
+  const cerrarCupon = useCallback(() => setCuponAbierto(false), []);
   cerrarCuponRef.current = cerrarCupon;
-
-  useEffect(() => {
-    if (!cuponAbierto) return;
-    cuponCapaRef.current?.querySelector<HTMLInputElement>('input')?.focus();
-  }, [cuponAbierto]);
+  // Al cerrar, el foco vuelve a la fila, que se vuelve a pintar (con o sin cupón).
+  const focoDeLaFilaCupon = useCallback(() => filaCuponRef.current, []);
 
   // Cupón válido: el modal chico se cierra solo.
   const codigoAplicado = appliedCoupon?.code ?? null;
@@ -581,49 +509,6 @@ function LoQuieroModalContent({
     );
   }, [totalVisible, codigoCupon]);
 
-  // ── Celular: teclado abierto (el cupón no puede quedar tapado) ────────────
-  // `dvh` no se encoge con el teclado en todos los navegadores: se mide el
-  // viewport visible y se sube la hoja por encima del teclado.
-  const [teclado, setTeclado] = useState<{ alto: number; visible: number } | null>(null);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const medir = () => {
-      const tapado = window.innerHeight - vv.height - vv.offsetTop;
-      setTeclado(tapado > 80 ? { alto: tapado, visible: vv.height } : null);
-    };
-    vv.addEventListener('resize', medir);
-    vv.addEventListener('scroll', medir);
-    return () => {
-      vv.removeEventListener('resize', medir);
-      vv.removeEventListener('scroll', medir);
-    };
-  }, []);
-
-  // ── Celular: arrastrar la rayita hacia abajo cierra ───────────────────────
-  // Solo la cabecera es arrastrable, así el scroll de la lista no se toca.
-  const [arrastre, setArrastre] = useState(0);
-  const inicioArrastre = useRef<number | null>(null);
-  const esCelular = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
-  const onArrastreInicio = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!esCelular() || (e.target as HTMLElement).closest('button, a')) return;
-    inicioArrastre.current = e.clientY;
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-  const onArrastreMovimiento = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (inicioArrastre.current === null) return;
-    setArrastre(Math.max(0, e.clientY - inicioArrastre.current));
-  };
-  const onArrastreFin = () => {
-    if (inicioArrastre.current === null) return;
-    inicioArrastre.current = null;
-    if (arrastre > UMBRAL_ARRASTRE) {
-      cerrarRef.current('arrastre');
-      return;
-    }
-    setArrastre(0);
-  };
-
   // ── Primer paso del formulario ───────────────────────────────────────────
   const slugPrimerPaso = useMemo(() => slugDelPaso(primerPasoRegular(steps)), [steps]);
   const [navegando, setNavegando] = useState(false);
@@ -634,11 +519,14 @@ function LoQuieroModalContent({
   // clic cae en «Volver», que registraba un `close` falso (E2E 3 capas).
   const continuandoRef = useRef(false);
 
+  const cerrandoRef = useRef(false);
   const cerrar = useCallback(
     (motivo: string) => {
       if (continuandoRef.current) return;
       // Una sola salida: un segundo cierre mientras se va no cuenta dos veces.
-      if (!salirModal(() => onClose())) return;
+      if (cerrandoRef.current) return;
+      cerrandoRef.current = true;
+      setAbierto(false);
       analytics.track('lo_quiero_modal_close', {
         motivo,
         product_id: productoId,
@@ -646,17 +534,23 @@ function LoQuieroModalContent({
         terms_checked: aceptaTerminos,
       });
     },
-    [analytics, productoId, selectedAccessories.length, aceptaTerminos, onClose, salirModal],
+    [analytics, productoId, selectedAccessories.length, aceptaTerminos],
   );
-  cerrarRef.current = cerrar;
 
   // `navegando` es estado: el segundo clic de un doble clic puede no verlo
   // todavía. El candado es un ref y se cierra en el acto (E2E BAL-4969).
   const tomarCandado = useCandadoDeAvance();
 
+  // «Continuar» que no avanza: el motivo, para saber dónde se traba la gente
+  // (BAL-5207). Los valores de `reason` son los de ws2 (`user_event.py`).
+  const registrarBloqueo = (reason: 'terms' | 'coupon_required' | 'over_quota') => {
+    analytics.track('lo_quiero_modal_continue_blocked', { reason, product_id: productoId });
+  };
+
   const continuar = () => {
     if (navegando) return;
     if (!aceptaTerminos) {
+      registrarBloqueo('terms');
       setErrorTerminos(true);
       setIntentosTerminos((n) => n + 1);
       terminosRef.current?.focus();
@@ -664,11 +558,15 @@ function LoQuieroModalContent({
       return;
     }
     if (isCouponRequired && !appliedCoupon) {
+      registrarBloqueo('coupon_required');
       setErrorCupon('Debes ingresar un cupón válido para continuar');
       setCuponAbierto(true);
       return;
     }
-    if (isOverQuotaLimit) return;
+    if (isOverQuotaLimit) {
+      registrarBloqueo('over_quota');
+      return;
+    }
     if (!tomarCandado()) return;
     continuandoRef.current = true;
 
@@ -718,79 +616,41 @@ function LoQuieroModalContent({
 
   const textoBoton = n > 0 ? `Continuar con ${n} ${n === 1 ? 'accesorio' : 'accesorios'}` : 'Continuar a mis datos';
   const sufijo = sufijoDeFrecuencia(frecuencia);
-  const botonDeshabilitado = preparando || navegando || isOverQuotaLimit;
+  // Mientras cargan los accesorios no se puede continuar: si la persona sigue
+  // antes de verlos, se pierde la venta y el accesorio que iba a elegir
+  // (Emilio, 27-oct). Un error de carga NO bloquea: ahí se avisa y se sigue.
+  const cargandoAccesorios = accesoriosHabilitados && estadoAcc === 'cargando';
+  // Con la cuota sobre el tope el botón se VE apagado pero no lleva `disabled`
+  // (va `aria-disabled`): un botón `disabled` no recibe el clic, y ese clic es
+  // el que registra `lo_quiero_modal_continue_blocked` con `over_quota`
+  // (BAL-5207). `continuar` igual no avanza.
+  const botonApagado = preparando || cargandoAccesorios || navegando;
+  const botonDeshabilitado = botonApagado || isOverQuotaLimit;
 
   const alternarTerminos = () => {
     setAceptaTerminos((v) => !v);
     setErrorTerminos(false);
   };
 
-  const abrirDetalle = (acc: Accessory, origenFoco: HTMLElement) => {
+  // El foco vuelve solo a "Ver detalle" al cerrar: es quien abrió la capa.
+  const abrirDetalle = (acc: Accessory) => {
     analytics.trackAccessoryView({ accessory_id: String(acc.id), accessory_name: acc.name });
-    origenDetalleRef.current = origenFoco;
     setDetalle(acc);
+    setDetalleAbierto(true);
   };
 
   const detalleElegido = detalle ? selectedAccessories.some((a) => a.id === detalle.id) : false;
   const datosDetalle = detalle ? datosUtiles(detalle) : [];
 
-  const modal = (
-    <div
-      className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center font-['Asap',_sans-serif]"
-      style={teclado ? { paddingBottom: teclado.alto } : undefined}
-    >
-      <div className={`absolute inset-0 bg-black/50 ${saliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={() => cerrar('fondo')} />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="lo-quiero-titulo"
-        aria-describedby="lo-quiero-subtitulo"
-        tabIndex={-1}
-        style={{
-          ...(teclado ? { maxHeight: teclado.visible - 8 } : null),
-          ...(arrastre > 0 ? { transform: `translateY(${arrastre}px)`, transition: 'none' } : null),
-        }}
-        className={`relative w-full md:mx-4 md:max-w-[880px] bg-[var(--d2-tarjeta)] rounded-t-2xl md:rounded-2xl shadow-md flex flex-col max-h-[94dvh] md:max-h-[92vh] outline-none transition-transform duration-200 ${saliendo ? 'd2-sale-hoja' : 'd2-pop-modal'}`}
-      >
-        {/* Cabecera: en celular es también la zona de arrastre */}
-        <div
-          className="shrink-0 border-b border-[var(--d2-borde-gris)] px-4 md:px-6 pt-2 md:pt-5 pb-3 touch-none select-none md:touch-auto md:select-auto"
-          onPointerDown={onArrastreInicio}
-          onPointerMove={onArrastreMovimiento}
-          onPointerUp={onArrastreFin}
-          onPointerCancel={onArrastreFin}
-        >
-          <div className="md:hidden flex justify-center pb-2" aria-hidden>
-            <span className="block w-10 h-1.5 rounded-full bg-[var(--d2-boton-apagado)]" />
-          </div>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 id="lo-quiero-titulo" className="font-['Baloo_2',_sans-serif] text-lg md:text-2xl font-bold text-[var(--d2-texto-titulo)] leading-tight">
-                {hayAccesorios ? `¿Quieres complementar tu ${nombreDelTipo(selectedProduct?.type)}?` : 'Un paso más y empiezas tu solicitud'}
-              </h2>
-              <p id="lo-quiero-subtitulo" className="text-[13px] md:text-sm text-[var(--d2-texto-suave)] mt-0.5">
-                {hayAccesorios
-                  ? 'Es opcional. Lo que agregues se suma a tu cuota mensual.'
-                  : 'Revisa tu equipo y acepta los términos para continuar.'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => cerrar('x')}
-              aria-label="Cerrar"
-              className="w-11 h-11 -mt-1 shrink-0 rounded-full bg-[var(--d2-fondo)] hover:bg-[var(--d2-hover)] flex items-center justify-center text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+  const titulo = hayAccesorios ? `¿Quieres complementar tu ${nombreDelTipo(selectedProduct?.type)}?` : 'Un paso más y empiezas tu solicitud';
+  const subtitulo = hayAccesorios
+    ? 'Es opcional. Lo que agregues se suma a tu cuota mensual.'
+    : 'Revisa tu equipo y acepta los términos para continuar.';
 
-        </div>
-
-        {/* Cuerpo con scroll. Siempre trae algo: el aviso del equipo, los
-            accesorios o, sin accesorios, la tarjeta del equipo elegido (sin
-            la franja vacía de antes). */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 md:px-6 py-3 md:py-4 flex flex-col gap-3">
+  // Cuerpo con scroll. Siempre trae algo: el aviso del equipo, los accesorios
+  // o, sin accesorios, la tarjeta del equipo elegido (sin la franja vacía de antes).
+  const cuerpo = (
+    <>
           {avisos.map((a) => (
             <CajaAvisoDelEquipo key={a.tipo} aviso={a} />
           ))}
@@ -805,7 +665,7 @@ function LoQuieroModalContent({
           )}
 
           {hayAccesorios && (
-            <section aria-labelledby="lo-quiero-accesorios">
+            <section ref={seccionAccesoriosRef} aria-labelledby="lo-quiero-accesorios" className="scroll-mt-2">
               <div className="flex items-baseline gap-2 mb-2.5">
                 <h3 id="lo-quiero-accesorios" className="text-xs font-semibold uppercase tracking-wider text-[var(--d2-texto-seccion)]">
                   Accesorios sugeridos
@@ -839,13 +699,15 @@ function LoQuieroModalContent({
                         </div>
                       </li>
                     ))}
-                    {accesoriosVisibles.map((acc) => {
+                    {accesoriosVisibles.map((acc, i) => {
+                      const recienAbierto = verTodos && i >= enLaGrilla;
                       const elegido = selectedAccessories.some((a) => a.id === acc.id);
                       const nombre = nombreParaMostrar(acc.name, acc.brand?.name);
                       return (
                         <li
                           key={acc.id}
-                          className={`relative flex md:flex-col items-center md:items-stretch gap-3 md:gap-2 rounded-xl border-[1.5px] px-3 py-2.5 md:p-2.5 transition-[border-color,background-color] duration-150 ${
+                          style={recienAbierto ? { animationDelay: `${Math.min(i - enLaGrilla, 8) * 40}ms` } : undefined}
+                          className={`${recienAbierto ? 'd2-acc-entra ' : ''}relative flex md:flex-col items-center md:items-stretch gap-3 md:gap-2 rounded-xl border-[1.5px] px-3 py-2.5 md:p-2.5 transition-[border-color,background-color] duration-150 ${
                             elegido
                               ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.04)]'
                               : 'border-[var(--d2-borde)] bg-[var(--d2-tarjeta)]'
@@ -871,7 +733,7 @@ function LoQuieroModalContent({
                               <button
                                 type="button"
                                 data-ver-detalle
-                                onClick={(e) => abrirDetalle(acc, e.currentTarget)}
+                                onClick={() => abrirDetalle(acc)}
                                 aria-label={`Ver detalle de ${nombre}`}
                                 className="-my-2.5 md:my-0 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-sm text-[12.5px] md:text-[13px] font-semibold text-[var(--color-primary-text)] underline underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                               >
@@ -884,7 +746,7 @@ function LoQuieroModalContent({
                             onClick={() => alternarAccesorio(acc)}
                             aria-pressed={elegido}
                             aria-label={`${elegido ? 'Quitar' : 'Agregar'} ${nombre}`}
-                            className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-full border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
+                            className={`shrink-0 min-h-[44px] md:min-h-[40px] px-4 md:w-full rounded-xl border-[1.5px] border-[var(--color-primary)] text-sm font-bold inline-flex items-center justify-center gap-1 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                               elegido
                                 ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] hover:brightness-95'
                                 : 'bg-[var(--d2-tarjeta)] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)]'
@@ -901,29 +763,57 @@ function LoQuieroModalContent({
                         </li>
                       );
                     })}
+                    {hayMas && !verTodos && (
+                      <li className="flex">
+                        <button
+                          type="button"
+                          onClick={abrirTodos}
+                          aria-expanded={false}
+                          aria-label={`Ver ${escondidos.length} accesorios más`}
+                          className="w-full flex md:flex-col items-center md:justify-center gap-3 md:gap-2 rounded-xl border-[1.5px] border-dashed border-[rgba(var(--color-primary-rgb),0.45)] bg-[rgba(var(--color-primary-rgb),0.04)] px-3 py-2.5 md:p-2.5 min-h-[76px] text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.08)] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                        >
+                          {/* Adelanto de lo que hay: hasta 3 miniaturas encimadas. */}
+                          <span className="flex -space-x-3 shrink-0" aria-hidden>
+                            {escondidos.slice(0, 3).map((a) => (
+                              <ImagenAccesorio key={a.id} src={a.thumbnailUrl || a.image} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[var(--d2-tarjeta)]" />
+                            ))}
+                          </span>
+                          <span className="flex-1 md:flex-none text-left md:text-center">
+                            <span className="block text-base md:text-lg font-bold leading-tight">+{escondidos.length} más</span>
+                            <span className="block text-xs font-semibold opacity-80">Ver todos los accesorios</span>
+                          </span>
+                          <ChevronDown className="w-4 h-4 shrink-0 md:hidden" aria-hidden />
+                        </button>
+                      </li>
+                    )}
                   </ul>
-                  {ofrecibles.length > ACCESORIOS_VISIBLES && (
-                    <button
-                      type="button"
-                      onClick={() => setVerTodos((v) => !v)}
-                      className="mt-2 w-full md:w-auto min-h-[44px] px-4 rounded-lg text-sm font-semibold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      {verTodos ? 'Ver menos' : `Ver todos (${ofrecibles.length})`}
-                      <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${verTodos ? 'rotate-180' : ''}`} aria-hidden />
-                    </button>
+                  {hayMas && verTodos && (
+                    <div className="mt-3 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={verMenos}
+                        aria-expanded
+                        className={`${BOTON_SECUNDARIO_V2} gap-1`}
+                      >
+                        Ver menos
+                        <ChevronDown className="w-4 h-4 rotate-180" aria-hidden />
+                      </button>
+                    </div>
                   )}
                 </>
               )}
             </section>
           )}
-        </div>
+    </>
+  );
 
-        {/* Pie fijo */}
+  /* Pie fijo */
         {/* Celular (QA a 360 px, BAL-4969): pie compacto para que los
             accesorios tengan más alto —filas de 40 px pegadas (la fila entera
             es la zona táctil), la leyenda en una línea arriba y el precio al
             lado del botón—. Escritorio, igual que antes. */}
-        <div data-pie-lo-quiero className="shrink-0 border-t border-[var(--d2-borde-gris)] px-4 md:px-6 pt-1 md:pt-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:pb-4 bg-[var(--d2-tarjeta)] rounded-b-2xl">
+  const pie = (
+        <div data-pie-lo-quiero className="w-full">
           {/* Lista simple (BAL-4958, aprobado por Emilio): tres filas iguales,
               sin cajas, alineadas a la izquierda, igual en celular y escritorio.
               - Términos: los enlaces van DENTRO de la frase. Tocar la frase o la
@@ -1090,7 +980,7 @@ function LoQuieroModalContent({
                       type="button"
                       onClick={abrirCupon}
                       aria-haspopup="dialog"
-                      className="inline-flex min-h-[44px] md:min-h-[38px] items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-dashed border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3.5 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                      className="inline-flex min-h-[44px] md:min-h-[38px] items-center gap-1.5 whitespace-nowrap rounded-xl border-[1.5px] border-dashed border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3.5 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                     >
                       <Tag className="h-4 w-4 shrink-0" aria-hidden />
                       Agregar cupón
@@ -1111,14 +1001,15 @@ function LoQuieroModalContent({
               <button
                 type="button"
                 onClick={continuar}
-                disabled={botonDeshabilitado}
+                disabled={botonApagado}
+                aria-disabled={botonDeshabilitado || undefined}
                 className={`w-full md:w-auto min-h-[48px] px-[22px] rounded-xl text-base font-bold inline-flex items-center justify-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   botonDeshabilitado
                     ? 'bg-[var(--d2-boton-apagado)] text-[var(--d2-boton-apagado-texto)] cursor-not-allowed'
                     : 'bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[0_4px_12px_rgba(var(--color-primary-rgb),0.25)] hover:brightness-90 cursor-pointer'
                 }`}
               >
-                {preparando || navegando ? (
+                {preparando || cargandoAccesorios || navegando ? (
                   <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin motion-reduce:animate-none" aria-label="Cargando" />
                 ) : (
                   <>
@@ -1133,72 +1024,43 @@ function LoQuieroModalContent({
             <p role="alert" className="d2-aparece mt-1 text-xs font-semibold text-[var(--d2-error-rojo)]">{errorCupon}</p>
           )}
         </div>
-      </div>
+  );
 
-      {/* Detalle del accesorio: capa propia encima del modal */}
+  return (
+    <>
+      <ModalV2
+        abierto={abierto}
+        onCerrar={cerrar}
+        onSalidaTerminada={onClose}
+        icono={ShoppingBag}
+        titulo={titulo}
+        subtitulo={subtitulo}
+        idTitulo="lo-quiero-titulo"
+        idSubtitulo="lo-quiero-subtitulo"
+        ancho="grande"
+        claseCuerpo="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-4 pb-3 md:p-5 md:pt-6"
+        clasePie="shrink-0 border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:px-5 md:pt-3 md:pb-4"
+        pie={pie}
+      >
+        {cuerpo}
+      </ModalV2>
+
+      {/* Detalle del accesorio: capa propia encima del modal. Al salir se
+          suelta el accesorio; el foco vuelve solo a su "Ver detalle". */}
       {detalle && (
-        <div className="absolute inset-0 z-10 flex items-end md:items-center justify-center">
-          <div className={`absolute inset-0 bg-black/40 ${detalleSaliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={cerrarDetalle} />
-          <div
-            ref={detalleRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lo-quiero-detalle-titulo"
-            tabIndex={-1}
-            // Hoja de detalle: `bcPop` 0,2 s en escritorio y 0,25 s desde abajo en celular.
-            className={`relative w-full md:mx-4 md:max-w-[440px] bg-[var(--d2-tarjeta)] rounded-t-2xl md:rounded-2xl shadow-xl flex flex-col max-h-[85dvh] outline-none ${detalleSaliendo ? 'd2-sale-hoja' : 'd2-pop-modal-chico d2-pop-hoja'}`}
-          >
-            {/* Hoja "Ver detalle" (prototipo de Brenda): nombre y cerrar arriba,
-                foto, la cuota en su caja gris, la descripción y las
-                características que trae el accesorio, y "Cerrar" + "Agregar". */}
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-5 md:px-[26px] md:pt-[26px] flex flex-col gap-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <h3 id="lo-quiero-detalle-titulo" className="text-[19px] md:text-[21px] font-bold text-[var(--d2-texto)] leading-tight pt-2">
-                  {nombreParaMostrar(detalle.name, detalle.brand?.name)}
-                </h3>
-                <button
-                  type="button"
-                  onClick={cerrarDetalle}
-                  aria-label="Cerrar detalle"
-                  className="w-11 h-11 shrink-0 rounded-full bg-[var(--d2-fondo)] hover:bg-[var(--d2-hover)] flex items-center justify-center text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                >
-                  <X className="w-[18px] h-[18px]" />
-                </button>
-              </div>
-              <ImagenAccesorio src={detalle.image || detalle.thumbnailUrl} className="w-full h-40 rounded-xl p-3" />
-              <div className="rounded-xl bg-[var(--d2-fondo)] px-3.5 py-3 flex flex-col gap-0.5">
-                <p className="leading-none">
-                  <span className="text-[22px] font-bold text-[var(--color-primary-text)]">
-                    +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
-                  </span>
-                  <span className="text-sm font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
-                </p>
-                {detalle.price > 0 && (
-                  <p className="text-[13px] text-[var(--d2-texto-suave)]">
-                    S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
-                  </p>
-                )}
-              </div>
-              {detalle.description?.trim() && (detalle.specs?.length ?? 0) > 0 && (
-                <p className="text-[15px] leading-snug text-[var(--d2-texto-2)] whitespace-pre-line">{detalle.description.trim()}</p>
-              )}
-              {datosDetalle.length > 0 && (
-                <ul className="space-y-1.5">
-                  {datosDetalle.map((d) => (
-                    <li key={d} className="flex items-start gap-2 text-sm text-[var(--d2-texto-2)]">
-                      <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
-                      <span>{d}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="shrink-0 px-5 md:px-[26px] pt-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-[26px] flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={cerrarDetalle}
-                className="min-h-[48px] px-5 rounded-xl border-[1.5px] border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)] text-[15px] font-semibold text-[var(--d2-texto)] cursor-pointer transition-colors duration-150 hover:bg-[var(--d2-gris-suave)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
-              >
+        <ModalV2
+          abierto={detalleAbierto}
+          onCerrar={cerrarDetalle}
+          onSalidaTerminada={() => setDetalle(null)}
+          icono={Package}
+          titulo={nombreParaMostrar(detalle.name, detalle.brand?.name)}
+          subtitulo="Accesorio sugerido"
+          idTitulo="lo-quiero-detalle-titulo"
+          etiquetaCerrar="Cerrar detalle"
+          capa={1010}
+          pie={
+            <>
+              <button type="button" onClick={cerrarDetalle} className={BOTON_SECUNDARIO_V2}>
                 Cerrar
               </button>
               <button
@@ -1207,53 +1069,69 @@ function LoQuieroModalContent({
                   alternarAccesorio(detalle);
                   cerrarDetalle();
                 }}
-                className="flex-1 md:flex-none min-h-[48px] px-5 rounded-xl bg-[var(--color-primary)] text-[15px] font-bold text-[var(--color-on-primary)] inline-flex items-center justify-center gap-2 cursor-pointer transition-colors duration-150 hover:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)]"
+                className={`${BOTON_PRIMARIO_V2} flex-1 md:flex-none`}
               >
                 {detalleElegido ? 'Quitar de mi solicitud' : 'Agregar a mi solicitud'}
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Cupón: modal chico encima de este (BAL-4958). Escape lo cierra solo
-          a él; la validación es la de `CouponInput`, que vive adentro. */}
-      {cuponAbierto && (
-        <div
-          className="absolute inset-0 z-20 flex items-center justify-center px-4"
-          style={teclado ? { bottom: teclado.alto } : undefined}
+            </>
+          }
         >
-          <div className={`absolute inset-0 bg-black/40 ${cuponSaliendo ? 'd2-fundido-sale' : 'd2-fundido'}`} aria-hidden="true" onClick={cerrarCupon} />
-          <div
-            ref={cuponCapaRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lo-quiero-cupon-titulo"
-            className={`relative w-full max-w-[400px] bg-[var(--d2-tarjeta)] rounded-2xl shadow-xl px-5 pt-4 pb-5 outline-none ${cuponSaliendo ? 'd2-sale' : 'd2-pop-modal-chico'}`}
-          >
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <h3 id="lo-quiero-cupon-titulo" className="font-['Baloo_2',_sans-serif] text-xl font-bold text-[var(--d2-texto-titulo)] leading-tight">
-                Ingresa tu cupón
-              </h3>
-              <button
-                type="button"
-                onClick={cerrarCupon}
-                aria-label="Cerrar cupón"
-                className="w-11 h-11 -mr-2 shrink-0 rounded-full bg-[var(--d2-gris)] hover:bg-[var(--d2-hover-gris)] flex items-center justify-center text-[var(--d2-texto-gris)] cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          {/* Hoja "Ver detalle" (prototipo de Brenda): foto, la cuota en su
+              caja, la descripción y las características que trae el accesorio. */}
+          <div className="flex flex-col gap-3.5">
+            <ImagenAccesorio src={detalle.image || detalle.thumbnailUrl} className="w-full h-40 rounded-xl p-3" />
+            <div className="rounded-xl bg-[var(--d2-fondo)] px-3.5 py-3 flex flex-col gap-0.5">
+              <p className="leading-none">
+                <span className="text-[22px] font-bold text-[var(--color-primary-text)]">
+                  +S/{formatCuotaDeLanding(detalle.monthlyQuota, landing)}
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-primary-text)]">{sufijo}</span>
+              </p>
+              {detalle.price > 0 && (
+                <p className="text-[13px] text-[var(--d2-texto-suave)]">
+                  S/{formatCuotaDeLanding(detalle.price, landing)} en {detalle.term ?? plazo} cuotas
+                </p>
+              )}
             </div>
-            <CouponInput compacto isRequired={isCouponRequired} />
-            {errorCupon && !appliedCoupon && (
-              <p role="alert" className="d2-aparece text-xs font-semibold text-[var(--d2-error-rojo)] mt-1.5">{errorCupon}</p>
+            {detalle.description?.trim() && (detalle.specs?.length ?? 0) > 0 && (
+              <p className="text-[15px] leading-snug text-[var(--d2-texto-2)] whitespace-pre-line">{detalle.description.trim()}</p>
+            )}
+            {datosDetalle.length > 0 && (
+              <ul className="space-y-1.5">
+                {datosDetalle.map((d) => (
+                  <li key={d} className="flex items-start gap-2 text-sm text-[var(--d2-texto-2)]">
+                    <Check className="w-4 h-4 mt-0.5 shrink-0 text-[var(--color-primary-text)]" aria-hidden />
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-        </div>
+        </ModalV2>
       )}
-    </div>
-  );
 
-  return createPortal(modal, document.body);
+      {/* Cupón: modal chico encima de este (BAL-4958). Escape lo cierra solo
+          a él; la validación es la de `CouponInput`, que vive adentro. */}
+      <ModalV2
+        abierto={cuponAbierto}
+        onCerrar={cerrarCupon}
+        devolverFoco={focoDeLaFilaCupon}
+        icono={Tag}
+        titulo="Ingresa tu cupón"
+        subtitulo={isCouponRequired ? 'Esta landing pide un cupón para continuar' : 'Si tienes un código de descuento, aplícalo aquí'}
+        idTitulo="lo-quiero-cupon-titulo"
+        etiquetaCerrar="Cerrar cupón"
+        enfoqueInicial="input"
+        ancho="chico"
+        capa={1020}
+      >
+        <CouponInput compacto isRequired={isCouponRequired} />
+        {errorCupon && !appliedCoupon && (
+          <p role="alert" className="d2-aparece text-xs font-semibold text-[var(--d2-error-rojo)] mt-1.5">{errorCupon}</p>
+        )}
+      </ModalV2>
+    </>
+  );
 }
 
 export default LoQuieroModal;

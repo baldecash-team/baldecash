@@ -76,6 +76,12 @@ function tokenVipApruebaEsteDni(slug: string, dni: string): boolean {
 interface DocumentNumberFieldProps {
   field: WizardField;
   showError?: boolean;
+  /**
+   * Rastreo de foco (`input_focus`/`input_blur`, BAL-5210); lo pasa
+   * DynamicField. Solo avisa la entrada y la salida, nunca lo que se escribe.
+   */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 // Mapping from backend field names to frontend field codes
@@ -103,6 +109,8 @@ const prefillDocKey = (code: string) => `_prefill_doc_${code}`;
 export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   field,
   showError = false,
+  onFocus,
+  onBlur,
 }) => {
   const { getFieldValue, getFieldError, getFieldLabel, updateField, setFieldError, formData, getAllDynamicOptions } = useWizard();
   // Diseño 2 (BAL-4963): saludo, mensajes por tipo y modal con el estilo del kit.
@@ -618,6 +626,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         label={etiqueta}
         value={value}
         onChange={handleChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
         error={displayError}
         required={field.required}
         disabled={documentoBloqueado}

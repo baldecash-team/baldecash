@@ -220,6 +220,12 @@ describe('useSubmitApplication', () => {
       expect(onUnidadTomada.mock.calls[0][0]).toContain('catálogo');
       // Nunca los dos: dos avisos del mismo hecho se leen como dos problemas.
       expect(onToast).not.toHaveBeenCalled();
+      // BAL-5207: el evento dice que la persona vio el modal.
+      expect(mockAnalyticsTrack).toHaveBeenCalledWith('form_submit_error', {
+        error_code: 'UNIT_OUT_OF_STOCK',
+        stage: 'api_response',
+        surface: 'modal',
+      });
     });
 
     it('OUT_OF_STOCK sigue yendo al toast aunque haya modal', async () => {
@@ -242,6 +248,11 @@ describe('useSubmitApplication', () => {
 
       expect(onUnidadTomada).not.toHaveBeenCalled();
       expect(onToast).toHaveBeenCalledTimes(1);
+      // `surface` es solo del aviso «equipo ya tomado».
+      expect(mockAnalyticsTrack).toHaveBeenCalledWith('form_submit_error', {
+        error_code: 'OUT_OF_STOCK',
+        stage: 'api_response',
+      });
     });
 
     it.each([
@@ -303,6 +314,12 @@ describe('useSubmitApplication', () => {
 
       expect(onToast).toHaveBeenCalledTimes(1);
       expect(onToast.mock.calls[0][0]).toContain('catálogo');
+      // BAL-5207: el evento dice que la persona vio el toast.
+      expect(mockAnalyticsTrack).toHaveBeenCalledWith('form_submit_error', {
+        error_code: 'UNIT_OUT_OF_STOCK',
+        stage: 'api_response',
+        surface: 'toast',
+      });
     });
 
     it('COUPON_USER_LIMIT_REACHED: pide quitar el cupon', async () => {

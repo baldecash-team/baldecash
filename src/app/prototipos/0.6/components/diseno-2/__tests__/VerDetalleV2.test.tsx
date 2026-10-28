@@ -9,6 +9,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PanelSolicitudV2, CabeceraSolicitudV2, textoDelDiaDePago } from '../PanelSolicitudV2';
 import { BarraInferiorV2 } from '../BarraInferiorV2';
 
+// El cupón del panel (BAL-5203) vive en su propio módulo; acá no hay ProductProvider.
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon', () => ({
+  CouponInput: () => null,
+  useCuponVisible: () => false,
+  useQuitarCupon: () => jest.fn(),
+}));
+
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/hooks/useTecladoVirtualAbierto', () => ({
   useTecladoVirtualAbierto: () => false,
 }));
@@ -31,6 +38,8 @@ const datos = (overrides: Record<string, unknown> = {}) =>
     total: 159,
     frecuencia: 'mensual',
     leyenda: '24 meses · Sin inicial',
+    textoPlazo: '24 meses',
+    textoInicial: 'Sin inicial',
     regalos: [],
     mesPrimeraCuota: null,
     hayQueElegir: false,
@@ -135,7 +144,7 @@ describe('BarraInferiorV2 — texto del Paso 4', () => {
 });
 
 describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
-  it('muestra "Cuota mensual total", el día de pago y su propio "Enviar solicitud"; sin "Cambiar plazo o inicial"', () => {
+  it('muestra "Cuota mensual total", el día de pago, su propio "Enviar solicitud" y "Cambiar plazo o inicial" (Emilio, 27-oct)', () => {
     const onEnviar = jest.fn();
     const { rerender } = render(
       <PanelSolicitudV2
@@ -146,7 +155,7 @@ describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
     );
     expect(screen.getByText(/Cuota mensual total/)).toBeInTheDocument();
     expect(screen.getByText('Por elegir')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Cambiar plazo o inicial/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Cambiar plazo o inicial/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
     expect(onEnviar).toHaveBeenCalledTimes(1);
 

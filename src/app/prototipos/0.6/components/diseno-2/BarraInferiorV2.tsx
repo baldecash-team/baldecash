@@ -72,6 +72,7 @@ export function BarraInferiorV2({
 
   return (
     <div
+      data-barra-inferior-v2
       className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-3"
       style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}
     >

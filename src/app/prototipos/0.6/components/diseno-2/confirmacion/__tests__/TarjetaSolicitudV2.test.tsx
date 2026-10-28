@@ -75,4 +75,44 @@ describe('TarjetaSolicitudV2', () => {
     render(<TarjetaSolicitudV2 data={baseData()} landingSlug="pago-diferido" />);
     expect(screen.queryByText('BaldeCash te regala')).not.toBeInTheDocument();
   });
+
+  it('muestra la foto del equipo, los accesorios pagados y los seguros con su cuota', () => {
+    render(
+      <TarjetaSolicitudV2
+        data={baseData({
+          products: [{ name: 'Laptop Lenovo V15', image: 'https://x/v15.png', quantity: 1, unitPrice: 1, finalPrice: 1, monthlyQuota: 159 }],
+          accessories: [{ name: 'Mochila Nova', monthlyQuota: 6 }],
+          insurances: [{ name: 'Seguro Contra Robo', monthlyPrice: 25 }],
+        })}
+        landingSlug="pago-diferido"
+      />,
+    );
+    expect(screen.getByRole('img', { name: 'Laptop Lenovo V15' })).toHaveAttribute('src', 'https://x/v15.png');
+    expect(screen.getByText('Mochila Nova')).toBeInTheDocument();
+    expect(screen.getByText('+S/6/mes')).toBeInTheDocument();
+    expect(screen.getByText('Seguro Contra Robo')).toBeInTheDocument();
+    expect(screen.getByText('+S/25/mes')).toBeInTheDocument();
+  });
+
+  it('sin foto deja el ícono y sin extras no pinta esas secciones', () => {
+    render(<TarjetaSolicitudV2 data={baseData()} landingSlug="pago-diferido" />);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByText('Accesorios')).not.toBeInTheDocument();
+    expect(screen.queryByText('Protecciones')).not.toBeInTheDocument();
+  });
+
+  it('con varios regalos: título «Regalos» y cada uno en su línea con «Gratis» (no una cápsula con todos)', () => {
+    render(
+      <TarjetaSolicitudV2
+        data={baseData({ accessories: [
+          { name: 'Kaspersky Estándar 1 pc', monthlyQuota: 0, isGift: true },
+          { name: 'Teclado gamer TE-4072G', monthlyQuota: 0, isGift: true },
+        ] })}
+        landingSlug="pago-diferido"
+      />,
+    );
+    expect(screen.getByText('Regalos')).toBeInTheDocument();
+    const items = screen.getAllByRole('listitem');
+    expect(items.map((li) => li.textContent)).toEqual(['Kaspersky Estándar 1 pcGratis', 'Teclado gamer TE-4072GGratis']);
+  });
 });

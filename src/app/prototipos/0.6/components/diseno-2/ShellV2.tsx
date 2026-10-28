@@ -50,6 +50,7 @@ import { useErroresAlSalir } from './useErroresAlSalir';
 import { leerOrigenDiseno2 } from './origenDiseno2';
 import { hayEnvioADomicilio, pidenDiaDePago } from './textosQueAplicanV2';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -113,6 +114,11 @@ export interface ShellV2Props {
    * confidencialidad. Los demás pasos llevan Atrás y Continuar en línea.
    */
   pasoResumen?: boolean;
+  /**
+   * La landing pide el cupón para continuar (`isCouponRequired`): el
+   * "¿Tienes un cupón?" del panel de escritorio lo dice (BAL-5203).
+   */
+  cuponObligatorio?: boolean;
 }
 
 /**
@@ -171,6 +177,7 @@ export function ShellV2({
   accionMovil,
   atrasMovil,
   pasoResumen = false,
+  cuponObligatorio = false,
 }: ShellV2Props) {
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
@@ -186,10 +193,17 @@ export function ShellV2({
    * guardada por el modal al continuar, o al catálogo si no hay ninguna
    * guardada (URL directa al paso, u otra pestaña). Solo pisa `onBack` en el
    * primer paso; el resto navega como siempre (`paso.handleBack`).
+   *
+   * Como no pasa por `handleBack`, emite acá el `form_step_back` que ese
+   * emitiría, con las mismas propiedades (BAL-5207): sin él no se puede
+   * comparar el abandono del Paso 1 entre Diseño 1 y Diseño 2.
    */
+  const tracker = useEventTrackerOptional();
+  const codigoDelPaso = step?.code;
   const handleBackPrimerPaso = useCallback(() => {
+    tracker?.track('form_step_back', { step_code: codigoDelPaso, prev_step: 'preview', diseno: 2 });
     router.push(leerOrigenDiseno2(landing) || routes.catalogo(landing));
-  }, [router, landing]);
+  }, [router, landing, tracker, codigoDelPaso]);
   const irAtras = isFirstStep ? handleBackPrimerPaso : onBack;
 
   const pasos = useMemo(() => pasosDelProgreso(steps), [steps]);
@@ -261,6 +275,7 @@ export function ShellV2({
         totalPasos={pasos.length}
         landing={landing}
         detalle={detalle}
+        codigoDelPaso={step?.code ?? currentStep}
       />
       <div className="lg:hidden" style={{ height: ALTO_CABECERA_MOVIL }} aria-hidden />
 
@@ -357,11 +372,22 @@ export function ShellV2({
           </div>
 
           <div className="hidden lg:block">
-            <div className="sticky d2-pop-lento" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
+            {/* Con «Ver detalle» o «Cambiar plazo» abiertos el panel crece más
+                que la pantalla: va fijo, así que se desplaza dentro de su caja
+                (un solo scroll; antes el detalle quedaba cortado sin poder bajar). */}
+            <div
+              className="sticky d2-pop-lento overflow-y-auto overscroll-contain rounded-2xl [scrollbar-width:thin]"
+              style={{
+                top: 'calc(var(--header-total-height, 6.5rem) + 1rem)',
+                maxHeight: 'calc(100vh - var(--header-total-height, 6.5rem) - 2rem)',
+              }}
+            >
               <PanelSolicitudV2
                 datos={datosDelPanel}
                 detalle={detalle}
                 conEnvio={conEnvio}
+                cuponObligatorio={cuponObligatorio}
+                codigoDelPaso={step?.code ?? currentStep}
                 // El paso que envía lleva su "Enviar" también en el panel (prototipo).
                 envio={
                   isLastStep && accionPrincipal && !sinNavegacion

@@ -281,6 +281,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         <DocumentNumberField
           field={field}
           showError={showError}
+          // BAL-5210: entrada y salida como los demás campos (titular y familiar).
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       );
 
@@ -293,6 +296,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           field={field}
           showError={showError}
           onLocalErrorChange={onLocalErrorChange ? handleLocalErrorChange : undefined}
+          // BAL-5210: entrada y salida como los demás campos.
+          onFocus={handleFocus}
+          onBlur={handleBlur}
         />
       );
 

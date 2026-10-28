@@ -39,8 +39,13 @@ describe('textoCabeceraV2 — caso por defecto', () => {
   it('con celular: agrega "al +51 {celular}"', () => {
     const r = textoCabeceraV2({ userName: 'Brenda', estimatedResponseHours: 24, telefono: '987654321' });
     expect(r.subtitulo).toBe(
-      'Ya la estamos revisando. Te avisamos el resultado por WhatsApp al +51 987654321 en máximo 24 horas.',
+      'Ya la estamos revisando. Te avisamos el resultado por WhatsApp al +51 987654321 en máximo 24 horas.',
     );
+  });
+
+  it('el número no se corta entre líneas: sus espacios son de no separación', () => {
+    const r = textoCabeceraV2({ userName: 'Brenda', estimatedResponseHours: 24, telefono: '9XX XXX 999' });
+    expect(r.subtitulo).toContain('+51 9XX XXX 999');
   });
 
   it('nunca inventa el plazo: usa el mismo `estimatedResponseHours` que ya tiene Diseño 1', () => {

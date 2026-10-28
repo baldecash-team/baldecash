@@ -307,28 +307,99 @@ describe('Secciones del paso (groups)', () => {
   });
 });
 
-describe('"Otra (escríbela)" pegado al select', () => {
-  it('el campo condicional sale justo debajo de su lista, más junto y dentro de su sección', () => {
+describe('BAL-5205: «Otro» se escribe en el mismo campo', () => {
+  it('con «Otro» elegido, en el lugar de la lista queda la caja «¿Cuál ciclo?» con «Ver opciones», dentro de su sección', () => {
     formData = { semester: { value: 'otro' } };
     // El texto viene al final del paso y sin sección: igual va con su lista.
     const { container } = pintarV2(paso([CICLO, MONTO, OTRO_CICLO], { groups: [GRUPOS[1], GRUPOS[0]] }));
+    const ciclo = container.querySelector<HTMLElement>('[data-campo="semester"]')!;
+    // La lista ya no se ve: en su lugar, la caja del «¿Cuál…?».
+    expect(screen.queryByText('Ciclo Actual')).toBeNull();
+    const caja = screen.getByRole('textbox', { name: '¿Cuál ciclo?' });
+    expect(ciclo).toContainElement(caja);
+    expect(screen.getByRole('button', { name: 'Ver opciones' })).toBeInTheDocument();
+    // La guía y los errores la encuentran por su propio `data-campo`, dentro del de la lista.
+    expect(ciclo.querySelector('[data-campo="other_semester"]')).toContainElement(caja);
     expect(ordenDeCampos(container)).toEqual(['semester', 'other_semester', 'tuition_amount']);
-    const otro = container.querySelector<HTMLElement>('[data-campo="other_semester"]')!;
-    expect(otro).toHaveAttribute('data-pegado-a', 'semester');
-    expect(otro.className).toContain('-mt-3');
-    expect(otro.closest('[data-seccion]')).toHaveAttribute('data-seccion', 'tus_estudios');
-    // Siguiente hermano directo del select.
-    expect(container.querySelector('[data-campo="semester"]')?.nextElementSibling).toBe(otro);
+    expect(ciclo.closest('[data-seccion]')).toHaveAttribute('data-seccion', 'tus_estudios');
+    // El «¿Cuál…?» ya no se pinta aparte.
+    expect(container.querySelector('[data-pegado-a]')).toBeNull();
   });
 
-  it('también sin groups, y en Diseño 1 no cambia nada', () => {
+  it('elegir «Otro» cambia la lista por la caja; lo escrito va a other_semester; «Ver opciones» vacía los dos y vuelve la lista', () => {
+    formData = {};
+    const paso2 = paso([CICLO, MONTO, OTRO_CICLO]);
+    const { rerender } = pintarV2(paso2);
+    expect(screen.queryByRole('textbox', { name: '¿Cuál ciclo?' })).toBeNull();
+    formData = { semester: { value: 'otro', label: 'Otro' } };
+    rerender(<DynamicWizardStep step={paso2} camposTocados={NADA_TOCADO} />);
+    const caja = screen.getByRole('textbox', { name: '¿Cuál ciclo?' });
+    expect(caja).toHaveFocus();
+    fireEvent.change(caja, { target: { value: 'Décimo' } });
+    expect(updateField).toHaveBeenLastCalledWith('other_semester', 'Décimo');
+    updateField.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Ver opciones' }));
+    expect(updateField).toHaveBeenCalledWith('semester', '');
+    expect(updateField).toHaveBeenCalledWith('other_semester', '');
+    rerender(<DynamicWizardStep step={paso2} camposTocados={NADA_TOCADO} />);
+    expect(screen.queryByRole('textbox', { name: '¿Cuál ciclo?' })).toBeNull();
+    expect(screen.getByText('Ciclo Actual')).toBeInTheDocument();
+  });
+
+  it('con «Continuar» y la caja vacía, el error del «¿Cuál…?» sale en la caja', () => {
+    formData = { semester: { value: 'otro' }, other_semester: { value: '', error: 'Este campo es requerido' } };
+    pintarV2(paso([CICLO, OTRO_CICLO]), true);
+    expect(screen.getByRole('alert')).toHaveTextContent('Este campo es requerido');
+    expect(screen.getByRole('textbox', { name: '¿Cuál ciclo?' })).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('volver a un paso que ya estaba en «Otro» no roba el foco', () => {
+    formData = { semester: { value: 'otro' }, other_semester: { value: 'Décimo' } };
+    pintarV2(paso([CICLO, OTRO_CICLO]));
+    const caja = screen.getByRole('textbox', { name: '¿Cuál ciclo?' });
+    expect(caja).toHaveValue('Décimo');
+    expect(caja).not.toHaveFocus();
+  });
+
+  it('llegó en «Otro», «Ver opciones» y vuelve a elegir «Otro»: esta vez la caja SÍ toma el foco', () => {
+    formData = { semester: { value: 'otro' }, other_semester: { value: 'Décimo' } };
+    const paso2 = paso([CICLO, OTRO_CICLO]);
+    const { rerender } = pintarV2(paso2);
+    expect(screen.getByRole('textbox', { name: '¿Cuál ciclo?' })).not.toHaveFocus();
+    formData = { semester: { value: '' }, other_semester: { value: '' } };
+    rerender(<DynamicWizardStep step={paso2} camposTocados={NADA_TOCADO} />);
+    formData = { semester: { value: 'otro', label: 'Otro' } };
+    rerender(<DynamicWizardStep step={paso2} camposTocados={NADA_TOCADO} />);
+    expect(screen.getByRole('textbox', { name: '¿Cuál ciclo?' })).toHaveFocus();
+  });
+
+  it('institución (lista remota): con «Otros» elegido también es caja; con otra institución, lista', () => {
+    const INSTITUCION = campo({ id: 30, code: 'institution', label: 'Institución Educativa', type: 'autocomplete', options_source: 'study-centers', min_search_length: 3 } as Partial<WizardField>);
+    const OTRA_INSTITUCION = campo({
+      id: 31,
+      code: 'other_institution',
+      label: '¿Cuál institución?',
+      hidden: true,
+      dependency_groups: [{ action: 'show', logic: 'and', conditions: [{ depends_on_field: 'institution', operator: 'in', value: ['39381', '39382', '39383'] }] }],
+    });
+    formData = { institution: { value: '39381', label: 'Otros' } };
+    const { unmount } = pintarV2(paso([INSTITUCION, OTRA_INSTITUCION]));
+    expect(screen.getByRole('textbox', { name: '¿Cuál institución?' })).toBeInTheDocument();
+    expect(screen.queryByText('Institución Educativa')).toBeNull();
+    unmount();
+    formData = { institution: { value: '7', label: 'UCV' } };
+    pintarV2(paso([INSTITUCION, OTRA_INSTITUCION]));
+    expect(screen.queryByRole('textbox', { name: '¿Cuál institución?' })).toBeNull();
+  });
+
+  it('Diseño 1 no cambia nada: el «¿Cuál ciclo?» sigue aparte, bajo la lista', () => {
     formData = { semester: { value: 'otro' } };
-    const v2 = pintarV2(paso([CICLO, MONTO, OTRO_CICLO]));
-    expect(ordenDeCampos(v2.container)).toEqual(['semester', 'other_semester', 'tuition_amount']);
-    v2.unmount();
     const v1 = pintarV1(paso([CICLO, MONTO, OTRO_CICLO]));
+    expect(screen.getByText('Ciclo Actual')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver opciones' })).toBeNull();
+    expect(screen.getByText('¿Cuál ciclo?')).toBeInTheDocument();
+    expect(v1.container.querySelector('[data-otra-en-el-campo]')).toBeNull();
     expect(v1.container.querySelector('[data-pegado-a]')).toBeNull();
-    expect(v1.container.innerHTML).not.toContain('-mt-3');
   });
 });
 

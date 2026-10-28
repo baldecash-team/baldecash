@@ -81,6 +81,7 @@ import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePa
 import { saludoBloqueado } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
 import { ConfirmarSinProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ConfirmarSinProteccionesV2';
+import { AvisoUnidadTomadaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoUnidadTomadaV2';
 // Guardas del paso en Diseño 2 (BAL-4969, casuísticas): aviso en el paso, nunca la intro de Diseño 1.
 import {
   guardaActivaV2,
@@ -94,6 +95,7 @@ import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGua
 import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
 import { enfocarCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
+import { nombreDelTipo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 /**
  * El Paso 4 vuelve a la vista 1 y abre la sección antes de bajar al campo
@@ -504,6 +506,38 @@ function StepContent() {
   });
 
   /**
+   * Paso 4 de Diseño 2 en dos pantallas (BAL-5204): datos → seguros. La de
+   * seguros lleva su propia entrada en el historial (`pushState` al entrar):
+   * el «Atrás» del navegador y el de la pantalla vuelven a los datos sin salir
+   * del paso. Va aquí, arriba de los `return` tempranos (regla de hooks).
+   */
+  const enSeguros = paso4.conPantallaDeSeguros && paso4.vista === 'seguros';
+  const { volverADatos } = paso4;
+  const codigoDelPaso = step?.code;
+  useEffect(() => {
+    if (!enSeguros) return;
+    const alVolver = (e: PopStateEvent) => {
+      if (e.state?.paso4 === 'seguros') return;
+      volverADatos();
+      tracker?.track('form_step_back', { step_code: codigoDelPaso, vista: 'seguros', diseno: 2 });
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener('popstate', alVolver);
+    return () => window.removeEventListener('popstate', alVolver);
+  }, [enSeguros, volverADatos, tracker, codigoDelPaso]);
+  // Recargar estando en los seguros vuelve a los datos (la vista no se
+  // guarda), pero la entrada del historial seguía marcada como «seguros»: el
+  // siguiente «Atrás» desde los seguros caía en ella y no hacía nada. Se
+  // desmarca al montar.
+  useEffect(() => {
+    const estado = window.history.state as Record<string, unknown> | null;
+    if (estado?.paso4 !== 'seguros') return;
+    const resto = { ...estado };
+    delete resto.paso4;
+    window.history.replaceState(resto, '');
+  }, []);
+
+  /**
    * Paso 4 de Diseño 2: una protección que pasaría la cuota por encima del
    * tope NO se agrega. Se avisa junto a esa protección (y arriba, por si la
    * hoja "¿Qué cubre?" la tapa), en vez de dejarla y bloquear el envío.
@@ -839,6 +873,34 @@ function StepContent() {
     }
   };
 
+  /**
+   * Diseño 2 con seguros (BAL-5204): «Continuar» de la pantalla de datos.
+   * Valida los campos del paso; si falta algo lleva al campo, como al
+   * enviar. Si está completo, pasa a la pantalla de seguros arriba de todo.
+   */
+  const continuarASeguros = () => {
+    if (isFlowConfigLoading) return;
+    hideToast();
+    setSubmitted(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      paso4.volverAlCampo(firstErrorField);
+      window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
+      return;
+    }
+    setSubmitted(false);
+    // Arriba ANTES de la entrada nueva del historial: el navegador guarda en
+    // la entrada de los datos el scroll que tiene al dejarla, y al volver lo
+    // restaura (sin esto, «Atrás» dejaba los datos a media pantalla). Sin
+    // animación: el contenido cambia entero, no hay recorrido que mostrar.
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    paso4.irASeguros();
+    tracker?.track('form_step_complete', { step_code: step?.code, vista: 'datos', diseno: 2 });
+    window.history.pushState({ paso4: 'seguros' }, '');
+  };
+  /** «Atrás» de la pantalla de seguros: lo mismo que el del navegador (ver el `popstate`). */
+  const atrasDesdeSeguros = () => window.history.back();
+
   const handleSummaryBack = () => {
     // Gate G2: `bloqueaContrato` solo puede ser `true` cuando de verdad se
     // está en la pantalla del contrato con el contrato firmado (ver
@@ -903,7 +965,10 @@ function StepContent() {
   );
 
   // El mismo modal de "unidad tomada" del paso regular (z-60 por la navbar).
-  const modalUnidadTomadaResumen = unidadTomada ? (
+  // Diseño 2: el mismo aviso sobre el modal base del kit (BAL-5203, punto 10).
+  const modalUnidadTomadaResumen = usarDiseno2 ? (
+    <AvisoUnidadTomadaV2 mensaje={unidadTomada} onElegirOtro={() => router.push(routes.catalogo(landing))} />
+  ) : unidadTomada ? (
     <div className="relative z-[60]">
       <ModalAviso
         titulo="Ese equipo ya no está disponible"
@@ -962,6 +1027,9 @@ function StepContent() {
   }
 
   // Summary section component
+  // Diseño 2: el repaso vive dentro del panel angosto «Tu solicitud» (Ver
+  // detalle). Ahí va en filas finas con separadores y los colores del kit
+  // (también en oscuro), no en las cajas grises de Diseño 1.
   const SummarySection = ({
     icon: Icon,
     title,
@@ -972,7 +1040,28 @@ function StepContent() {
     title: string;
     onEdit: () => void;
     children: React.ReactNode;
-  }) => (
+  }) => usarDiseno2 ? (
+    <section className="border-t border-[var(--d2-borde)] pt-3 first:border-t-0 first:pt-0">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--color-primary-rgb),0.08)]">
+            <Icon className="h-4 w-4 text-[var(--color-primary-text)]" aria-hidden />
+          </span>
+          <h3 className="truncate text-[13px] font-bold text-[var(--d2-texto)]">{title}</h3>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Editar ${title}`}
+          className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-md px-1.5 text-xs font-bold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        >
+          <Edit2 className="h-3.5 w-3.5" aria-hidden />
+          Editar
+        </button>
+      </div>
+      <dl className="space-y-1.5 pl-9">{children}</dl>
+    </section>
+  ) : (
     <div className="bg-neutral-50 rounded-xl p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -992,7 +1081,12 @@ function StepContent() {
   );
 
   // Summary item component
-  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => usarDiseno2 ? (
+    <div className="flex justify-between gap-3 text-xs leading-snug">
+      <dt className="shrink-0 text-[var(--d2-texto-suave)]">{label}</dt>
+      <dd className="min-w-0 break-words text-right font-semibold text-[var(--d2-texto)]">{value || '-'}</dd>
+    </div>
+  ) : (
     <div className="flex justify-between gap-4 text-sm">
       <span className="text-neutral-500 flex-shrink-0">{label}</span>
       <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>
@@ -1028,6 +1122,7 @@ function StepContent() {
         return (
           <>
             <ShellV2
+              cuponObligatorio={isCouponRequired}
               currentStep={step.url_slug || step.code}
               step={step}
               title={step.title}
@@ -1221,28 +1316,34 @@ function StepContent() {
     // solicitud) van separados por lo mismo que en `MobileStickyCta`.
     if (usarDiseno2) {
       const encabezado = encabezadoDelPaso4(step, nombrePaso4);
-      // Celular: una sola pantalla como en el prototipo de Brenda (campos,
-      // protecciones y la barra con "Enviar…"), sin "Continuar" intermedio.
+      // Con seguros, dos pantallas como en el prototipo de Brenda (BAL-5204):
+      // datos con «Continuar» → «Protege tu laptop» con «Enviar…». Sin
+      // seguros, una sola pantalla con «Enviar…», como hasta ahora.
+      const dosPantallas = paso4.conPantallaDeSeguros;
+      const enDatosAntesDeSeguros = dosPantallas && !enSeguros;
       const frecuencia = getAllProducts()[0]?.paymentFrequency;
 
       return (
         <>
           <ShellV2
+            cuponObligatorio={isCouponRequired}
             currentStep={step.url_slug || step.code}
             step={step}
-            title={encabezado.titulo}
+            // Pantalla de seguros: «Protege tu laptop» con el tipo real del
+            // equipo (la misma palabra de «¿Quieres complementar tu …?»).
+            title={enSeguros ? `Protege tu ${nombreDelTipo(paso4.seguros.tipoDeEquipo)}` : encabezado.titulo}
             antetitulo={encabezado.antetitulo}
             // Sin descripción en la BD, el subtítulo dice solo lo que el paso
             // pide (día de pago, dirección), no el de Brenda fijo (BAL-4969).
-            description={subtituloDelPaso4(step)}
+            description={enSeguros ? undefined : subtituloDelPaso4(step)}
             // Cada bloque (campos, protecciones) lleva su propia tarjeta.
             sinTarjeta
-            onBack={handleSummaryBack}
-            onNext={nextHandler}
-            onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
+            onBack={enSeguros ? atrasDesdeSeguros : handleSummaryBack}
+            onNext={enDatosAntesDeSeguros ? continuarASeguros : nextHandler}
+            onSubmit={!enDatosAntesDeSeguros && isActuallyLastStep ? handleSummarySubmit : undefined}
             onStepClick={handleStepClick}
             condicionesFijas={condicionesFijas}
-            isLastStep={isActuallyLastStep}
+            isLastStep={!enDatosAntesDeSeguros && isActuallyLastStep}
             isSubmitting={isAppSubmitting}
             isBusy={isSubmitting}
             submitMessage={submitMessage}
@@ -1260,7 +1361,7 @@ function StepContent() {
               <div className="space-y-4">
                 {avisoCampanaV2}
                 {avisoGuardaV2}
-                {step.fields.length > 0 && (
+                {step.fields.length > 0 && !enSeguros && (
                   <div
                     data-vista-paso4="1"
                     // Con secciones, cada una trae su tarjeta (prototipo).
@@ -1270,9 +1371,10 @@ function StepContent() {
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
                   </div>
                 )}
-                {segurosEnPaso4 && (
+                {(enSeguros || (segurosEnPaso4 && !dosPantallas)) && (
                   <div data-vista-paso4="2">
                     <ProteccionesV2
+                      conTituloDeLaPagina={enSeguros}
                       {...paso4.seguros}
                       alternar={alternarProteccion}
                       avisoDelPlan={planSobreTope && !segurosElegidos.includes(planSobreTope) ? { planId: planSobreTope, texto: textoDeTopeDelPlan(maxMonthlyQuota) } : null}
@@ -1412,6 +1514,7 @@ function StepContent() {
       <>
         {paso.overlays}
         <ShellV2
+          cuponObligatorio={isCouponRequired}
           currentStep={step.url_slug || step.code}
           step={paso.step ?? step}
           title={step.title}

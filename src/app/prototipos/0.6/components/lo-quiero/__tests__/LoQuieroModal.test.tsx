@@ -35,8 +35,9 @@ jest.mock('@/app/prototipos/0.6/context/PreviewContext', () => ({
   usePreview: () => ({ isPreviewingLanding: () => false, previewKey: null }),
 }));
 
+let mockCuponObligatorio = false;
 jest.mock('@/app/prototipos/0.6/hooks/useSolicitarFlow', () => ({
-  useSolicitarFlow: () => ({ isLoading: false, isEnabled: () => true, isCouponRequired: false }),
+  useSolicitarFlow: () => ({ isLoading: false, isEnabled: () => true, isCouponRequired: mockCuponObligatorio }),
 }));
 
 let mockAccesorios: Array<Record<string, unknown>> = [];
@@ -61,6 +62,7 @@ jest.mock('@/app/prototipos/0.6/[landing]/context/LayoutContext', () => ({
 }));
 
 let mockProducto: Record<string, unknown> = {};
+let mockSobreTope = false;
 let mockElegidos: Array<Record<string, unknown>> = [];
 // El cupón aplicado vive en un mini store: aplicarlo o quitarlo repinta.
 let mockCupon: Record<string, unknown> | null = null;
@@ -94,8 +96,8 @@ jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext', () 
         removedCouponNotice: null,
         cartProducts: [],
         getDiscountAmount: () => 0,
-        isOverQuotaLimit: false,
-        maxMonthlyQuota: null,
+        isOverQuotaLimit: mockSobreTope,
+        maxMonthlyQuota: mockSobreTope ? 300 : null,
       };
     },
   };
@@ -165,6 +167,9 @@ beforeEach(() => {
   mockGuardarConsent.mockClear();
   mockTieneCupon = false;
   mockCupon = null;
+  mockCuponObligatorio = false;
+  mockSobreTope = false;
+  mockTrackModal.mockClear();
   localStorage.clear();
   sessionStorage.clear();
 });
@@ -455,6 +460,38 @@ describe('LoQuieroModal · como el prototipo (verificación final, BAL-4969)', (
     expect(await screen.findByRole('heading', { name: `¿Quieres complementar tu ${palabra}?` })).toBeInTheDocument();
   });
 
+  it('«Continuar» queda bloqueado mientras cargan los accesorios y se habilita al terminar', async () => {
+    const { getLandingAccessories } = jest.requireMock('@/app/prototipos/0.6/services/landingApi');
+    let soltar: (v: unknown) => void = () => {};
+    (getLandingAccessories as jest.Mock).mockImplementationOnce(() => new Promise((r) => { soltar = r; }));
+    pintar();
+    const boton = await screen.findByRole('button', { name: /Cargando|Continuar/ });
+    await waitFor(() => expect(boton).toBeDisabled());
+    await act(async () => { soltar([ACC('a1', 'Mouse', null)]); });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Continuar a mis datos/ })).not.toBeDisabled());
+  });
+
+  it('con más de 8 accesorios, el último espacio es «+N más»; al abrir salen todos y «Ver menos» los vuelve a esconder', async () => {
+    mockAccesorios = Array.from({ length: 12 }, (_, i) => ACC(`a${i}`, `Accesorio ${i}`, null));
+    Element.prototype.scrollIntoView = jest.fn();
+    pintar();
+    const mas = await screen.findByRole('button', { name: 'Ver 5 accesorios más' });
+    expect(screen.queryByText('Accesorio 7')).not.toBeInTheDocument();
+    fireEvent.click(mas);
+    expect(await screen.findByText('Accesorio 11')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accesorios más/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Ver menos/ }));
+    expect(screen.queryByText('Accesorio 11')).not.toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('con 8 o menos no hay tarjeta «+N más»', async () => {
+    mockAccesorios = Array.from({ length: 8 }, (_, i) => ACC(`a${i}`, `Accesorio ${i}`, null));
+    pintar();
+    expect(await screen.findByText('Accesorio 7')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accesorios más/ })).not.toBeInTheDocument();
+  });
+
   it('las tarjetas de accesorios no llevan la etiqueta de categoría', async () => {
     mockAccesorios = [ACC('a1', 'Mochila Nova', { slug: 'mochila', name: 'Mochila' }), ACC('a2', 'Mouse', null)];
     pintar();
@@ -503,5 +540,62 @@ describe('E2E BAL-4969 (bug 3): la apertura se registra una vez', () => {
     );
     const aperturas = mockTrackModal.mock.calls.filter(([e]) => e === 'lo_quiero_modal_open');
     expect(aperturas).toHaveLength(1);
+  });
+});
+
+describe('LoQuieroModal · eventos que faltaban (BAL-5207)', () => {
+  const ACC = (id: string, name: string) => ({
+    id, name, description: '', price: 60, monthlyQuota: 5, image: '', category: null,
+    isRecommended: true, compatibleWith: [], term: 24,
+  });
+  const llamadas = (evento: string) => mockTrackModal.mock.calls.filter((c) => c[0] === evento).map((c) => c[1]);
+
+  it('«Continuar» con los términos sin marcar emite lo_quiero_modal_continue_blocked con reason "terms"', async () => {
+    pintar();
+    await screen.findByRole('checkbox', { name: FRASE });
+    fireEvent.click(await screen.findByRole('button', { name: /Continuar a mis datos/ }));
+    expect(llamadas('lo_quiero_modal_continue_blocked')).toEqual([{ reason: 'terms', product_id: '1528' }]);
+    expect(llamadas('lo_quiero_modal_continue')).toEqual([]);
+  });
+
+  it('cupón obligatorio sin cupón: reason "coupon_required"', async () => {
+    mockCuponObligatorio = true;
+    pintar();
+    await screen.findByRole('checkbox', { name: FRASE });
+    fireEvent.click(screen.getByText(/Acepto los/));
+    fireEvent.click(await screen.findByRole('button', { name: /Continuar a mis datos/ }));
+    expect(llamadas('lo_quiero_modal_continue_blocked')).toEqual([{ reason: 'coupon_required', product_id: '1528' }]);
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('cuota sobre el tope: el botón se ve apagado pero el clic se registra con reason "over_quota" y no avanza', async () => {
+    mockSobreTope = true;
+    pintar();
+    await screen.findByRole('checkbox', { name: FRASE });
+    fireEvent.click(screen.getByText(/Acepto los/));
+    const boton = await screen.findByRole('button', { name: /Continuar a mis datos/ });
+    expect(boton).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(boton);
+    expect(llamadas('lo_quiero_modal_continue_blocked')).toEqual([{ reason: 'over_quota', product_id: '1528' }]);
+    expect(llamadas('lo_quiero_modal_continue')).toEqual([]);
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('con todo en regla no emite continue_blocked', async () => {
+    pintar();
+    await screen.findByRole('checkbox', { name: FRASE });
+    fireEvent.click(screen.getByText(/Acepto los/));
+    fireEvent.click(await screen.findByRole('button', { name: /Continuar a mis datos/ }));
+    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+    expect(llamadas('lo_quiero_modal_continue_blocked')).toEqual([]);
+  });
+
+  it('«+N más» emite accessories_expand con hidden_count; «Ver menos» emite accessories_collapse', async () => {
+    mockAccesorios = Array.from({ length: 12 }, (_, i) => ACC(`a${i}`, `Accesorio ${i}`));
+    pintar();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver 5 accesorios más' }));
+    expect(llamadas('lo_quiero_modal_accessories_expand')).toEqual([{ hidden_count: 5, product_id: '1528' }]);
+    fireEvent.click(await screen.findByRole('button', { name: /Ver menos/ }));
+    expect(llamadas('lo_quiero_modal_accessories_collapse')).toEqual([{ product_id: '1528' }]);
   });
 });

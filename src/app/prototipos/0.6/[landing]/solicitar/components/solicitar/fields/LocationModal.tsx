@@ -11,10 +11,9 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
-import { MapPin, Loader2, AlertCircle, X, Check, Navigation } from 'lucide-react';
-import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { useIsMobile } from '@/app/prototipos/_shared';
+import { Button } from '@nextui-org/react';
+import { MapPin, Loader2, AlertCircle, Check, Navigation } from 'lucide-react';
+import { ModalV2 } from '@/app/prototipos/0.6/components/diseno-2/ModalV2';
 import { ParsedAddress } from '../../../../../types/googleMaps.d';
 import { parseGooglePlace } from '../../../utils/parseGooglePlace';
 
@@ -321,14 +320,11 @@ const LocationModalContent: React.FC<{
     return (
       <div className="flex flex-col items-center text-center p-8 space-y-6">
         <div className="w-20 h-20 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
-          <Navigation className="w-10 h-10 text-[var(--color-primary)]" />
+          <Navigation className="w-10 h-10 text-[var(--color-primary-text)]" />
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-bold text-neutral-800">
-            Ubicación de domicilio
-          </h3>
-          <p className="text-sm text-neutral-500 leading-relaxed max-w-xs mx-auto">
+          <p className="text-sm text-[var(--d2-texto-suave)] leading-relaxed max-w-xs mx-auto">
             Para realizar una mejor evaluación, deseamos conocer la ubicación de tu domicilio.
           </p>
         </div>
@@ -341,7 +337,7 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={handleAllow}
-            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center gap-2 active:brightness-90 transition-colors"
+            className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center gap-2 active:brightness-90 transition-colors"
           >
             <MapPin className="w-5 h-5" />
             Permitir ubicación
@@ -349,7 +345,7 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
+            className="w-full text-[var(--d2-texto-suave)] font-medium h-12 rounded-xl cursor-pointer hover:bg-[var(--d2-gris-suave)] transition-colors"
           >
             No permitir
           </button>
@@ -363,11 +359,11 @@ const LocationModalContent: React.FC<{
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4 min-h-[280px]">
         <div className="w-16 h-16 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 text-[var(--color-primary)] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[var(--color-primary-text)] animate-spin" />
         </div>
         <div className="space-y-1 text-center">
-          <p className="text-base font-semibold text-neutral-800">Obteniendo ubicación</p>
-          <p className="text-sm text-neutral-400">Esto puede tomar unos segundos...</p>
+          <p className="text-base font-semibold text-[var(--d2-texto)]">Obteniendo ubicación</p>
+          <p className="text-sm text-[var(--d2-texto-suave)]">Esto puede tomar unos segundos...</p>
         </div>
       </div>
     );
@@ -377,15 +373,15 @@ const LocationModalContent: React.FC<{
   if (state === 'error') {
     return (
       <div className="flex flex-col items-center text-center p-8 space-y-6">
-        <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full bg-[var(--d2-error-suave,#FEF2F2)] flex items-center justify-center">
           <AlertCircle className="w-10 h-10 text-[#ef4444]" />
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-bold text-neutral-800">
+          <h3 className="text-xl font-bold text-[var(--d2-texto)]">
             No pudimos obtener tu ubicación
           </h3>
-          <p className="text-sm text-neutral-500 leading-relaxed max-w-xs mx-auto">
+          <p className="text-sm text-[var(--d2-texto-suave)] leading-relaxed max-w-xs mx-auto">
             {errorMessage}
           </p>
         </div>
@@ -395,14 +391,14 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={handleAllow}
-            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center active:brightness-90 transition-colors"
+            className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center active:brightness-90 transition-colors"
           >
             Intentar de nuevo
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
+            className="w-full text-[var(--d2-texto-suave)] font-medium h-12 rounded-xl cursor-pointer hover:bg-[var(--d2-gris-suave)] transition-colors"
           >
             Cerrar
           </button>
@@ -414,20 +410,13 @@ const LocationModalContent: React.FC<{
   // ─── Map State ───
   return (
     <div className="flex flex-col">
-      {/* Header with icon */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-neutral-100">
-        <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-          <MapPin className="w-5 h-5 text-[var(--color-primary)]" />
-        </div>
-        <div>
-          <h3 className="text-base font-bold text-neutral-800">Confirma tu ubicación</h3>
-          <p className="text-xs text-neutral-400">Arrastra el pin hasta la ubicación exacta de tu domicilio</p>
-        </div>
-      </div>
+      <p className="px-4 pt-4 text-sm text-[var(--d2-texto-suave)]">
+        Arrastra el pin hasta la ubicación exacta de tu domicilio.
+      </p>
 
       {/* Map container with rounded corners and margin */}
       <div className="px-4 pt-4">
-        <div className="rounded-xl overflow-hidden border border-neutral-200 shadow-sm">
+        <div className="rounded-xl overflow-hidden border border-[var(--d2-borde)] shadow-sm">
           <div
             ref={mapContainerRef}
             className="w-full h-[280px] lg:h-[320px]"
@@ -438,19 +427,19 @@ const LocationModalContent: React.FC<{
       {/* Address card + confirm */}
       <div className="px-4 pt-4 pb-6 space-y-4">
         {/* Address card */}
-        <div className="bg-neutral-50 rounded-xl p-4 flex items-start gap-3">
+        <div className="bg-[var(--d2-gris-suave)] rounded-xl p-4 flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
-            <MapPin className="w-4 h-4 text-[var(--color-primary)]" />
+            <MapPin className="w-4 h-4 text-[var(--color-primary-text)]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-neutral-400 mb-1">Dirección detectada</p>
+            <p className="text-xs font-medium text-[var(--d2-texto-suave)] mb-1">Dirección detectada</p>
             {isReverseGeocoding ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 text-neutral-400 animate-spin" />
-                <span className="text-sm text-neutral-400">Actualizando dirección...</span>
+                <Loader2 className="w-4 h-4 text-[var(--d2-texto-suave)] animate-spin" />
+                <span className="text-sm text-[var(--d2-texto-suave)]">Actualizando dirección...</span>
               </div>
             ) : (
-              <p className="text-sm font-medium text-neutral-800 leading-relaxed">
+              <p className="text-sm font-medium text-[var(--d2-texto)] leading-relaxed">
                 {currentAddress || 'Obteniendo dirección...'}
               </p>
             )}
@@ -458,7 +447,7 @@ const LocationModalContent: React.FC<{
         </div>
 
         {/* Confirm question */}
-        <p className="text-sm font-medium text-neutral-600 text-center">
+        <p className="text-sm font-medium text-[var(--d2-texto-2)] text-center">
           ¿Es la dirección correcta?
         </p>
 
@@ -466,7 +455,7 @@ const LocationModalContent: React.FC<{
         <Button
           onPress={handleConfirm}
           isDisabled={!currentPlace || isReverseGeocoding}
-          className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer disabled:opacity-50"
+          className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] font-semibold h-12 rounded-xl cursor-pointer disabled:opacity-50"
           startContent={<Check className="w-5 h-5" />}
         >
           Confirmar ubicación
@@ -476,160 +465,30 @@ const LocationModalContent: React.FC<{
   );
 };
 
-// ─── Desktop Modal (NextUI) ───
+// ─── Modal (estándar del kit) ───
 
-const DesktopModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm, initialCoords }) => (
-  <Modal
-    isOpen={isOpen}
-    onClose={onClose}
-    size="lg"
-    backdrop="blur"
-    placement="center"
-    classNames={{
-      wrapper: 'z-[100]',
-      backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
-      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden',
-      body: 'p-0',
-      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer z-10',
-    }}
+/**
+ * Mismo estándar que el modal «Detalle del financiamiento» de la ficha
+ * (`ModalV2`, BAL-5203 punto 10): en escritorio ventana centrada con la
+ * franja del color de la landing; en celular hoja que sube con manija. Va
+ * en portal al <body>, así la barra fija de «Enviar» ya no le pasa por
+ * encima (pasaba en los dos diseños del formulario).
+ *
+ * Solo la manija y la franja arrastran: el mapa sigue moviéndose con el dedo.
+ */
+export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm, initialCoords }) => (
+  <ModalV2
+    abierto={isOpen}
+    onCerrar={() => onClose()}
+    titulo="Ubicación de tu domicilio"
+    subtitulo="Para evaluar mejor tu solicitud"
+    icono={MapPin}
+    ancho="mediano"
+    claseCuerpo="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+    capa={10000}
   >
-    <ModalContent>
-      <ModalBody className="p-0">
-        <LocationModalContent onClose={onClose} onConfirm={onConfirm} initialCoords={initialCoords} />
-      </ModalBody>
-    </ModalContent>
-  </Modal>
+    <LocationModalContent onClose={onClose} onConfirm={onConfirm} initialCoords={initialCoords} />
+  </ModalV2>
 );
-
-// ─── Mobile Bottom Sheet (Framer Motion) ───
-
-const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm, initialCoords }) => {
-  const dragControls = useDragControls();
-  const scrollYRef = useRef<number>(0);
-  const didLockRef = useRef<boolean>(false);
-
-  // Lock body scroll while open. CRITICAL: we MUST restore body styles on unmount
-  // (cleanup function), because the parent LocationModal does `if (!isOpen) return null`
-  // which unmounts this component immediately — the `else` branch of this effect
-  // would never run in that case, leaving `position: fixed` stuck on <body> and
-  // blocking all page scrolling after closing the modal.
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const unlock = () => {
-      if (!didLockRef.current) return;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      // Restore scroll position without triggering smooth scroll
-      window.scrollTo(0, scrollYRef.current);
-      didLockRef.current = false;
-    };
-
-    // Only lock once — guard against double locking if <body> is already fixed
-    if (document.body.style.position !== 'fixed') {
-      scrollYRef.current = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollYRef.current}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.overflow = 'hidden';
-      didLockRef.current = true;
-    }
-
-    // Cleanup runs on unmount OR when isOpen flips to false — this is what
-    // actually restores scrolling when the user confirms/closes the modal.
-    return unlock;
-  }, [isOpen]);
-
-  return (
-    <AnimatePresence mode="wait">
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            key="location-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-[9998]"
-            style={{ touchAction: 'none' }}
-          />
-
-          {/* Bottom Sheet */}
-          <motion.div
-            key="location-sheet"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            drag="y"
-            dragControls={dragControls}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
-            onDragEnd={(_, info) => {
-              if (info.offset.y > 100) {
-                onClose();
-              }
-            }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col max-h-[90vh]"
-            style={{ overscrollBehavior: 'contain' }}
-          >
-            {/* Drag Handle */}
-            <div
-              onPointerDown={(e) => dragControls.start(e)}
-              className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
-            >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
-            </div>
-
-            {/* Close button */}
-            <div className="absolute top-3 right-3 z-10">
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                onPress={onClose}
-                className="cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Body */}
-            <div
-              className="flex-1 overflow-y-auto"
-              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
-            >
-              <LocationModalContent onClose={onClose} onConfirm={onConfirm} initialCoords={initialCoords} />
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-};
-
-// ─── Main Export ───
-
-export const LocationModal: React.FC<LocationModalProps> = (props) => {
-  const isMobile = useIsMobile();
-
-  // For mobile, always mount MobileBottomSheet so its AnimatePresence can run
-  // the exit animation and its useEffect cleanup can restore body scroll when
-  // isOpen flips to false. Returning null here would unmount the component
-  // immediately, skipping both the animation and the scroll-lock cleanup.
-  if (isMobile) {
-    return <MobileBottomSheet {...props} />;
-  }
-
-  if (!props.isOpen) return null;
-  return <DesktopModal {...props} />;
-};
 
 export default LocationModal;

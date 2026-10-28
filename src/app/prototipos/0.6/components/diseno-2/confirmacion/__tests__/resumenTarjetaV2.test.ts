@@ -113,4 +113,40 @@ describe('resumenDeTarjetaV2', () => {
   it('sin regalo Dinet: regaloBaldecash es null', () => {
     expect(resumenDeTarjetaV2(baseData({ regaloBaldecash: null }), 'pago-diferido')!.regaloBaldecash).toBeNull();
   });
+
+  describe('foto, accesorios y seguros (Emilio, 28-oct)', () => {
+    it('trae la foto del equipo cuando es uno solo', () => {
+      const r = resumenDeTarjetaV2(baseData({ products: [{ ...baseData().products[0], image: 'https://x/laptop.png' }] }), 'pago-diferido');
+      expect(r?.imagen).toBe('https://x/laptop.png');
+    });
+
+    it('sin foto, o con varios equipos, no hay imagen', () => {
+      expect(resumenDeTarjetaV2(baseData(), 'pago-diferido')?.imagen).toBeNull();
+      const dos = baseData().products[0];
+      expect(resumenDeTarjetaV2(baseData({ products: [{ ...dos, image: 'a' }, { ...dos, image: 'b' }] }), 'pago-diferido')?.imagen).toBeNull();
+    });
+
+    it('lista los accesorios pagados y todos los seguros con su cuota; los regalos no entran', () => {
+      const r = resumenDeTarjetaV2(baseData({
+        accessories: [
+          { name: 'Mochila Nova', monthlyQuota: 6 },
+          { name: 'Kaspersky', monthlyQuota: 0, isGift: true },
+        ],
+        insurances: [
+          { name: 'Garantía Extendida', monthlyPrice: 20 },
+          { name: 'Seguro Contra Robo', monthlyPrice: 25 },
+        ],
+      }), 'pago-diferido');
+      expect(r?.accesorios).toEqual([{ nombre: 'Mochila Nova', cuota: 'S/6' }]);
+      expect(r?.seguros).toEqual([
+        { nombre: 'Garantía Extendida', cuota: 'S/20' },
+        { nombre: 'Seguro Contra Robo', cuota: 'S/25' },
+      ]);
+    });
+
+    it('con solo `insurance` (respuesta vieja) igual muestra el seguro', () => {
+      const r = resumenDeTarjetaV2(baseData({ insurance: { name: 'Multiasistencia', monthlyPrice: 6 } }), 'pago-diferido');
+      expect(r?.seguros).toEqual([{ nombre: 'Multiasistencia', cuota: 'S/6' }]);
+    });
+  });
 });

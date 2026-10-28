@@ -150,8 +150,8 @@ describe('componentes del kit sin hex del kit escritos a mano', () => {
   const CARPETAS = ['components/diseno-2', 'components/lo-quiero'].map((c) =>
     path.join(RAIZ, 'app/prototipos/0.6', c),
   );
-  // Ilustraciones (Baldecito, confeti, chispas): mismos colores en los dos temas.
-  const ILUSTRACION = ['BaldecitoV2.tsx', 'confeti.ts', 'TransicionPaso.tsx', 'CabeceraConfirmacionV2.tsx'];
+  // Ilustraciones (confeti de la confirmación): mismos colores en los dos temas.
+  const ILUSTRACION = ['confeti.ts', 'CabeceraConfirmacionV2.tsx'];
   const HEX_DEL_KIT = Object.values(VALORES_DE_HOY).filter((v) => v.startsWith('#') && v !== '#FFFFFF');
 
   function archivos(dir: string): string[] {

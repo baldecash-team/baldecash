@@ -800,10 +800,14 @@ export function useSubmitApplication(
 
           return true;
         } else {
-          // Show error
+          // La unidad tomada va al modal si el caller lo maneja; si no, cae al
+          // toast. El evento dice cuál vio la persona (BAL-5207, `surface`).
+          const unidadTomada = result.error_code === 'UNIT_OUT_OF_STOCK';
+          const unidadTomadaAlModal = unidadTomada && !!onUnidadTomada;
           analytics.track('form_submit_error', {
             error_code: result.error_code ?? 'unknown',
             stage: 'api_response',
+            ...(unidadTomada ? { surface: unidadTomadaAlModal ? 'modal' : 'toast' } : {}),
           });
           setSubmitStage('error');
           // Mensajes por código. Se escriben acá y no se toma el del API
@@ -902,7 +906,7 @@ export function useSubmitApplication(
           // La unidad tomada va al modal si el caller lo maneja; si no, cae al
           // toast, que es el comportamiento de siempre. Nunca los dos: dos
           // avisos del mismo hecho se leen como dos problemas distintos.
-          if (result.error_code === 'UNIT_OUT_OF_STOCK' && onUnidadTomada) {
+          if (unidadTomadaAlModal && onUnidadTomada) {
             onUnidadTomada(msg);
           } else if (
             (result.error_code === 'SPECIAL_LINK_DNI_MISMATCH' ||

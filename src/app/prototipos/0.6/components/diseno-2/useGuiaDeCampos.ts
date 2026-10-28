@@ -92,10 +92,47 @@ const ESPERA_AL_ABRIR_SECCION_MS = 60;
 const ENFOCABLE =
   'input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** Resalta un elemento y lo trae a la vista. No le da foco. */
+/** Aire entre el campo y la cabecera fija (arriba) o el borde/barra (abajo). */
+const AIRE_ARRIBA_PX = 16;
+const AIRE_ABAJO_PX = 24;
+/** Si la variable del layout no está, el alto de navbar + promos de siempre. */
+const ALTO_CABECERA_POR_DEFECTO_PX = 104;
+
+/** Alto de la cabecera fija (navbar + promos), el mismo que usa el layout. */
+function altoCabecera(): number {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--header-total-height');
+  const px = parseFloat(v);
+  return Number.isFinite(px) ? px : ALTO_CABECERA_POR_DEFECTO_PX;
+}
+
+/** Alto de la barra inferior fija de celular (`BarraInferiorV2`), 0 si no hay. */
+function altoBarraInferior(): number {
+  const barra = document.querySelector<HTMLElement>('[data-barra-inferior-v2]');
+  return barra && esVisible(barra) ? barra.getBoundingClientRect().height : 0;
+}
+
+/** ¿El elemento se ve entero entre la cabecera fija y el borde (o la barra) de abajo? */
+export function estaALaVista(el: HTMLElement): boolean {
+  const r = el.getBoundingClientRect();
+  return r.top >= altoCabecera() && r.bottom <= window.innerHeight - altoBarraInferior();
+}
+
+/**
+ * Resalta un elemento y, SOLO si no se ve, lo trae a la vista lo justo.
+ * No le da foco. Antes lo centraba siempre: al llenar un campo la página
+ * bajaba de más aunque el siguiente ya se viera (Brenda, 27-oct, BAL-5206).
+ */
 export function resaltar(el: HTMLElement | null | undefined) {
   if (!el) return;
-  el.scrollIntoView?.({ block: 'center', behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
+  if (!estaALaVista(el)) {
+    const r = el.getBoundingClientRect();
+    const limiteArriba = altoCabecera() + AIRE_ARRIBA_PX;
+    const limiteAbajo = window.innerHeight - altoBarraInferior() - AIRE_ABAJO_PX;
+    // Tapado por la cabecera, o más alto que el hueco: manda su borde de arriba.
+    const top =
+      r.top < limiteArriba || r.height > limiteAbajo - limiteArriba ? r.top - limiteArriba : r.bottom - limiteAbajo;
+    window.scrollBy({ top, behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
+  }
   el.removeAttribute('data-guia');
   // Reiniciar la animación si ya estaba resaltado.
   void el.offsetWidth;

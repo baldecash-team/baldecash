@@ -4,16 +4,16 @@
  * El estado del Paso 4 de Diseño 2 (BAL-4966) que no es del flujo de siempre:
  *
  * - los seguros (con `usePlanesDeSeguro`, la misma lógica de `/complementos`);
- * - en celular, una sola pantalla como en el prototipo de Brenda: campos,
- *   protecciones y "Enviar…" juntos (verificación final, BAL-4969: antes
- *   eran dos vistas, "Continuar" → protecciones → "Enviar");
+ * - el Resumen en dos pantallas como en el prototipo de Brenda (BAL-5204,
+ *   27-oct): 1) día de pago + dirección → Continuar; 2) Protege tu laptop →
+ *   Enviar. Sin seguros, una sola (como hasta BAL-4969);
  * - los ids de seguros que viajan en el submit.
  *
  * Lo llama `StepClient` siempre (es un hook), con `activo` en `false` fuera
  * del resumen de Diseño 2: ahí no pide nada ni toca nada.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { usePlanesDeSeguro } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/sections/usePlanesDeSeguro';
 import { buildSubmitInsuranceIds } from '@/app/prototipos/0.6/[landing]/solicitar/utils/submitInsuranceIds';
@@ -80,8 +80,25 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: Opciones
   /** Seguros que no se pudieron cargar: la persona confirmó enviar sin ellos. */
   const soltarParaEnviarSinProtecciones = useCallback(() => clearInsurance(), [clearInsurance]);
 
-  /** Falta un campo al enviar: lleva al campo (abre su sección si hace falta). */
+  /**
+   * Pantalla de seguros aparte (BAL-5204): hay planes para mostrar, todavía
+   * cargan (ahí va el esqueleto), o fallaron con seguros elegidos (ahí están
+   * «Reintentar» y la confirmación de «Enviar sin protecciones»). Sin planes,
+   * con seguros apagados o con error sin elegidos: una sola pantalla.
+   */
+  const conPantallaDeSeguros =
+    activo && conSeguros && !creadaAntes &&
+    (seguros.planes.length > 0 || (!seguros.cargado && !seguros.error) || pideConfirmarEnvio);
+  const [vista, setVista] = useState<'datos' | 'seguros'>('datos');
+  const irASeguros = useCallback(() => setVista('seguros'), []);
+  const volverADatos = useCallback(() => setVista('datos'), []);
+
+  /**
+   * Falta un campo al enviar: vuelve a la pantalla de datos (si estaba en la
+   * de seguros) y lleva al campo (abre su sección si hace falta).
+   */
   const volverAlCampo = useCallback((codigo: string) => {
+    setVista('datos');
     window.setTimeout(() => irAlCampoV2(codigo), ESPERA_AL_CAMBIAR_VISTA_MS);
   }, []);
 
@@ -96,6 +113,12 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: Opciones
     pideConfirmarEnvio,
     soltarParaEnviarSinProtecciones,
     volverAlCampo,
+    /** El Resumen va en dos pantallas: datos → seguros (BAL-5204). */
+    conPantallaDeSeguros,
+    /** La pantalla del Resumen que se ve. Sin pantalla de seguros, siempre 'datos'. */
+    vista: conPantallaDeSeguros ? vista : ('datos' as const),
+    irASeguros,
+    volverADatos,
     protecciones,
     textoEnviar: textoDelEnvio(protecciones),
     /** Los ids que viajan en el submit (vacío si este paso no lleva seguros). */

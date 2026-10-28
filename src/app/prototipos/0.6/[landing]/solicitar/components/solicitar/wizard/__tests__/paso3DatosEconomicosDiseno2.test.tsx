@@ -446,15 +446,16 @@ describe('RUC (requisito 5): error con ErrorCampoV2, pista cuando no hay error',
   });
 });
 
-describe('"Otra (escríbela)" pegada a "¿Cómo recibes tus ingresos?" (requisito 7)', () => {
-  it('el campo condicional sale pegado a su select, dentro de "Tus ingresos"', () => {
+describe('"Otra (escríbela)" en el mismo campo de "¿Cómo recibes tus ingresos?" (requisito 7, BAL-5205)', () => {
+  it('con «Otra» elegida, la caja del «¿Cuál…?» queda en el lugar del select, dentro de "Tus ingresos"', () => {
     formData = { income_source: { value: 'sueldo_trabajo' }, income_receive_method_no_proof: { value: 'otra' } };
     const { container } = pintarV2(PASO3);
+    const lista = campoEn(container, 'income_receive_method_no_proof')!;
     const otra = campoEn(container, 'income_receive_method_other')!;
-    expect(otra).toHaveAttribute('data-pegado-a', 'income_receive_method_no_proof');
-    expect(otra.className).toContain('-mt-3');
-    expect(otra.closest('[data-seccion]')).toHaveAttribute('data-seccion', 'tus_ingresos');
-    expect(campoEn(container, 'income_receive_method_no_proof')?.nextElementSibling).toBe(otra);
+    expect(lista).toContainElement(otra);
+    expect(otra.querySelector('input[type="text"]')).not.toBeNull();
+    expect(lista.querySelector('button')).toHaveTextContent('Ver opciones');
+    expect(lista.closest('[data-seccion]')).toHaveAttribute('data-seccion', 'tus_ingresos');
   });
 });
 

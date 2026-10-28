@@ -296,8 +296,8 @@ html[data-bc-theme="light"] .gamer-theme-bg {
    Diseño 2 (BAL-4969) — Movimiento
    ============================================
    Curvas y duraciones del prototipo de Brenda (2026-10-20): `bcPop`,
-   `bcPulseA/B`, `bcCheckIn`, `bcGrow`/`bcProgIn`, `bcFadeIn`, `bcHop` y
-   `bcBurst`. Donde Brenda no define nada: 150–250 ms con
+   `bcPulseA/B`, `bcCheckIn`, `bcGrow`/`bcProgIn` y `bcFadeIn` (`bcHop` y
+   `bcBurst` eran de Baldecito, que salió en BAL-5203). Donde Brenda no define nada: 150–250 ms con
    cubic-bezier(.2,.8,.2,1) y 4–12 px. Solo `transform` y `opacity`.
    `prefers-reduced-motion` las apaga todas abajo (en JS, el mismo criterio
    sale de `diseno-2/movimiento.ts`).
@@ -346,17 +346,8 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   0% { transform: scaleX(var(--d2-desde, 0)); }
   100% { transform: scaleX(1); }
 }
-/* Transición entre pasos (puente del prototipo): salto de Baldecito
-   (`bcHop`, la distancia sale de --d2-salto), anillo del paso que sigue
-   (`bcRing`) y Baldecito vivo (`bcBob`, `bcWave`, `bcBlink`). */
-@keyframes d2Salto {
-  0% { transform: translate(0, 0) scale(1, 1); }
-  14% { transform: translate(0, 3px) scale(1.1, 0.88); }
-  50% { transform: translate(calc(var(--d2-salto, 88px) / 2), -48px) scale(0.95, 1.07) rotate(6deg); }
-  82% { transform: translate(var(--d2-salto, 88px), 0) scale(1.12, 0.86); }
-  91% { transform: translate(var(--d2-salto, 88px), -5px) scale(0.97, 1.04); }
-  100% { transform: translate(var(--d2-salto, 88px), 0) scale(1, 1); }
-}
+/* Transición entre pasos (puente del prototipo): la barra que se llena y el
+   anillo del paso que sigue (`bcRing`). Sin Baldecito desde BAL-5203. */
 @keyframes d2Llenado {
   0% { transform: scaleX(0); }
   100% { transform: scaleX(1); }
@@ -366,27 +357,10 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   40% { transform: scale(1.18); }
   100% { transform: scale(1); box-shadow: 0 0 0 12px rgba(var(--color-primary-rgb), 0); }
 }
-@keyframes d2Flota {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
-}
-@keyframes d2Saluda {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-30deg); }
-}
-@keyframes d2Parpadea {
-  0%, 92%, 100% { transform: scaleY(1); }
-  95% { transform: scaleY(0.1); }
-}
 /* Punto del hito "en curso" de la confirmación (`bcPulso`). */
 @keyframes d2Pulso {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(0.6); opacity: 0.55; }
-}
-@keyframes d2Chispa {
-  0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
-  25% { opacity: 1; }
-  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(120deg); }
 }
 
 /* Entrada de una pieza que aparece (resumen de sección, saludo, campo que se destapa).
@@ -411,6 +385,21 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   .d2-sale-hoja { animation: d2Sale 0.16s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
 }
 .d2-fundido { animation: d2Fundido 0.2s ease-out backwards; }
+/* Modal base de Diseño 2 (ModalV2, BAL-5203): el estándar del «Detalle del
+   financiamiento» de la ficha. Celular: hoja que sube con curva de resorte
+   (sin rebote, como el spring damping 30 / stiffness 300 de la ficha);
+   escritorio: fade + scale suave. La entrada es `backwards` para que, al
+   terminar, el arrastre de la manija pueda mover la hoja con `transform`. */
+@keyframes d2ModalSube { 0% { transform: translateY(100%); } 100% { transform: translateY(0); } }
+@keyframes d2ModalBaja { 100% { transform: translateY(100%); } }
+@keyframes d2ModalEntra { 0% { opacity: 0; transform: scale(0.96); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes d2ModalSale { 100% { opacity: 0; transform: scale(0.96); } }
+.d2-modal-entra { animation: d2ModalSube 0.42s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+.d2-modal-sale { animation: d2ModalBaja 0.18s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+@media (min-width: 768px) {
+  .d2-modal-entra { animation: d2ModalEntra 0.2s ease-out backwards; }
+  .d2-modal-sale { animation: d2ModalSale 0.16s ease-in both; }
+}
 .d2-fundido-sale { animation: d2FundidoSale 0.16s ease-in both; pointer-events: none; }
 /* Saludo del Paso 1 (BAL-4963): fundido y 6 px hacia arriba. */
 @keyframes d2Sube {
@@ -440,6 +429,9 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 .d2-pulso-a { animation: d2PulsoA 0.45s ease-out; }
 .d2-pulso-b { animation: d2PulsoB 0.45s ease-out; }
 .d2-check-in { animation: d2CheckIn 0.3s ease-out both; }
+/* Accesorios que aparecen al tocar «+N más»: entran uno tras otro (el retraso va en style). */
+.d2-acc-entra { animation: d2AccEntra 0.28s ease-out both; }
+@keyframes d2AccEntra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 /* Progreso: el check del paso recién hecho y el número del actual. */
 .d2-check-hecho { animation: d2CheckIn 0.45s ease-out 0.1s both; }
 .d2-check-actual { animation: d2CheckIn 0.4s ease-out 0.85s both; }
@@ -450,9 +442,10 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 @media (prefers-reduced-motion: reduce) {
   .d2-pop, .d2-pop-lento, .d2-pop-modal, .d2-pop-modal-chico, .d2-pop-hoja,
   .d2-sale, .d2-sale-hoja, .d2-fundido, .d2-fundido-sale, .d2-aparece,
-  .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-check-hecho, .d2-check-actual,
+  .d2-modal-entra, .d2-modal-sale,
+  .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-acc-entra, .d2-check-hecho, .d2-check-actual,
   .d2-crece, .d2-crece-movil, .d2-saludo,
-  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b, .d2-baldecito-parte {
+  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b {
     animation: none !important;
   }
 }
