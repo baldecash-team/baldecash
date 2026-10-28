@@ -412,6 +412,44 @@ describe('Casilla obligatoria en Diseño 2', () => {
     expect(label?.className).toContain('ring-[var(--color-primary)]');
   });
 
+  describe('la caja que se ve no es la nativa (se veía negra sin marcar en Chromium)', () => {
+    const caja = (c: HTMLElement) => c.querySelector('[data-caja-casilla]') as HTMLElement;
+
+    it('el input nativo queda solo para la semántica: oculto, accesible y sin accentColor', () => {
+      const { container } = pintarV2(paso([CASILLA]));
+      const input = screen.getByRole('checkbox', { name: /Autorizo a BaldeCash/ });
+      expect(input.className).toContain('sr-only');
+      expect(input).not.toHaveAttribute('style');
+      expect(caja(container)).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('sin marcar: borde gris de casilla sobre la tarjeta, sin check', () => {
+      const { container } = pintarV2(paso([CASILLA]));
+      expect(caja(container).className).toContain('border-[var(--d2-borde-casilla)]');
+      expect(caja(container).className).toContain('bg-[var(--d2-tarjeta)]');
+      expect(caja(container).querySelector('svg')).toBeNull();
+    });
+
+    it('marcada: relleno verde con el check blanco', () => {
+      formData = { work_verification_consent: { value: 'true' } };
+      const { container } = pintarV2(paso([CASILLA]));
+      expect(caja(container).className).toContain('bg-[var(--d2-ok-relleno)]');
+      expect(caja(container).className).toContain('border-[var(--d2-ok)]');
+      expect(caja(container).querySelector('svg')).not.toBeNull();
+    });
+
+    it('con error: borde rojo', () => {
+      formData = { work_verification_consent: { value: 'false', error: 'Marca la casilla para continuar.' } };
+      const { container } = pintarV2(paso([CASILLA]), true);
+      expect(caja(container).className).toContain('border-[var(--d2-error)]');
+    });
+
+    it('el foco de teclado se ve en la caja', () => {
+      const { container } = pintarV2(paso([CASILLA]));
+      expect(caja(container).className).toContain('peer-focus-visible:ring-2');
+    });
+  });
+
   it('el label y el subtítulo no se anuncian dos veces: el input no lleva aria-describedby a ellos', () => {
     formData = { work_verification_consent: { value: 'false', error: 'Marca la casilla para continuar.' } };
     const { container } = pintarV2(paso([CASILLA]), true);

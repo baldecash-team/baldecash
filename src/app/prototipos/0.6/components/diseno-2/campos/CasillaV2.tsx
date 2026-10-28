@@ -18,6 +18,7 @@
  */
 
 import React, { useState } from 'react';
+import { Check } from 'lucide-react';
 import { FieldTooltip } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/fields/FieldTooltip';
 
 interface CasillaV2Props {
@@ -53,6 +54,12 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
     : conError
       ? 'border-[var(--d2-error)] bg-[var(--d2-error-suave)]'
       : 'border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)]';
+  // La caja chica de la izquierda (la casilla en sí), como en `LoQuieroModal`.
+  const cuadro = checked
+    ? 'bg-[var(--d2-ok-relleno)] border-[var(--d2-ok)]'
+    : conError
+      ? 'bg-[var(--d2-tarjeta)] border-[var(--d2-error)]'
+      : 'bg-[var(--d2-tarjeta)] border-[var(--d2-borde-casilla)]';
 
   // Sin badge "Obligatorio": la caja no adelanta nada hasta que haya un error
   // o se marque. `helpText` sigue siendo libre (lo trae el banco de campos).
@@ -73,6 +80,12 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           conError && sacudidas > 0 ? 'casilla-v2-sacudida' : ''
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
       >
+        {/*
+          El input nativo queda solo para la semántica (teclado, lector de
+          pantalla, `label`): pintado con `accentColor`, Chromium lo dejaba con
+          el borde casi negro sin marcar. La caja que se ve es el `span` de al
+          lado, con los mismos tokens que las casillas de `LoQuieroModal`.
+        */}
         <input
           id={`${id}-casilla`}
           name={id}
@@ -82,9 +95,15 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           disabled={disabled}
           aria-invalid={conError || undefined}
           aria-required={required || undefined}
-          className="m-0 h-6 w-6 flex-shrink-0 cursor-pointer sm:h-[22px] sm:w-[22px]"
-          style={{ accentColor: checked ? 'var(--d2-ok-relleno)' : 'var(--color-primary)' }}
+          className="peer sr-only"
         />
+        <span
+          aria-hidden="true"
+          data-caja-casilla
+          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition-colors duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-primary)] peer-focus-visible:ring-offset-2 sm:h-[22px] sm:w-[22px] ${cuadro}`}
+        >
+          {checked && <Check className="h-3.5 w-3.5 text-white d2-check-in" strokeWidth={3} />}
+        </span>
         {/*
           El label y el subtítulo NO van en `aria-describedby`: el <label>
           envuelve el input, así que su texto completo ya es el nombre
