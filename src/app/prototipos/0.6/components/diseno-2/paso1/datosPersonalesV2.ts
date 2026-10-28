@@ -9,11 +9,13 @@
  * Solo se usa en Diseño 2. Diseño 1 no importa este archivo.
  */
 
-import type {
-  OptionValidation,
-  WizardField,
-  WizardFieldValidation,
-  WizardStep,
+import {
+  checkDocumentAgainstRules,
+  getDocumentTypeRules,
+  type OptionValidation,
+  type WizardField,
+  type WizardFieldValidation,
+  type WizardStep,
 } from '@/app/prototipos/0.6/services/wizardApi';
 
 type Valores = Record<string, string | string[] | undefined>;
@@ -113,6 +115,14 @@ export const MENSAJES_DOCUMENTO_V2 = {
   pasaporte: 'Revisa tu pasaporte: tiene entre 6 y 12 caracteres.',
 } as const;
 
+/** Los de un documento que no es del titular (familiar, aval…): sin «Tu». */
+export const MENSAJES_OTRO_DOCUMENTO_V2 = {
+  vacio: 'Ingresa el número de documento.',
+  dni: 'El DNI tiene 8 números.',
+  ce: 'Revisa el carné: tiene entre 9 y 12 caracteres.',
+  pasaporte: 'Revisa el pasaporte: tiene entre 6 y 12 caracteres.',
+} as const;
+
 export const MENSAJES_CELULAR_V2 = {
   vacio: 'Ingresa tu celular para avisarte cómo va tu solicitud.',
   corto: 'Tu celular tiene 9 números.',
@@ -136,21 +146,35 @@ function tipoNormalizado(tipo: string | null | undefined): string {
  *
  * - Sin error → sin mensaje.
  * - Vacío → `required_message` de la BD si existe; si no, el de Brenda.
- * - Error de formato → el texto de Brenda según el tipo elegido. Un tipo que
- *   no está en la tabla conserva el mensaje que dio el validador.
+ * - Error de largo o formato (el valor no cumple las reglas del tipo) → el
+ *   texto de Brenda según el tipo elegido.
+ * - El valor SÍ cumple el formato y aun así hay error → lo dijo otra regla
+ *   (p. ej. `not_equals_field`: «no puede ser el mismo que el del
+ *   solicitante»), y se muestra ese mensaje tal cual (BAL-5234).
+ * - Un tipo que no está en la tabla conserva el mensaje del validador.
+ *
+ * `deTercero`: el documento no es del titular (familiar, aval…); los textos
+ * genéricos no dicen «Tu». `reglas`: las del tipo que usa el validador (las
+ * del backend); sin ellas, la tabla de respaldo de `wizardApi`.
  */
 export function mensajeDocumentoV2(opciones: {
   error: string | null | undefined;
   valor: string | null | undefined;
   tipo: string | null | undefined;
   requiredMessage?: string | null;
+  deTercero?: boolean;
+  reglas?: OptionValidation | null;
 }): string | undefined {
-  const { error, valor, tipo, requiredMessage } = opciones;
+  const { error, tipo, requiredMessage, deTercero = false } = opciones;
   if (!error) return undefined;
-  if (!String(valor ?? '').trim()) return requiredMessage || MENSAJES_DOCUMENTO_V2.vacio;
-  const t = tipoNormalizado(tipo) as keyof typeof MENSAJES_DOCUMENTO_V2;
-  if (t === 'dni' || t === 'ce' || t === 'pasaporte') return MENSAJES_DOCUMENTO_V2[t];
-  return error;
+  const mensajes = deTercero ? MENSAJES_OTRO_DOCUMENTO_V2 : MENSAJES_DOCUMENTO_V2;
+  const valor = String(opciones.valor ?? '').trim();
+  if (!valor) return requiredMessage || mensajes.vacio;
+  const t = tipoNormalizado(tipo);
+  if (t !== 'dni' && t !== 'ce' && t !== 'pasaporte') return error;
+  const reglas = opciones.reglas ?? getDocumentTypeRules('tipo', { tipo: t });
+  const formatoCorrecto = !!reglas && checkDocumentAgainstRules(valor, reglas) === null;
+  return formatoCorrecto ? error : mensajes[t];
 }
 
 /** ¿Es un celular peruano? Lo dice la regla `phone` del campo (9 dígitos). */

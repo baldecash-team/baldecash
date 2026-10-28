@@ -574,9 +574,19 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   //
   // Diseño 2: el texto del error sale de la tabla de Brenda por tipo (y
   // `required_message` de la BD gana cuando está vacío). Cuándo hay error lo
-  // sigue decidiendo el validador de siempre.
+  // sigue decidiendo el validador de siempre. BAL-5234: la tabla solo cubre
+  // los errores de largo o formato; si el número tiene el formato del tipo,
+  // el error es de otra regla y se ve tal cual. En el documento de un
+  // familiar, los textos no dicen «Tu».
   const displayError = errorLinkEspecial || (v2
-    ? mensajeDocumentoV2({ error, valor: value, tipo: documentType, requiredMessage: field.required_message })
+    ? mensajeDocumentoV2({
+        error,
+        valor: value,
+        tipo: documentType,
+        requiredMessage: field.required_message,
+        reglas: documentRules,
+        deTercero: !esDocumentoDelTitular,
+      })
     : error);
 
   // Diseño 2: "¡Hola, {Nombre}!" con el estado del prefill que ya existe.
