@@ -25,6 +25,7 @@ import { AnimatePresence } from 'framer-motion';
 
 import { StepSuccessMessage } from '../celebration/StepSuccessMessage';
 import { SubmitOverlay } from '../submit/SubmitOverlay';
+import { AvisoLinkEspecialRechazado } from '../submit/AvisoLinkEspecialRechazado';
 
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
@@ -172,7 +173,10 @@ export function usePasoDelWizard(opciones: {
   // solo rechaza al pulsarlo. Un boton que se ve activo y no hace nada se lee
   // como que la pagina fallo; deshabilitado dice "falta algo" sin ambiguedad.
   // El motivo lo explica el modal de DocumentNumberField.
-  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true';
+  // Link especial con un DNI que no es el del pase (o el pase ya no sirve): el
+  // mismo bloqueo. El motivo va debajo del campo del documento.
+  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true'
+    || formData['_special_link_blocked']?.value === 'true';
 
   // Event tracker
   const tracker = useEventTrackerOptional();
@@ -190,12 +194,22 @@ export function usePasoDelWizard(opciones: {
   // (volver al catalogo y elegir otro equipo) justo cuando el envio fallo y la
   // persona no sabe si su solicitud entro.
   const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+  // El link especial rechazado al enviar: aviso fijo, no toast.
+  const [linkEspecialRechazado, setLinkEspecialRechazado] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
+    onLinkEspecialRechazado: setLinkEspecialRechazado,
     consentimientoEnPantalla,
   });
+
+  const avisoLinkEspecial = (
+    <AvisoLinkEspecialRechazado
+      mensaje={linkEspecialRechazado}
+      onCerrar={() => setLinkEspecialRechazado(null)}
+    />
+  );
 
   // El z-index del wrapper va explicito y NO se puede sacar. `ModalAviso` es
   // `z-50` y la navbar del wizard tambien: mientras el modal se montaba DESPUES
@@ -424,6 +438,13 @@ export function usePasoDelWizard(opciones: {
       }
       return;
     }
+    if (formData['_special_link_blocked']?.value === 'true') {
+      const slField = formData['_special_link_field']?.value as string | undefined;
+      if (slField) {
+        document.getElementById(slField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
     const firstErrorField = validateStep();
     if (firstErrorField) {
@@ -561,6 +582,7 @@ export function usePasoDelWizard(opciones: {
       )}
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       {modalUnidadTomada}
+      {avisoLinkEspecial}
     </>
   );
 

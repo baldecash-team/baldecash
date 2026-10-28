@@ -111,6 +111,14 @@ interface UseSubmitApplicationOptions {
    */
   onUnidadTomada?: (mensaje: string) => void;
   /**
+   * El envío rechazó el link especial (`SPECIAL_LINK_DNI_MISMATCH` o
+   * `SPECIAL_LINK_INVALID`). Mismo criterio que `onUnidadTomada`: el mensaje
+   * pide una acción (pedir otro link o revisar el DNI) y un toast de 4
+   * segundos se borra antes de leerlo. Con el callback, la pantalla lo deja
+   * fijo; sin él, cae al toast de siempre.
+   */
+  onLinkEspecialRechazado?: (mensaje: string) => void;
+  /**
    * Las casillas de consentimiento que la pantalla que monta el hook tiene
    * marcadas AHORA, si es que las muestra (la intro de renueva-*, que crea la
    * solicitud desde el paso embebido, BAL-5007).
@@ -261,7 +269,7 @@ interface UseSubmitApplicationResult {
 export function useSubmitApplication(
   options: UseSubmitApplicationOptions = {}
 ): UseSubmitApplicationResult {
-  const { onToast, onUnidadTomada, consentimientoEnPantalla } = options;
+  const { onToast, onUnidadTomada, onLinkEspecialRechazado, consentimientoEnPantalla } = options;
   // En un ref para que `submit` lea lo marcado al momento de enviar, no lo del
   // render en que se armó el callback.
   const consentimientoEnPantallaRef = useRef(consentimientoEnPantalla);
@@ -896,6 +904,12 @@ export function useSubmitApplication(
           // avisos del mismo hecho se leen como dos problemas distintos.
           if (result.error_code === 'UNIT_OUT_OF_STOCK' && onUnidadTomada) {
             onUnidadTomada(msg);
+          } else if (
+            (result.error_code === 'SPECIAL_LINK_DNI_MISMATCH' ||
+              result.error_code === 'SPECIAL_LINK_INVALID') &&
+            onLinkEspecialRechazado
+          ) {
+            onLinkEspecialRechazado(msg);
           } else {
             onToast?.(msg, 'error');
           }
@@ -955,6 +969,7 @@ export function useSubmitApplication(
       sessionUuid,
       wizardConfig,
       onUnidadTomada,
+      onLinkEspecialRechazado,
       getAllProducts,
       selectedAccessories,
       selectedInsurance,
