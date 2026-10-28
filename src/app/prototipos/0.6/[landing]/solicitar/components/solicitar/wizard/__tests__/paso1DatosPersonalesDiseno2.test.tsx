@@ -332,6 +332,47 @@ describe('Mensajes por tipo de documento (Diseño 2)', () => {
     expect(mensajeDocumentoV2({ error: 'Del validador', valor: '1', tipo: 'ruc' })).toBe('Del validador');
   });
 
+  // BAL-5234: la tabla de Brenda solo reemplaza errores de largo o formato.
+  describe('error que no es de formato (BAL-5234)', () => {
+    const REGLA = 'El número de documento no puede ser el mismo que el del solicitante';
+
+    it('DNI de 8 dígitos con error de otra regla → el mensaje de la regla', () => {
+      expect(mensajeDocumentoV2({ error: REGLA, valor: '00000010', tipo: 'dni' })).toBe(REGLA);
+      expect(mensajeDocumentoV2({ error: REGLA, valor: '00000010', tipo: 'dni', deTercero: true })).toBe(REGLA);
+    });
+
+    it('CE y pasaporte con formato correcto → el mensaje de la regla', () => {
+      expect(mensajeDocumentoV2({ error: REGLA, valor: '001234567', tipo: 'ce' })).toBe(REGLA);
+      expect(mensajeDocumentoV2({ error: REGLA, valor: 'AB123456', tipo: 'passport' })).toBe(REGLA);
+    });
+
+    it('respeta las reglas del tipo que llegan del backend', () => {
+      const reglas = { min_length: 9, max_length: 9, pattern: '^\\d{9}$' };
+      expect(mensajeDocumentoV2({ error: REGLA, valor: '12345678', tipo: 'dni', reglas })).toBe('Tu DNI tiene 8 números.');
+      expect(mensajeDocumentoV2({ error: REGLA, valor: '123456789', tipo: 'dni', reglas })).toBe(REGLA);
+    });
+
+    it('DNI con letras o de 7 dígitos sigue siendo error de formato', () => {
+      expect(mensajeDocumentoV2({ error: 'x', valor: '1234567', tipo: 'dni' })).toBe('Tu DNI tiene 8 números.');
+      expect(mensajeDocumentoV2({ error: 'x', valor: '1234567A', tipo: 'dni' })).toBe('Tu DNI tiene 8 números.');
+    });
+  });
+
+  describe('documento de un tercero (BAL-5234)', () => {
+    it('el texto genérico no dice «Tu»', () => {
+      const base = { error: 'x', deTercero: true };
+      expect(mensajeDocumentoV2({ ...base, valor: '1234567', tipo: 'dni' })).toBe('El DNI tiene 8 números.');
+      expect(mensajeDocumentoV2({ ...base, valor: 'AB1', tipo: 'ce' })).toBe('Revisa el carné: tiene entre 9 y 12 caracteres.');
+      expect(mensajeDocumentoV2({ ...base, valor: 'AB1', tipo: 'pasaporte' })).toBe('Revisa el pasaporte: tiene entre 6 y 12 caracteres.');
+      expect(mensajeDocumentoV2({ ...base, valor: '', tipo: 'dni' })).toBe('Ingresa el número de documento.');
+      expect(mensajeDocumentoV2({ ...base, valor: '', tipo: 'dni', requiredMessage: 'De la BD' })).toBe('De la BD');
+    });
+
+    it('el del titular sigue diciendo «Tu»', () => {
+      expect(mensajeDocumentoV2({ error: 'x', valor: '1234567', tipo: 'dni', deTercero: false })).toBe('Tu DNI tiene 8 números.');
+    });
+  });
+
   it('el campo pinta el texto de Brenda con el error del validador de siempre', () => {
     const tipos: Array<[string, string, string]> = [
       ['dni', '123', 'Tu DNI tiene 8 números.'],
