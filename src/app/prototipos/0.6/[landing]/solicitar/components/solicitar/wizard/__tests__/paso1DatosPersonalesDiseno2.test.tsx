@@ -228,6 +228,11 @@ describe('Saludo por prefill (Diseño 2)', () => {
     // Sin valor no hay nombre, y la whitelist sigue mandando.
     expect(nombreDelSaludoDelPaso(PASO, { first_name: '' })).toBeNull();
     expect(nombreDelSaludoDelPaso(PASO, { _whitelist_blocked: 'true', first_name: 'Ana' })).toBeNull();
+    // Link especial de otro DNI (o vencido): tampoco se saluda, ni con el prefill encontrado.
+    expect(nombreDelSaludoDelPaso(PASO, {
+      _special_link_blocked: 'true', _prefill_status_document_number: 'found', first_name: 'Ana',
+    })).toBeNull();
+    expect(nombreDelSaludoDelPaso(PASO, { _special_link_blocked: '', first_name: 'Ana' })).toBe('Ana');
   });
 
   it('"Corrige tu DNI" borra número, prefill y los campos que llenó, y enfoca el campo', () => {
