@@ -455,6 +455,38 @@ describe('LoQuieroModal · como el prototipo (verificación final, BAL-4969)', (
     expect(await screen.findByRole('heading', { name: `¿Quieres complementar tu ${palabra}?` })).toBeInTheDocument();
   });
 
+  it('«Continuar» queda bloqueado mientras cargan los accesorios y se habilita al terminar', async () => {
+    const { getLandingAccessories } = jest.requireMock('@/app/prototipos/0.6/services/landingApi');
+    let soltar: (v: unknown) => void = () => {};
+    (getLandingAccessories as jest.Mock).mockImplementationOnce(() => new Promise((r) => { soltar = r; }));
+    pintar();
+    const boton = await screen.findByRole('button', { name: /Cargando|Continuar/ });
+    await waitFor(() => expect(boton).toBeDisabled());
+    await act(async () => { soltar([ACC('a1', 'Mouse', null)]); });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Continuar a mis datos/ })).not.toBeDisabled());
+  });
+
+  it('con más de 8 accesorios, el último espacio es «+N más»; al abrir salen todos y «Ver menos» los vuelve a esconder', async () => {
+    mockAccesorios = Array.from({ length: 12 }, (_, i) => ACC(`a${i}`, `Accesorio ${i}`, null));
+    Element.prototype.scrollIntoView = jest.fn();
+    pintar();
+    const mas = await screen.findByRole('button', { name: 'Ver 5 accesorios más' });
+    expect(screen.queryByText('Accesorio 7')).not.toBeInTheDocument();
+    fireEvent.click(mas);
+    expect(await screen.findByText('Accesorio 11')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accesorios más/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Ver menos/ }));
+    expect(screen.queryByText('Accesorio 11')).not.toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+
+  it('con 8 o menos no hay tarjeta «+N más»', async () => {
+    mockAccesorios = Array.from({ length: 8 }, (_, i) => ACC(`a${i}`, `Accesorio ${i}`, null));
+    pintar();
+    expect(await screen.findByText('Accesorio 7')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accesorios más/ })).not.toBeInTheDocument();
+  });
+
   it('las tarjetas de accesorios no llevan la etiqueta de categoría', async () => {
     mockAccesorios = [ACC('a1', 'Mochila Nova', { slug: 'mochila', name: 'Mochila' }), ACC('a2', 'Mouse', null)];
     pintar();
