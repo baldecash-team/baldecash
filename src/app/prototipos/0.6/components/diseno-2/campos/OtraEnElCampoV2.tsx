@@ -20,6 +20,10 @@ interface Props {
   /** Mensaje de error visible (el del campo pegado). */
   error?: string;
   pista?: string | null;
+  /** `max_length` del campo pegado (p. ej. 2 en «¿Cuál ciclo?»). */
+  maxLength?: number;
+  /** `input_mode` del campo pegado: con `numeric` solo entran números. */
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
   /** `false` al volver a un paso que ya estaba en «Otro»: no abre el teclado solo. */
   enfocarAlMontar?: boolean;
   /**
@@ -41,6 +45,8 @@ export function OtraEnElCampoV2({
   placeholder,
   error,
   pista,
+  maxLength,
+  inputMode,
   enfocarAlMontar = true,
   onAbiertaPorLaPersona,
   onCambiar,
@@ -74,7 +80,13 @@ export function OtraEnElCampoV2({
           type="text"
           value={valor}
           placeholder={placeholder}
-          onChange={(e) => onCambiar(e.target.value)}
+          maxLength={maxLength}
+          inputMode={inputMode}
+          // Teclado numérico = solo números (en prod «¿Cuál ciclo?» aceptaba «a1b0x»).
+          onChange={(e) => {
+            const v = inputMode === 'numeric' ? e.target.value.replace(/\D/g, '') : e.target.value;
+            onCambiar(maxLength ? v.slice(0, maxLength) : v);
+          }}
           onFocus={() => {
             setFoco(true);
             onEnfocar?.();

@@ -43,3 +43,24 @@ it('al volver a un paso que ya estaba en «Otro» no roba el foco', () => {
   );
   expect(screen.getByRole('textbox', { name: '¿Cuál ciclo?' })).not.toHaveFocus();
 });
+
+it('respeta el largo máximo y, con teclado numérico, solo deja números (como «¿Cuál ciclo?»)', () => {
+  const onCambiar = jest.fn();
+  render(
+    <OtraEnElCampoV2 id="other_semester" etiqueta="¿Cuál ciclo?" valor="" maxLength={2} inputMode="numeric"
+      onCambiar={onCambiar} onVerOpciones={() => {}} />,
+  );
+  const caja = screen.getByRole('textbox', { name: '¿Cuál ciclo?' });
+  expect(caja).toHaveAttribute('maxLength', '2');
+  expect(caja).toHaveAttribute('inputMode', 'numeric');
+  fireEvent.change(caja, { target: { value: 'a1b0x' } });
+  expect(onCambiar).toHaveBeenLastCalledWith('10');
+});
+
+it('sin teclado numérico deja escribir texto (institución, carrera)', () => {
+  const onCambiar = jest.fn();
+  render(<OtraEnElCampoV2 id="other_career" etiqueta="¿Cuál carrera?" valor="" onCambiar={onCambiar} onVerOpciones={() => {}} />);
+  fireEvent.change(screen.getByRole('textbox', { name: '¿Cuál carrera?' }), { target: { value: 'Gastronomía' } });
+  expect(onCambiar).toHaveBeenLastCalledWith('Gastronomía');
+});
+

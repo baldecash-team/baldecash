@@ -509,6 +509,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 valor={String(formData[campoOtra.code]?.value ?? '')}
                 placeholder={campoOtra.placeholder || undefined}
                 pista={campoOtra.hint}
+                maxLength={campoOtra.max_length || undefined}
+                inputMode={campoOtra.input_mode === 'numeric' ? 'numeric' : undefined}
                 error={errorVisibleDe(campoOtra.code) ? formData[campoOtra.code]?.error ?? undefined : undefined}
                 // Si el paso ya llegó en «Otro», no abre el teclado solo.
                 enfocarAlMontar={pasoMontadoRef.current === step.code}
