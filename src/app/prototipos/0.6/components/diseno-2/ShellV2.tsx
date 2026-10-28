@@ -50,6 +50,7 @@ import { useErroresAlSalir } from './useErroresAlSalir';
 import { leerOrigenDiseno2 } from './origenDiseno2';
 import { hayEnvioADomicilio, pidenDiaDePago } from './textosQueAplicanV2';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -192,10 +193,17 @@ export function ShellV2({
    * guardada por el modal al continuar, o al catálogo si no hay ninguna
    * guardada (URL directa al paso, u otra pestaña). Solo pisa `onBack` en el
    * primer paso; el resto navega como siempre (`paso.handleBack`).
+   *
+   * Como no pasa por `handleBack`, emite acá el `form_step_back` que ese
+   * emitiría, con las mismas propiedades (BAL-5207): sin él no se puede
+   * comparar el abandono del Paso 1 entre Diseño 1 y Diseño 2.
    */
+  const tracker = useEventTrackerOptional();
+  const codigoDelPaso = step?.code;
   const handleBackPrimerPaso = useCallback(() => {
+    tracker?.track('form_step_back', { step_code: codigoDelPaso, prev_step: 'preview', diseno: 2 });
     router.push(leerOrigenDiseno2(landing) || routes.catalogo(landing));
-  }, [router, landing]);
+  }, [router, landing, tracker, codigoDelPaso]);
   const irAtras = isFirstStep ? handleBackPrimerPaso : onBack;
 
   const pasos = useMemo(() => pasosDelProgreso(steps), [steps]);
@@ -267,6 +275,7 @@ export function ShellV2({
         totalPasos={pasos.length}
         landing={landing}
         detalle={detalle}
+        codigoDelPaso={step?.code ?? currentStep}
       />
       <div className="lg:hidden" style={{ height: ALTO_CABECERA_MOVIL }} aria-hidden />
 
@@ -378,6 +387,7 @@ export function ShellV2({
                 detalle={detalle}
                 conEnvio={conEnvio}
                 cuponObligatorio={cuponObligatorio}
+                codigoDelPaso={step?.code ?? currentStep}
                 // El paso que envía lleva su "Enviar" también en el panel (prototipo).
                 envio={
                   isLastStep && accionPrincipal && !sinNavegacion

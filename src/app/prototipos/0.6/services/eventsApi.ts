@@ -180,6 +180,16 @@ export type EventType =
   | 'lo_quiero_modal_coupon_applied'
   | 'lo_quiero_modal_close'
   | 'lo_quiero_modal_continue'
+  // BAL-5207: lo que faltaba medir en Diseño 2. Mismos nombres que
+  // ALL_EVENT_TYPES de ws2 (`app/schemas/user_event.py`).
+  | 'lo_quiero_modal_continue_blocked'
+  | 'lo_quiero_modal_accessories_expand'
+  | 'lo_quiero_modal_accessories_collapse'
+  | 'plan_change_panel_toggle'
+  | 'plan_term_change_panel'
+  | 'plan_initial_change_panel'
+  | 'form_section_toggle'
+  | 'summary_detail_toggle'
   // Phase 14: Admisión (OTP correo + autoservicio de video) — eventos por link/etapa
   | 'admission_link_open'
   | 'admission_stage_enter'

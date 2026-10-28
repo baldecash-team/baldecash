@@ -49,6 +49,7 @@ import { transicionFlecha, useMenosMovimiento, usePulsoAlCambiar } from './movim
 import { PlegableV2 } from './PlegableV2';
 import { PRESION_V2 } from './campos/estilosV2';
 import { EVENTO_ABRIR_PLAZO_V2 } from './guardasV2';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 /** Escritorio (`lg`): ahí manda el panel; abajo de eso, la cabecera. */
 function esEscritorio(): boolean {
@@ -223,9 +224,23 @@ function ChipsDelPanel({ datos }: { datos: DatosDelPanel }) {
 }
 
 /** Los botones de plazo (cada uno con su cuota) y los de cuota inicial. */
-function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
+function SelectorPlazoInicial({ datos, codigoDelPaso }: { datos: DatosDelPanel; codigoDelPaso?: string }) {
   const { principal, puedePlazo, puedeInicial, termOptions, termLabels, plazo, frecuencia, handleTermChange, handleInitialChange, opcionesInicial, precio } = datos;
+  const tracker = useEventTrackerOptional();
   if (!principal) return null;
+  // Elegir en «Cambiar plazo o inicial» (BAL-5207). Solo si cambia: tocar lo
+  // que ya está elegido no es elegir. El cambio en sí sigue siendo el de
+  // siempre (`handleTermChange` / `handleInitialChange`).
+  const elegirPlazo = (t: number) => {
+    if (t !== plazo) tracker?.track('plan_term_change_panel', { term: t, step_code: codigoDelPaso });
+    handleTermChange(t);
+  };
+  const elegirInicial = (percent: number) => {
+    if (percent !== principal.initialPercent) {
+      tracker?.track('plan_initial_change_panel', { initial_percent: percent, step_code: codigoDelPaso });
+    }
+    handleInitialChange(principal.id, principal.initialPercent, percent);
+  };
   const conBotones = termLabels.size === 0 && termOptions.length <= MAX_BOTONES_DE_PLAZO;
 
   return (
@@ -243,7 +258,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                     key={t}
                     type="button"
                     aria-pressed={elegido}
-                    onClick={() => handleTermChange(t)}
+                    onClick={() => elegirPlazo(t)}
                     className={`flex min-h-[48px] flex-col items-center justify-center rounded-lg border px-1 py-1 leading-tight transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                       elegido
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-on-primary)]'
@@ -263,7 +278,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
             <TermSelect
               value={plazo}
               options={termOptions}
-              onChange={handleTermChange}
+              onChange={elegirPlazo}
               frequency={frecuencia}
               labels={termLabels}
             />
@@ -283,7 +298,7 @@ function SelectorPlazoInicial({ datos }: { datos: DatosDelPanel }) {
                   key={o.percent}
                   type="button"
                   aria-pressed={elegido}
-                  onClick={() => handleInitialChange(principal.id, principal.initialPercent, o.percent)}
+                  onClick={() => elegirInicial(o.percent)}
                   className={`min-h-[44px] rounded-lg border px-2 text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 ${PRESION_V2} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-1 ${
                     elegido
                       ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary-text)]'
@@ -328,6 +343,12 @@ function Confianza({ conEnvio = true }: { conEnvio?: boolean }) {
  */
 function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; className?: string }) {
   const [abierto, setAbierto] = useState(false);
+  const tracker = useEventTrackerOptional();
+  const alternar = () => {
+    const nuevo = !abierto;
+    setAbierto(nuevo);
+    tracker?.track('summary_detail_toggle', { abierto: nuevo });
+  };
   const id = useId();
   const menos = useMenosMovimiento();
   if (!detalle) return null;
@@ -337,7 +358,7 @@ function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; cl
         type="button"
         aria-expanded={abierto}
         aria-controls={id}
-        onClick={() => setAbierto((v) => !v)}
+        onClick={alternar}
         data-ver-detalle-v2
         className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
@@ -501,6 +522,7 @@ export function PanelSolicitudV2({
   envio,
   conEnvio = true,
   cuponObligatorio = false,
+  codigoDelPaso,
 }: {
   datos: DatosDelPanel;
   detalle?: React.ReactNode;
@@ -508,8 +530,18 @@ export function PanelSolicitudV2({
   conEnvio?: boolean;
   /** La landing pide el cupón para continuar: el botón lo dice. */
   cuponObligatorio?: boolean;
+  /** `step.code` del paso: va como `step_code` en los eventos del panel (BAL-5207). */
+  codigoDelPaso?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const tracker = useEventTrackerOptional();
+  // «Cambiar plazo o inicial» por la persona (BAL-5207). La apertura que pide
+  // el aviso de tope (`useAbrirAlPedirPlazo`) no pasa por acá.
+  const alternarSelector = () => {
+    const nuevo = !abierto;
+    setAbierto(nuevo);
+    tracker?.track('plan_change_panel_toggle', { step_code: codigoDelPaso, abierto: nuevo });
+  };
   const idSelector = useId();
   const menos = useMenosMovimiento();
   const selectorRef = useRef<HTMLDivElement>(null);
@@ -597,14 +629,14 @@ export function PanelSolicitudV2({
                     type="button"
                     aria-expanded={abierto}
                     aria-controls={`${idSelector}-envio`}
-                    onClick={() => setAbierto((v) => !v)}
+                    onClick={alternarSelector}
                     className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   >
                     Cambiar plazo o inicial
                     <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
                   </button>
                   <PlegableV2 abierto={abierto} id={`${idSelector}-envio`} contenidoRef={selectorRef} classNameContenido="mt-1 border-t border-[var(--d2-borde)] pt-3">
-                    <SelectorPlazoInicial datos={datos} />
+                    <SelectorPlazoInicial datos={datos} codigoDelPaso={codigoDelPaso} />
                   </PlegableV2>
                 </>
               )}
@@ -630,14 +662,14 @@ export function PanelSolicitudV2({
                 type="button"
                 aria-expanded={abierto}
                 aria-controls={idSelector}
-                onClick={() => setAbierto((v) => !v)}
+                onClick={alternarSelector}
                 className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               >
                 Cambiar plazo o inicial
                 <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
               </button>
               <PlegableV2 abierto={abierto} id={idSelector} contenidoRef={selectorRef} classNameContenido="mt-1 border-t border-[var(--d2-borde)] pt-3">
-                <SelectorPlazoInicial datos={datos} />
+                <SelectorPlazoInicial datos={datos} codigoDelPaso={codigoDelPaso} />
               </PlegableV2>
             </>
           )}
@@ -656,6 +688,7 @@ export function CabeceraSolicitudV2({
   totalPasos,
   landing,
   detalle,
+  codigoDelPaso,
 }: {
   datos: DatosDelPanel;
   indiceActual: number;
@@ -663,8 +696,21 @@ export function CabeceraSolicitudV2({
   landing: string;
   /** "Ver detalle" del Paso 4 dentro del desplegable. */
   detalle?: React.ReactNode;
+  /** `step.code` del paso: va como `step_code` en los eventos (BAL-5207). */
+  codigoDelPaso?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const tracker = useEventTrackerOptional();
+  // En celular «Cambiar plazo o inicial» es este desplegable (BAL-5207): se
+  // registra cuando la persona lo abre o lo cierra —el botón, Escape o el
+  // fondo—, no cuando lo abre el aviso de tope.
+  const cambiarPorGesto = useCallback(
+    (nuevo: boolean) => {
+      setAbierto(nuevo);
+      tracker?.track('plan_change_panel_toggle', { step_code: codigoDelPaso, abierto: nuevo });
+    },
+    [tracker, codigoDelPaso],
+  );
   const idSelector = useId();
   const menos = useMenosMovimiento();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -676,11 +722,11 @@ export function CabeceraSolicitudV2({
   useEffect(() => {
     if (!abierto) return;
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAbierto(false);
+      if (e.key === 'Escape') cambiarPorGesto(false);
     };
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
-  }, [abierto]);
+  }, [abierto, cambiarPorGesto]);
 
   // Al abrir: el foco entra al panel (el primer elemento enfocable, o el
   // panel mismo si no hay ninguno) y el scroll de fondo se bloquea — el
@@ -708,7 +754,7 @@ export function CabeceraSolicitudV2({
   return (
     <header className="lg:hidden fixed inset-x-0 top-0 z-40" data-cabecera-v2>
       {abierto && (
-        <div className="d2-fundido fixed inset-0 bg-black/20" aria-hidden onClick={() => setAbierto(false)} />
+        <div className="d2-fundido fixed inset-0 bg-black/20" aria-hidden onClick={() => cambiarPorGesto(false)} />
       )}
       <div className="relative border-b border-[var(--d2-borde)] bg-[var(--d2-marca-suave)] shadow-[0_2px_10px_rgba(30,34,48,0.06)]">
         <div className="flex items-center pr-3.5">
@@ -719,7 +765,7 @@ export function CabeceraSolicitudV2({
               // La caja del desplegable (`PlegableV2`) queda siempre en el
               // DOM, así que el id nunca es una referencia rota (BAL-4959).
               aria-controls={idSelector}
-              onClick={() => setAbierto((v) => !v)}
+              onClick={() => cambiarPorGesto(!abierto)}
               disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo && !detalle}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
@@ -781,7 +827,7 @@ export function CabeceraSolicitudV2({
             <DesgloseDeCuota datos={datos} className="mt-2" />
             <AvisoTope datos={datos} />
             <div className="mt-2">
-              <SelectorPlazoInicial datos={datos} />
+              <SelectorPlazoInicial datos={datos} codigoDelPaso={codigoDelPaso} />
             </div>
             </>)}
             <VerDetalle detalle={detalle} className={datos.principal ? 'mt-2 border-t border-[var(--d2-borde)] pt-1' : ''} />

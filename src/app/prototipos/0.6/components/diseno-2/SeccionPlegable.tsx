@@ -33,6 +33,7 @@ import { flushSync } from 'react-dom';
 import { Check } from 'lucide-react';
 import { esPantallaDeCelular, prefiereMenosMovimiento } from './movimiento';
 import { IconoDeSeccionV2 } from './IconoDeSeccionV2';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 /** Evento DOM que abre una sección cerrada (lo dispara la guía de campos). */
 export const EVENTO_ABRIR_SECCION = 'diseno2:abrir-seccion';
@@ -141,6 +142,18 @@ export function SeccionPlegable({
   }, [completa, plegable]);
   const cierreRef = useRef<Cierre | null>(null);
 
+  // `form_section_toggle` (BAL-5207): solo lo que hace la persona —salir de la
+  // sección completa (se cierra) o «Editar» (se abre)—. Abrirse sola (la guía
+  // con `abrirSeccionDe`, un error, un obligatorio nuevo) no se registra.
+  const tracker = useEventTrackerOptional();
+  const trackerRef = useRef(tracker);
+  // Ya cerrada: tocar su línea de resumen y salir no es otro cierre.
+  const cerradaRef = useRef(cerrada);
+  useLayoutEffect(() => {
+    trackerRef.current = tracker;
+    cerradaRef.current = cerrada;
+  }, [tracker, cerrada]);
+
   const idContenido = `seccion-${codigo}-contenido`;
   const idTitulo = `seccion-${codigo}-titulo`;
 
@@ -161,7 +174,8 @@ export function SeccionPlegable({
       altoAntes: raiz.getBoundingClientRect().height,
     };
     setCerradaPorSalir(true);
-  }, []);
+    if (!cerradaRef.current) trackerRef.current?.track('form_section_toggle', { section_code: codigo, abierto: false });
+  }, [codigo]);
 
   // Salir con el puntero: se espera a que termine el clic, para que el botón
   // tocado no se mueva entre el pointerdown y el click. "Adentro" lo marca
@@ -275,6 +289,7 @@ export function SeccionPlegable({
   // "Editar": abre y pone el foco en el primer campo (ya pintado).
   const editar = () => {
     flushSync(() => setCerradaPorSalir(false));
+    tracker?.track('form_section_toggle', { section_code: codigo, abierto: true });
     document.getElementById(idContenido)?.querySelector<HTMLElement>(ENFOCABLE)?.focus();
   };
 

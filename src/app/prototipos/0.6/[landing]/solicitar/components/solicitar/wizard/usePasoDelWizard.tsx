@@ -441,6 +441,7 @@ export function usePasoDelWizard(opciones: {
         step_code: step?.code,
         step_title: step?.title,
         error_field: firstErrorField,
+        diseno: diseno2 ? 2 : 1,
       });
       // Diseño 2: además del scroll, el foco va al campo (teclado y lector
       // de pantalla, BAL-4969). Diseño 1, como siempre.
@@ -453,6 +454,7 @@ export function usePasoDelWizard(opciones: {
       step_code: step?.code,
       step_title: step?.title,
       next_step: navigation.nextStep?.code ?? 'complementos_or_submit',
+      diseno: diseno2 ? 2 : 1,
     });
     if (step) {
       markStepCompleted(step.url_slug || step.code);
@@ -529,6 +531,7 @@ export function usePasoDelWizard(opciones: {
     tracker?.track('form_step_back', {
       step_code: step?.code,
       prev_step: navigation.prevStep?.code ?? 'preview',
+      diseno: diseno2 ? 2 : 1,
     });
     if (navigation.prevStep) {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;

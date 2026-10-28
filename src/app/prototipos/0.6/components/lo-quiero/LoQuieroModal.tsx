@@ -372,11 +372,15 @@ function LoQuieroModalContent({
   const accesoriosVisibles = verTodos ? ofrecibles : ofrecibles.slice(0, enLaGrilla);
   const escondidos = ofrecibles.slice(enLaGrilla);
   const seccionAccesoriosRef = useRef<HTMLElement>(null);
+  // «+N más» / «Ver menos»: cuánta gente quiere ver más accesorios que los
+  // de la grilla (BAL-5207).
   const abrirTodos = () => {
     setVerTodos(true);
+    analytics.track('lo_quiero_modal_accessories_expand', { hidden_count: escondidos.length, product_id: productoId });
   };
   const verMenos = () => {
     setVerTodos(false);
+    analytics.track('lo_quiero_modal_accessories_collapse', { product_id: productoId });
     // Sin esto la persona queda abajo, mirando un hueco: se la regresa al título.
     seccionAccesoriosRef.current?.scrollIntoView({ block: 'start', behavior: prefiereMenosMovimiento() ? 'auto' : 'smooth' });
   };
@@ -537,9 +541,16 @@ function LoQuieroModalContent({
   // todavía. El candado es un ref y se cierra en el acto (E2E BAL-4969).
   const tomarCandado = useCandadoDeAvance();
 
+  // «Continuar» que no avanza: el motivo, para saber dónde se traba la gente
+  // (BAL-5207). Los valores de `reason` son los de ws2 (`user_event.py`).
+  const registrarBloqueo = (reason: 'terms' | 'coupon_required' | 'over_quota') => {
+    analytics.track('lo_quiero_modal_continue_blocked', { reason, product_id: productoId });
+  };
+
   const continuar = () => {
     if (navegando) return;
     if (!aceptaTerminos) {
+      registrarBloqueo('terms');
       setErrorTerminos(true);
       setIntentosTerminos((n) => n + 1);
       terminosRef.current?.focus();
@@ -547,11 +558,15 @@ function LoQuieroModalContent({
       return;
     }
     if (isCouponRequired && !appliedCoupon) {
+      registrarBloqueo('coupon_required');
       setErrorCupon('Debes ingresar un cupón válido para continuar');
       setCuponAbierto(true);
       return;
     }
-    if (isOverQuotaLimit) return;
+    if (isOverQuotaLimit) {
+      registrarBloqueo('over_quota');
+      return;
+    }
     if (!tomarCandado()) return;
     continuandoRef.current = true;
 
@@ -605,7 +620,12 @@ function LoQuieroModalContent({
   // antes de verlos, se pierde la venta y el accesorio que iba a elegir
   // (Emilio, 27-oct). Un error de carga NO bloquea: ahí se avisa y se sigue.
   const cargandoAccesorios = accesoriosHabilitados && estadoAcc === 'cargando';
-  const botonDeshabilitado = preparando || cargandoAccesorios || navegando || isOverQuotaLimit;
+  // Con la cuota sobre el tope el botón se VE apagado pero no lleva `disabled`
+  // (va `aria-disabled`): un botón `disabled` no recibe el clic, y ese clic es
+  // el que registra `lo_quiero_modal_continue_blocked` con `over_quota`
+  // (BAL-5207). `continuar` igual no avanza.
+  const botonApagado = preparando || cargandoAccesorios || navegando;
+  const botonDeshabilitado = botonApagado || isOverQuotaLimit;
 
   const alternarTerminos = () => {
     setAceptaTerminos((v) => !v);
@@ -981,7 +1001,8 @@ function LoQuieroModalContent({
               <button
                 type="button"
                 onClick={continuar}
-                disabled={botonDeshabilitado}
+                disabled={botonApagado}
+                aria-disabled={botonDeshabilitado || undefined}
                 className={`w-full md:w-auto min-h-[48px] px-[22px] rounded-xl text-base font-bold inline-flex items-center justify-center gap-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)] ${
                   botonDeshabilitado
                     ? 'bg-[var(--d2-boton-apagado)] text-[var(--d2-boton-apagado-texto)] cursor-not-allowed'
