@@ -90,15 +90,18 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: Opciones
    * de «Enviar sin protecciones»). Sin planes, con seguros apagados o con
    * error sin elegidos: una sola pantalla.
    */
+  // Equipo sin seguros que ofrecer (p. ej. reacondicionado): no hay nada que
+  // esperar ni que mostrar; el Resumen envía directo.
+  const sinSegurosQueOfrecer = !!seguros.noAplica;
   const conPantallaDeSeguros =
-    activo && conSeguros && !creadaAntes &&
+    activo && conSeguros && !creadaAntes && !sinSegurosQueOfrecer &&
     (seguros.planes.length > 0 || (!seguros.cargado && !seguros.error) || pideConfirmarEnvio);
   /**
    * Los planes todavía no llegan (ni con error): el Resumen NO decide aún si
    * va a la página de seguros o envía. Nunca se manda a la persona a una
    * página de seguros que termina vacía (BAL-5237).
    */
-  const cargandoPlanes = activo && conSeguros && !creadaAntes && !seguros.cargado && !seguros.error;
+  const cargandoPlanes = activo && conSeguros && !creadaAntes && !sinSegurosQueOfrecer && !seguros.cargado && !seguros.error;
 
   /** Falta un campo al enviar: lleva al campo (abre su sección si hace falta). */
   const volverAlCampo = useCallback((codigo: string) => irAlCampoV2(codigo), []);

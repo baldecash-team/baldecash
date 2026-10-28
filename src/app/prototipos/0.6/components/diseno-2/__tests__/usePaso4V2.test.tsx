@@ -8,7 +8,7 @@ import { usePaso4V2 } from '../paso4/usePaso4V2';
 
 const PLAN = { id: '14', monthlyPrice: 20, name: 'Garantía Extendida' };
 
-type EstadoPlanes = { cargado: boolean; planes: unknown[]; error: boolean };
+type EstadoPlanes = { cargado: boolean; planes: unknown[]; error: boolean; noAplica?: boolean };
 let mockEstado: EstadoPlanes = { cargado: true, planes: [], error: false };
 const mockElegidos: { lista: { id: string }[] } = { lista: [] };
 
@@ -118,3 +118,13 @@ it('volverAlCampo baja al campo y lo resalta', () => {
     campo.remove();
   }
 });
+
+it('equipo sin seguros que ofrecer (reacondicionado: no se piden planes): no espera ni hay pantalla de seguros', () => {
+  // En prod el Resumen se quedaba girando: `cargado` y `error` quedan en false
+  // para siempre porque el pedido nunca se hace.
+  mockPlanes({ cargado: false, planes: [], error: false, noAplica: true });
+  const { result } = renderHook(() => usePaso4V2({ activo: true, conSeguros: true }));
+  expect(result.current.cargandoPlanes).toBe(false);
+  expect(result.current.conPantallaDeSeguros).toBe(false);
+});
+
