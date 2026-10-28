@@ -41,6 +41,7 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useLeadPrefill } from '../hooks/useLeadPrefill';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { AvisoLinkEspecialRechazado } from '../components/solicitar/submit/AvisoLinkEspecialRechazado';
 import { MobileStickyCta, MobileStickyCtaSpacer } from '../components/solicitar/wizard/MobileStickyCta';
 import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { useCandadoDeAvance } from '@/app/prototipos/0.6/hooks/useCandadoDeAvance';
@@ -183,7 +184,8 @@ function StepContent() {
   // solo rechaza al pulsarlo. Un boton que se ve activo y no hace nada se lee
   // como que la pagina fallo; deshabilitado dice "falta algo" sin ambiguedad.
   // El motivo lo explica el modal de DocumentNumberField.
-  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true';
+  const bloqueadoPorWhitelist = formData['_whitelist_blocked']?.value === 'true'
+    || formData['_special_link_blocked']?.value === 'true';
 
   // Lead de un socio (A365): si entró por su link, el API ya tiene sus datos.
   // Va acá y no en cada paso porque `steps` trae los campos de TODOS los pasos:
@@ -222,10 +224,13 @@ function StepContent() {
   // aviso si hay `onUnidadTomada`). Ahora el resumen monta el mismo modal que
   // el paso regular (`usePasoDelWizard`), en los dos diseños.
   const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+  // El link especial rechazado al enviar: aviso fijo, no toast.
+  const [linkEspecialRechazado, setLinkEspecialRechazado] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
+    onLinkEspecialRechazado: setLinkEspecialRechazado,
   });
 
   /**
@@ -889,6 +894,13 @@ function StepContent() {
     router.push(routes.solicitarStep(landing, stepPath));
   };
 
+  const avisoLinkEspecial = (
+    <AvisoLinkEspecialRechazado
+      mensaje={linkEspecialRechazado}
+      onCerrar={() => setLinkEspecialRechazado(null)}
+    />
+  );
+
   // El mismo modal de "unidad tomada" del paso regular (z-60 por la navbar).
   const modalUnidadTomadaResumen = unidadTomada ? (
     <div className="relative z-[60]">
@@ -1289,6 +1301,7 @@ function StepContent() {
           <BarraInferiorV2Spacer />
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
           {modalUnidadTomadaResumen}
+          {avisoLinkEspecial}
           {/* M-2 (BAL-4969): el aviso del kit (status + aria-live, cerrar de
               44px, reduced-motion). El `Toast` compartido de Diseño 1 no cambia. */}
           <AvisoV2
@@ -1371,6 +1384,7 @@ function StepContent() {
           {stickyCta}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
           {modalUnidadTomadaResumen}
+          {avisoLinkEspecial}
           {avisoD1}
         </GamerWizardWrapper>
       );
@@ -1383,6 +1397,7 @@ function StepContent() {
         <Footer data={footerData} landing={landing} agreementData={agreementData} />
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
         {modalUnidadTomadaResumen}
+        {avisoLinkEspecial}
         {avisoD1}
       </>
     );

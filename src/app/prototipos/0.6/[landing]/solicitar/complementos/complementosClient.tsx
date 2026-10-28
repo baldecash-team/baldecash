@@ -37,6 +37,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { AvisoLinkEspecialRechazado } from '../components/solicitar/submit/AvisoLinkEspecialRechazado';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
 import { seccionesDeComplementos } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
 
@@ -76,11 +77,21 @@ function ComplementosContent() {
   // Mismo criterio que en `StepClient`: la unidad tomada va en modal, no en un
   // toast que se borra a los 4 segundos, porque el mensaje pide una accion.
   const [unidadTomada, setUnidadTomada] = useState<string | null>(null);
+  // El link especial rechazado al enviar: aviso fijo, no toast.
+  const [linkEspecialRechazado, setLinkEspecialRechazado] = useState<string | null>(null);
 
   const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded, error: submitError } = useSubmitApplication({
     onToast: showToast,
     onUnidadTomada: setUnidadTomada,
+    onLinkEspecialRechazado: setLinkEspecialRechazado,
   });
+
+  const avisoLinkEspecial = (
+    <AvisoLinkEspecialRechazado
+      mensaje={linkEspecialRechazado}
+      onCerrar={() => setLinkEspecialRechazado(null)}
+    />
+  );
 
   const modalUnidadTomada = unidadTomada ? (
     <ModalAviso
@@ -450,6 +461,7 @@ function ComplementosContent() {
           <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
         )}
         {modalUnidadTomada}
+        {avisoLinkEspecial}
       </GamerComplementosWrapper>
     );
   }
@@ -496,6 +508,7 @@ function ComplementosContent() {
         />
       )}
       {modalUnidadTomada}
+      {avisoLinkEspecial}
     </>
   );
 }

@@ -14,6 +14,7 @@ import { WizardField, getDocumentTypeRules, checkDocumentAgainstRules } from '..
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
 import { useCouponDocumentCheck } from '../../../hooks/useCouponDocumentCheck';
+import { useSpecialLinkDocumentCheck } from '../../../hooks/useSpecialLinkDocumentCheck';
 import { useSessionOptional } from '../../../context/SessionContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useLayout } from '../../../../context/LayoutContext';
@@ -440,6 +441,23 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     landingId,
   });
 
+  // Link especial: el pase es de un DNI. Con el documento del titular completo
+  // se pregunta si es el del pase, para avisar acá y no recién al enviar. El
+  // error se pinta debajo del campo (sin esperar a "Continuar") y frena el
+  // avance igual que la whitelist. Sin link especial no hace nada.
+  const { error: errorLinkEspecial, isChecking: isCheckingLinkEspecial } = useSpecialLinkDocumentCheck({
+    documentNumber: esDocumentoDelTitular && documentType === 'dni' ? documentoCompleto : null,
+    landing,
+  });
+  useEffect(() => {
+    if (!esDocumentoDelTitular) return;
+    const bloqueado = errorLinkEspecial ? 'true' : '';
+    if ((formData['_special_link_blocked']?.value ?? '') === bloqueado) return;
+    updateField('_special_link_blocked', bloqueado);
+    if (errorLinkEspecial) updateField('_special_link_field', field.code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errorLinkEspecial, esDocumentoDelTitular, field.code, updateField]);
+
   // Handle value change — filter input based on document type
   const handleChange = useCallback((newValue: string) => {
     // BAL-4025: SOLO el DNI es numerico. El CE y el pasaporte son
@@ -549,9 +567,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Diseño 2: el texto del error sale de la tabla de Brenda por tipo (y
   // `required_message` de la BD gana cuando está vacío). Cuándo hay error lo
   // sigue decidiendo el validador de siempre.
-  const displayError = v2
+  const displayError = errorLinkEspecial || (v2
     ? mensajeDocumentoV2({ error, valor: value, tipo: documentType, requiredMessage: field.required_message })
-    : error;
+    : error);
 
   // Diseño 2: "¡Hola, {Nombre}!" con el estado del prefill que ya existe.
   const nombreSaludo = useMemo(
@@ -610,7 +628,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         maxLength={documentRules?.max_length || field.max_length || undefined}
         showCounter={field.show_counter}
         success={isSuccess}
-        isLoading={isChecking}
+        isLoading={isChecking || isCheckingLinkEspecial}
         {...(v2 ? { inputRef } : {})}
       />
 

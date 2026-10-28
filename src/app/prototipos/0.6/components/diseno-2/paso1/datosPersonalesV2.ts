@@ -75,6 +75,8 @@ export function nombreDelSaludo(field: WizardField, valores: Valores): string | 
   if (!CODIGOS_DOCUMENTO_TITULAR.includes(field.code)) return null;
   // Documento fuera de la whitelist: manda el modal de no invitado, no se saluda.
   if (valores._whitelist_blocked === 'true') return null;
+  // Link especial de otro DNI o que ya no sirve: no se muestran datos de esa persona.
+  if (valores._special_link_blocked === 'true') return null;
   const estado = valores[`_prefill_status_${field.code}`];
   if (estado !== undefined && estado !== 'found') return null;
   const codigoNombre = campoDelNombre(field.prefill_config);
