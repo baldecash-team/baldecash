@@ -6,12 +6,16 @@
  * prueba de verdad: los seguros dentro del paso (con la lógica compartida de
  * `/complementos`), el submit con `insurance_ids`, que en Diseño 2 no se salte
  * a `/complementos`, el envío anticipado (D5), los seguros en su propia
- * pantalla después de los datos (BAL-5204) y que Diseño 1 siga igual.
+ * página `/solicitar/complementos` después de los datos (BAL-5204 → BAL-5237)
+ * y que Diseño 1 siga igual.
  */
 import React, { useSyncExternalStore } from 'react';
-import { render, screen, act, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent, within, cleanup } from '@testing-library/react';
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+/** Pasos que el Resumen marcó como completos (en memoria, como `WizardContext`). */
+const mockCompletados = new Set<string>();
 const mockSentry = jest.fn();
 jest.mock('@sentry/nextjs', () => ({ captureException: (...a: unknown[]) => mockSentry(...a) }));
 const mockSubmit = jest.fn().mockResolvedValue(true);
@@ -24,7 +28,7 @@ const mockFlujo: {
   cargando: boolean;
 } = { sectionsAfterWizard: [], sectionsBeforeWizard: [], shouldShowComplementos: false, envioAnticipadoStep: null, cargando: false };
 const mockHandoff: { valor: unknown } = { valor: null };
-const mockPlanes: { lista: unknown[]; falla: Error | null } = { lista: [], falla: null };
+const mockPlanes: { lista: unknown[]; falla: Error | null; pendiente: Promise<unknown[]> | null } = { lista: [], falla: null, pendiente: null };
 let mockFormData: Record<string, { value: string }> = {};
 
 const CAMPO_DIA = {
@@ -97,7 +101,7 @@ const mockStore = {
 };
 
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useParams: () => ({ landing: 'pago-diferido', stepSlug: 'resumen' }),
   usePathname: () => '/prototipos/0.6/pago-diferido/solicitar/resumen',
   useSearchParams: () => new URLSearchParams(''),
@@ -158,7 +162,8 @@ jest.mock('../../context/WizardContext', () => ({
   useWizard: () => ({
     formData: mockFormData,
     setFieldError: jest.fn(),
-    markStepCompleted: jest.fn(),
+    markStepCompleted: (id: string) => mockCompletados.add(id),
+    isStepCompleted: (id: string) => mockCompletados.has(id),
     getFieldValue: (c: string) => mockFormData[c]?.value ?? '',
     getFieldLabel: () => undefined,
     getAllDynamicOptions: () => ({}),
@@ -222,7 +227,8 @@ jest.mock('../../context/ProductContext', () => ({
 
 jest.mock('@/app/prototipos/0.6/services/landingApi', () => ({
   ...jest.requireActual('@/app/prototipos/0.6/services/landingApi'),
-  obtenerPlanesDeSeguro: jest.fn(() => (mockPlanes.falla ? Promise.reject(mockPlanes.falla) : Promise.resolve(mockPlanes.lista))),
+  obtenerPlanesDeSeguro: jest.fn(() =>
+    mockPlanes.pendiente ?? (mockPlanes.falla ? Promise.reject(mockPlanes.falla) : Promise.resolve(mockPlanes.lista))),
 }));
 
 jest.mock('@/app/prototipos/0.6/hooks/useLeadGuard', () => ({ useLeadGuard: () => true }));
@@ -240,6 +246,10 @@ jest.mock('@/app/prototipos/0.6/services/landingConfigApi', () => ({
 }));
 jest.mock('../../components/solicitar/wizard/DynamicWizardStep', () => ({
   DynamicWizardStep: () => <div data-testid="campos-del-paso" data-campo="payment_day" />,
+}));
+// Las otras secciones de después del wizard (accesorios) en la página de seguros.
+jest.mock('../../components/solicitar/sections/SectionRenderer', () => ({
+  SectionRenderer: ({ type }: { type: string }) => <div data-testid={`seccion-${type}`} />,
 }));
 jest.mock('@/app/prototipos/0.6/components/zona-gamer/GamerNavbar', () => ({ GamerNavbar: () => null }));
 jest.mock('@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter', () => ({ GamerNewsletter: () => null }));
@@ -273,6 +283,7 @@ type PropsShell = {
   antetitulo?: string | null;
   description?: string;
   isLastStep?: boolean;
+  isBusy?: boolean;
   onNext?: () => void;
   onSubmit?: () => void;
   onBack?: () => void;
@@ -298,12 +309,12 @@ jest.mock('@/app/prototipos/0.6/components/diseno-2', () => ({
             Atrás
           </button>
         )}
-        <button type="button" data-testid="escritorio" onClick={principal}>
+        <button type="button" data-testid="escritorio" onClick={principal} disabled={p.isBusy}>
           {p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar'}
         </button>
         {/* Como `BarraInferiorV2`: con `ocultarBarraInferior` no hay barra. */}
         {!p.ocultarBarraInferior && (
-          <button type="button" data-testid="celular" onClick={p.accionMovil?.onPrimary ?? principal}>
+          <button type="button" data-testid="celular" onClick={p.accionMovil?.onPrimary ?? principal} disabled={p.isBusy}>
             {p.accionMovil?.texto ?? (p.isLastStep ? p.textoEnviar || 'Enviar solicitud' : 'Continuar')}
           </button>
         )}
@@ -328,19 +339,36 @@ function vista(n: 1 | 2) {
   return document.querySelector<HTMLElement>(`[data-vista-paso4="${n}"]`);
 }
 
+const COMPLEMENTOS = '/prototipos/0.6/pago-diferido/solicitar/complementos';
+
+/** La página de seguros de Diseño 2 (`/solicitar/complementos`, BAL-5237). */
+function montarPaginaDeSeguros() {
+  return render(<StepClient pantalla="seguros" />);
+}
+
 /**
- * BAL-5204: con seguros, el Resumen va en dos pantallas. «Continuar» (de
- * escritorio o de la barra de celular) pasa de los datos a los seguros.
+ * BAL-5204 → BAL-5237: con seguros, el Resumen va en dos pantallas y la
+ * segunda es su propia página. «Continuar» (de escritorio o de la barra de
+ * celular) espera a los planes, navega a `/solicitar/complementos` y ahí se
+ * monta la página de seguros (como hace la app al cambiar de ruta).
  */
 async function irASeguros(boton: 'escritorio' | 'celular' = 'escritorio') {
+  await waitFor(() => expect(screen.getByTestId(boton)).not.toBeDisabled());
   expect(screen.getByTestId(boton)).toHaveTextContent('Continuar');
   await act(async () => {
     fireEvent.click(screen.getByTestId(boton));
   });
+  expect(mockPush).toHaveBeenCalledWith(COMPLEMENTOS);
+  cleanup();
+  montarPaginaDeSeguros();
 }
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockReplace.mockClear();
+  mockCompletados.clear();
+  // Algunos tests mueven la URL (el «Atrás» al Resumen): cada uno arranca limpio.
+  window.history.replaceState(null, '', '/');
   mockSubmit.mockClear();
   mockLayout.disenoSolicitud = 2;
   mockLayout.mostrarResumen = undefined;
@@ -351,6 +379,7 @@ beforeEach(() => {
   mockHandoff.valor = null;
   mockPlanes.lista = [GARANTIA, ROBO];
   mockPlanes.falla = null;
+  mockPlanes.pendiente = null;
   mockSentry.mockClear();
   mockTrack.mockClear();
   (jest.requireMock('@/app/prototipos/0.6/services/landingApi').obtenerPlanesDeSeguro as jest.Mock).mockClear();
@@ -358,8 +387,6 @@ beforeEach(() => {
   mockFormData = { payment_day: { value: '18' } };
   Element.prototype.scrollIntoView = jest.fn();
   window.scrollTo = jest.fn();
-  // La pantalla de seguros deja su entrada en el historial: cada test arranca limpio.
-  window.history.replaceState(null, '');
 });
 
 describe('Paso 4 de Diseño 2 · encabezado y "Ver detalle"', () => {
@@ -467,10 +494,12 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
     await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección'));
 
+    mockPush.mockClear();
     await act(async () => {
       fireEvent.click(screen.getByTestId('escritorio'));
     });
     expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: '16', insuranceIds: ['16'] }));
+    // Desde la página de seguros se envía: no vuelve a saltar a /complementos.
     expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/complementos'));
   });
 
@@ -517,23 +546,27 @@ describe('Paso 4 de Diseño 2 · protecciones', () => {
     expect(mockSubmit.mock.calls[0][0]).not.toHaveProperty('insuranceIds');
   });
 
-  it('con otra sección después del wizard (accesorios) sí pasa por /complementos', async () => {
-    jest.useFakeTimers();
-    try {
-      mockFlujo.sectionsAfterWizard = [SECCION_SEGURO, { type: 'accessories', order: 4, enabled: true }];
-      render(<StepClient />);
-      // Datos → seguros, y desde los seguros «Continuar» va a /complementos.
-      await irASeguros();
-      expect(mockPush).not.toHaveBeenCalled();
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('escritorio'));
-        await jest.advanceTimersByTimeAsync(600);
-      });
-      expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/complementos');
-      expect(mockSubmit).not.toHaveBeenCalled();
-    } finally {
-      jest.useRealTimers();
-    }
+  it('con otra sección después del wizard (accesorios): la página de seguros la pinta y envía desde ahí', async () => {
+    mockFlujo.sectionsAfterWizard = [SECCION_SEGURO, { type: 'accessories', order: 4, enabled: true }];
+    render(<StepClient />);
+    await irASeguros();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(screen.getByTestId('seccion-accessories')).toBeInTheDocument();
+    // Los seguros no se repiten como sección de Diseño 1.
+    expect(screen.queryByTestId('seccion-insurance')).not.toBeInTheDocument();
+    mockPush.mockClear();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalledWith(COMPLEMENTOS);
+  });
+
+  it('sin otra sección después del wizard, la página de seguros no pinta accesorios', async () => {
+    render(<StepClient />);
+    await irASeguros();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(screen.queryByTestId('seccion-accessories')).not.toBeInTheDocument();
   });
 });
 
@@ -590,10 +623,12 @@ describe('Paso 4 de Diseño 2 · celular en dos pantallas (BAL-5204)', () => {
     delete mockFormData.payment_day;
     render(<StepClient />);
     await screen.findByTestId('campos-del-paso');
+    await waitFor(() => expect(screen.getByTestId('celular')).not.toBeDisabled());
     await act(async () => {
       fireEvent.click(screen.getByTestId('celular'));
     });
     expect(mockSubmit).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
     expect(vista(1)).toBeInTheDocument();
     expect(vista(2)).not.toBeInTheDocument();
   });
@@ -636,10 +671,11 @@ describe('Revisión de F7 · I-2: no se borran selecciones válidas al llegar al
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
     await waitFor(() => expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']));
 
-    // "Editar" lleva a otro paso: el Paso 4 se desmonta.
+    // "Editar" lleva a otro paso: la página se desmonta.
     fireEvent.click(within(screen.getByTestId('ver-detalle')).getAllByText('Editar')[0]);
     expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/datos-personales'));
-    primero.unmount();
+    expect(primero.container).toBeDefined();
+    cleanup();
 
     // Vuelve al Paso 4: se monta de nuevo, con la config cargando.
     montarComoEnLaApp();
@@ -761,7 +797,8 @@ describe('Corrección · error de carga de planes (BAL-4966)', () => {
     await montarConError();
     expect(screen.queryByLabelText('Cargando protecciones')).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('Guardamos tu selección (2 protecciones elegidas)');
-    expect(pedidosDePlanes()).toHaveBeenCalledTimes(2); // el pedido + el reintento automático
+    // El pedido + el reintento automático, en el Resumen y otra vez en la página de seguros.
+    expect(pedidosDePlanes()).toHaveBeenCalledTimes(4);
     expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']);
 
     // El reintento sale bien: los planes, con la selección intacta.
@@ -770,7 +807,7 @@ describe('Corrección · error de carga de planes (BAL-4966)', () => {
     expect(reintentar).toHaveClass('min-h-[44px]');
     fireEvent.click(reintentar);
     await screen.findByText('Garantía Extendida Laptop 24M');
-    expect(pedidosDePlanes()).toHaveBeenCalledTimes(3);
+    expect(pedidosDePlanes()).toHaveBeenCalledTimes(5);
     expect(screen.queryByText('No pudimos cargar las protecciones.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' })).toHaveAttribute('aria-pressed', 'true');
@@ -846,9 +883,9 @@ describe('Corrección · error de carga de planes (BAL-4966)', () => {
 
 describe('Revisión de F7 · I-3 y M-1: área táctil y movimiento', () => {
   it('"¿Qué cubre?" y "Agregar" miden 44px; el esqueleto no pulsa con movimiento reducido', async () => {
-    montarComoEnLaApp();
-    // Mientras cargan los planes ya se puede pasar a los seguros: esqueleto.
-    fireEvent.click(screen.getByTestId('escritorio'));
+    // La página de seguros, mientras cargan sus planes: esqueleto.
+    mockCompletados.add('resumen');
+    montarPaginaDeSeguros();
     const esqueleto = document.querySelector('[aria-label="Cargando protecciones"] > div');
     expect(esqueleto).toHaveClass('animate-pulse', 'motion-reduce:animate-none');
     await screen.findByText('Garantía Extendida Laptop 24M');
@@ -858,7 +895,7 @@ describe('Revisión de F7 · I-3 y M-1: área táctil y movimiento', () => {
 });
 
 describe('Revisión de F7 · I-1: celular con seguros y otra sección después', () => {
-  it('datos → seguros → "Continuar" va a /complementos', async () => {
+  it('datos → página de seguros (con los accesorios) → «Enviar» envía con lo elegido', async () => {
     mockFlujo.sectionsAfterWizard = [SECCION_SEGURO, { type: 'accessories', order: 4, enabled: true }];
     render(<StepClient />);
     await irASeguros('celular');
@@ -867,20 +904,11 @@ describe('Revisión de F7 · I-1: celular con seguros y otra sección después',
     expect(screen.queryByTestId('atras-celular')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
 
-    // Manda la acción de siempre: ir a complementos.
-    expect(screen.getByTestId('celular')).toHaveTextContent('Continuar');
-    jest.useFakeTimers();
-    try {
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('celular'));
-        await jest.advanceTimersByTimeAsync(600);
-      });
-    } finally {
-      jest.useRealTimers();
-    }
-    expect(mockPush).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/complementos');
-    expect(mockSubmit).not.toHaveBeenCalled();
-    expect(mockSeguros.map((s) => s.id)).toEqual(['16']);
+    expect(screen.getByTestId('celular')).toHaveTextContent('Enviar con 1 protección');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('celular'));
+    });
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: ['16'] }));
   });
 });
 
@@ -1054,7 +1082,7 @@ describe('E2E BAL-4969 (bug 2): reacondicionado en Diseño 2', () => {
   });
 });
 
-describe('BAL-5204 · los seguros en su propia pantalla después del Resumen', () => {
+describe('BAL-5237 · «Protege tu laptop» en su propia página /solicitar/complementos', () => {
   const pedidos = () => jest.requireMock('@/app/prototipos/0.6/services/landingApi').obtenerPlanesDeSeguro as jest.Mock;
   async function planesCargados() {
     await waitFor(() => expect(pedidos()).toHaveBeenCalled());
@@ -1074,29 +1102,44 @@ describe('BAL-5204 · los seguros en su propia pantalla después del Resumen', (
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Resumen de tu solicitud');
   });
 
-  it('«Continuar» con los datos completos lleva a «Protege tu laptop» con «Enviar solicitud»', async () => {
+  it('«Continuar» con los datos completos navega a /solicitar/complementos (sin cambiar de vista dentro del Resumen)', async () => {
     render(<StepClient />);
     await planesCargados();
     await act(async () => {
       fireEvent.click(screen.getByTestId('escritorio'));
     });
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Protege tu laptop');
+    expect(mockPush).toHaveBeenCalledWith(COMPLEMENTOS);
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockSubmit).not.toHaveBeenCalled();
+    // El Resumen no se transforma: sigue con sus campos hasta que cambia la ruta.
+    expect(screen.getByTestId('campos-del-paso')).toBeInTheDocument();
+    expect(screen.queryByText('Garantía Extendida Laptop 24M')).not.toBeInTheDocument();
+    // Y deja el paso marcado como completo (la página de seguros lo exige).
+    expect(mockCompletados.has('resumen')).toBe(true);
+  });
+
+  it('la página: «Protege tu laptop», el panel, las protecciones y «Enviar solicitud» con el mismo envío', async () => {
+    mockCompletados.add('resumen');
+    montarPaginaDeSeguros();
     expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Protege tu laptop');
     expect(screen.queryByTestId('campos-del-paso')).not.toBeInTheDocument();
+    expect(screen.getByTestId('ver-detalle')).toBeInTheDocument();
     expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
     expect(screen.getByTestId('celular')).toHaveTextContent('Enviar solicitud');
-    expect(window.scrollTo).toHaveBeenCalled();
-    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Garantía Extendida Laptop 24M' }));
     await waitFor(() => expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar con 1 protección'));
     await act(async () => {
       fireEvent.click(screen.getByTestId('escritorio'));
     });
-    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceIds: ['14'] }));
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ insuranceId: '14', insuranceIds: ['14'] }));
+    expect(mockPush).not.toHaveBeenCalledWith(COMPLEMENTOS);
   });
 
-  it('«Continuar» con el día de pago vacío no avanza: se queda en los datos', async () => {
+  it('«Continuar» con el día de pago vacío no navega: se queda en los datos', async () => {
     delete mockFormData.payment_day;
     render(<StepClient />);
     await planesCargados();
@@ -1104,50 +1147,61 @@ describe('BAL-5204 · los seguros en su propia pantalla después del Resumen', (
       fireEvent.click(screen.getByTestId('escritorio'));
     });
     expect(screen.getByTestId('campos-del-paso')).toBeInTheDocument();
-    expect(screen.queryByText('Garantía Extendida Laptop 24M')).not.toBeInTheDocument();
-    expect(screen.getByTestId('escritorio')).toHaveTextContent('Continuar');
+    expect(mockPush).not.toHaveBeenCalled();
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
-  it('«Atrás» desde los seguros vuelve a los datos (por el historial, como el del navegador)', async () => {
-    render(<StepClient />);
-    await planesCargados();
+  it('«Atrás» de la página va por el historial (lo mismo que el del navegador)', async () => {
+    const atras = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+    try {
+      mockCompletados.add('resumen');
+      montarPaginaDeSeguros();
+      await screen.findByText('Garantía Extendida Laptop 24M');
+      fireEvent.click(screen.getByTestId('atras'));
+      expect(atras).toHaveBeenCalledTimes(1);
+      expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining('/datos-personales'));
+    } finally {
+      atras.mockRestore();
+    }
+  });
+
+  it('entrada directa sin pasar por el Resumen: redirige al Resumen', async () => {
+    montarPaginaDeSeguros();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/resumen'));
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it('con el Resumen incompleto (falta el día de pago): redirige al Resumen', async () => {
+    mockCompletados.add('resumen');
+    delete mockFormData.payment_day;
+    montarPaginaDeSeguros();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/resumen'));
+  });
+
+  it('entrada directa con un equipo SIN planes: redirige al Resumen (nunca una página de seguros vacía)', async () => {
+    mockCompletados.add('resumen');
+    mockPlanes.lista = [];
+    montarPaginaDeSeguros();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/prototipos/0.6/pago-diferido/solicitar/resumen'));
+  });
+
+  it('mientras cargan los planes de la página no redirige (va el esqueleto)', async () => {
+    let soltar: (v: unknown[]) => void = () => {};
+    mockPlanes.pendiente = new Promise((r) => {
+      soltar = r;
+    });
+    mockCompletados.add('resumen');
+    montarPaginaDeSeguros();
+    expect(await screen.findByLabelText('Cargando protecciones')).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalled();
     await act(async () => {
-      fireEvent.click(screen.getByTestId('escritorio'));
+      soltar([GARANTIA, ROBO]);
     });
-    await screen.findByText('Garantía Extendida Laptop 24M');
-    expect(window.history.state).toEqual(expect.objectContaining({ paso4: 'seguros' }));
-    fireEvent.click(screen.getByTestId('atras'));
-    await waitFor(() => expect(screen.getByTestId('campos-del-paso')).toBeInTheDocument());
-    expect(screen.getByTestId('escritorio')).toHaveTextContent('Continuar');
-    // Desde los datos, «Atrás» va al paso anterior (como siempre).
-    fireEvent.click(screen.getByTestId('atras'));
-    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/datos-personales'));
+    expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('«Atrás» del navegador desde los seguros vuelve a los datos', async () => {
-    render(<StepClient />);
-    await planesCargados();
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('escritorio'));
-    });
-    await screen.findByText('Garantía Extendida Laptop 24M');
-    act(() => {
-      window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
-    });
-    expect(screen.getByTestId('campos-del-paso')).toBeInTheDocument();
-    expect(screen.queryByText('Garantía Extendida Laptop 24M')).not.toBeInTheDocument();
-  });
-
-  it('recargar estando en los seguros: sale en los datos y la entrada del historial deja de ser «seguros»', async () => {
-    window.history.replaceState({ paso4: 'seguros', otro: 1 }, '');
-    render(<StepClient />);
-    await planesCargados();
-    expect(screen.getByTestId('campos-del-paso')).toBeInTheDocument();
-    expect(window.history.state).toEqual({ otro: 1 });
-  });
-
-  it('sin planes: una sola pantalla con «Enviar solicitud» directo, sin «Continuar»', async () => {
+  it('sin planes: una sola pantalla con «Enviar solicitud» directo, sin ir a /complementos', async () => {
     mockPlanes.lista = [];
     render(<StepClient />);
     await planesCargados();
@@ -1157,28 +1211,124 @@ describe('BAL-5204 · los seguros en su propia pantalla después del Resumen', (
       fireEvent.click(screen.getByTestId('escritorio'));
     });
     expect(mockSubmit).toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalledWith(COMPLEMENTOS);
+  });
+
+  it('con los seguros apagados: el Resumen envía directo, sin ir a /complementos', async () => {
+    mockFlujo.sectionsAfterWizard = [];
+    mockFlujo.shouldShowComplementos = false;
+    render(<StepClient />);
+    await screen.findByTestId('campos-del-paso');
+    expect(screen.getByTestId('escritorio')).not.toBeDisabled();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('escritorio'));
+    });
+    expect(mockSubmit).toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalledWith(COMPLEMENTOS);
+  });
+
+  describe('mientras los planes todavía cargan, el Resumen espera para decidir', () => {
+    let soltar: (v: unknown[]) => void = () => {};
+    beforeEach(() => {
+      mockPlanes.pendiente = new Promise((r) => {
+        soltar = r;
+      });
+    });
+
+    it('el botón queda ocupado: tocarlo no navega ni envía', async () => {
+      render(<StepClient />);
+      await screen.findByTestId('campos-del-paso');
+      expect(screen.getByTestId('escritorio')).toBeDisabled();
+      expect(screen.getByTestId('celular')).toBeDisabled();
+      fireEvent.click(screen.getByTestId('escritorio'));
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(mockSubmit).not.toHaveBeenCalled();
+    });
+
+    it('llegan planes: «Continuar» va a /complementos', async () => {
+      render(<StepClient />);
+      await screen.findByTestId('campos-del-paso');
+      mockPlanes.pendiente = null;
+      await act(async () => {
+        soltar([GARANTIA]);
+      });
+      await waitFor(() => expect(screen.getByTestId('escritorio')).not.toBeDisabled());
+      expect(screen.getByTestId('escritorio')).toHaveTextContent('Continuar');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('escritorio'));
+      });
+      expect(mockPush).toHaveBeenCalledWith(COMPLEMENTOS);
+    });
+
+    it('no llega ninguno: el botón es «Enviar solicitud» y envía desde el Resumen', async () => {
+      render(<StepClient />);
+      await screen.findByTestId('campos-del-paso');
+      await act(async () => {
+        soltar([]);
+      });
+      await waitFor(() => expect(screen.getByTestId('escritorio')).not.toBeDisabled());
+      expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('escritorio'));
+      });
+      expect(mockSubmit).toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalledWith(COMPLEMENTOS);
+    });
   });
 });
 
-describe('BAL-5204 · eventos de la pantalla de seguros', () => {
-  it('al pasar a seguros: form_step_complete (vista datos); al volver: form_step_back (vista seguros)', async () => {
+describe('BAL-5237 · eventos de la página de seguros', () => {
+  it('al ir: form_step_complete {vista datos, diseno 2}', async () => {
     render(<StepClient />);
     await screen.findByTestId('campos-del-paso');
     await irASeguros();
-    await screen.findByText('Garantía Extendida Laptop 24M');
     expect(mockTrack).toHaveBeenCalledWith('form_step_complete', { step_code: 'summary', vista: 'datos', diseno: 2 });
-    expect(mockTrack).not.toHaveBeenCalledWith('form_step_back', expect.anything());
+  });
 
-    fireEvent.click(screen.getByTestId('atras'));
-    await waitFor(() => expect(screen.getByTestId('campos-del-paso')).toBeInTheDocument());
-    expect(mockTrack).toHaveBeenCalledWith('form_step_back', { step_code: 'summary', vista: 'seguros', diseno: 2 });
+  it('la página manda su form_step_view con vista «seguros» y el step_index del Resumen', async () => {
+    mockCompletados.add('resumen');
+    montarPaginaDeSeguros();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(mockTrack).toHaveBeenCalledWith('form_step_view', {
+      step_slug: 'resumen',
+      step_code: 'summary',
+      step_index: 1,
+      total_steps: 2,
+      diseno: 2,
+      vista: 'seguros',
+    });
+  });
+
+  it('al volver (pantalla o navegador): form_step_back {vista seguros, diseno 2}, una vez', async () => {
+    mockCompletados.add('resumen');
+    montarPaginaDeSeguros();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(mockTrack).not.toHaveBeenCalledWith('form_step_back', expect.anything());
+    // El «Atrás» deja la URL en el Resumen y desmonta la página.
+    window.history.pushState(null, '', '/prototipos/0.6/pago-diferido/solicitar/resumen/');
+    cleanup();
+    await waitFor(() =>
+      expect(mockTrack).toHaveBeenCalledWith('form_step_back', { step_code: 'summary', vista: 'seguros', diseno: 2 }));
     expect(mockTrack.mock.calls.filter(([e]) => e === 'form_step_back')).toHaveLength(1);
+  });
+
+  it('salir hacia otra página (envío, «Editar») no manda form_step_back', async () => {
+    mockCompletados.add('resumen');
+    montarPaginaDeSeguros();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    window.history.pushState(null, '', '/prototipos/0.6/pago-diferido/solicitar/confirmacion/');
+    cleanup();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    expect(mockTrack).not.toHaveBeenCalledWith('form_step_back', expect.anything());
   });
 
   it('«Continuar» con un campo vacío no manda form_step_complete', async () => {
     delete mockFormData.payment_day;
     render(<StepClient />);
     await screen.findByTestId('campos-del-paso');
+    await waitFor(() => expect(screen.getByTestId('escritorio')).not.toBeDisabled());
     await act(async () => {
       fireEvent.click(screen.getByTestId('escritorio'));
     });

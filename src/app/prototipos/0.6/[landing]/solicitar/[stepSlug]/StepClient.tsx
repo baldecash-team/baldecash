@@ -14,6 +14,7 @@ import * as LucideIcons from 'lucide-react';
 
 // Components
 import { WizardLayout, PasoDelWizard, usePasoDelWizard } from '../components/solicitar/wizard';
+import { SectionRenderer } from '../components/solicitar/sections/SectionRenderer';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
@@ -98,10 +99,24 @@ import { enfocarCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuia
 import { nombreDelTipo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 /**
- * El Paso 4 vuelve a la vista 1 y abre la sección antes de bajar al campo
- * (`volverAlCampo`, ~60 + 60 ms): el foco va después, cuando el campo ya está.
+ * El Paso 4 abre la sección antes de bajar al campo (`volverAlCampo`, ~60 ms):
+ * el foco va después, cuando el campo ya está.
  */
 const ESPERA_FOCO_PASO4_MS = 160;
+
+/**
+ * El slug del resumen que envía: el último paso resumen por orden (el mismo
+ * al que vuelve `/complementos` de Diseño 1). `null` si el formulario no
+ * tiene resumen.
+ */
+export function slugDelResumen(steps: readonly { is_summary_step?: boolean; order: number; url_slug?: string | null; code: string }[]): string | null {
+  const resumenes = steps.filter((s) => s.is_summary_step).sort((a, b) => a.order - b.order);
+  const ultimo = resumenes[resumenes.length - 1];
+  return ultimo ? ultimo.url_slug || ultimo.code : null;
+}
+
+/** Validador sin efectos: la página de seguros revisa el Resumen sin pintarle errores. */
+const sinMarcarErrores = () => {};
 import { seccionesConSegurosDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/seguroAntesDelWizard';
 
 
@@ -125,11 +140,22 @@ function getIconComponent(iconName: string): React.ElementType {
 }
 
 
-function StepContent() {
+interface StepContentProps {
+  /**
+   * Diseño 2 · «Protege tu laptop» como página propia (BAL-5237): en
+   * `/solicitar/complementos` se monta el MISMO paso resumen —con su
+   * validación, su panel y su envío— mostrando solo los seguros (y las otras
+   * secciones de después del wizard, si las hay).
+   */
+  pantalla?: 'seguros';
+}
+
+function StepContent({ pantalla }: StepContentProps = {}) {
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
-  const stepSlug = params.stepSlug as string;
+  /** Esta es la página de seguros de Diseño 2 (`/solicitar/complementos`). */
+  const enSeguros = pantalla === 'seguros';
 
   // Lead guard
   const hasLeadAccess = useLeadGuard(landing);
@@ -174,10 +200,15 @@ function StepContent() {
     error: configError
   } = useWizardConfig();
 
+  // En la página de seguros el paso es el resumen que envía (la ruta no trae
+  // `stepSlug`); en el resto, el de la URL.
+  const stepSlug = (enSeguros ? slugDelResumen(steps) ?? '' : params.stepSlug) as string;
+
   const {
     formData,
     setFieldError,
     markStepCompleted,
+    isStepCompleted,
     getFieldValue,
     getFieldLabel,
     getAllDynamicOptions,
@@ -253,6 +284,8 @@ function StepContent() {
     diseno2: usarDiseno2,
     // `form_step_view` con el diseño de verdad, no el 1 por defecto (BAL-4969).
     disenoResuelto,
+    // La página de seguros: su `form_step_view` lleva `vista: 'seguros'`.
+    vista: enSeguros ? 'seguros' : undefined,
   });
 
   /*
@@ -498,7 +531,9 @@ function StepContent() {
     indicePaso: navigation.currentIndex,
     yaEnviada,
   });
-  const hayComplementos = hayComplementosDespues(sectionsAfterWizard, usarDiseno2, shouldShowComplementos);
+  // La página de seguros ya ES `/complementos`: envía desde ahí (con las
+  // otras secciones de después del wizard en la misma página).
+  const hayComplementos = !enSeguros && hayComplementosDespues(sectionsAfterWizard, usarDiseno2, shouldShowComplementos);
   const paso4 = usePaso4V2({
     activo: usarDiseno2 && isSummaryStep && !isFlowConfigLoading && !configLoadFailed,
     conSeguros: segurosEnPaso4,
@@ -506,36 +541,34 @@ function StepContent() {
   });
 
   /**
-   * Paso 4 de Diseño 2 en dos pantallas (BAL-5204): datos → seguros. La de
-   * seguros lleva su propia entrada en el historial (`pushState` al entrar):
-   * el «Atrás» del navegador y el de la pantalla vuelven a los datos sin salir
-   * del paso. Va aquí, arriba de los `return` tempranos (regla de hooks).
+   * Paso 4 de Diseño 2 en dos pantallas (BAL-5204): datos → seguros. Desde
+   * BAL-5237 la de seguros es su propia página (`/solicitar/complementos`):
+   * el «Atrás» de la pantalla y el del navegador son el mismo (el historial)
+   * y vuelven al Resumen, que sigue lleno (el borrador y `ProductContext`).
+   * Va aquí, arriba de los `return` tempranos (regla de hooks).
    */
-  const enSeguros = paso4.conPantallaDeSeguros && paso4.vista === 'seguros';
-  const { volverADatos } = paso4;
   const codigoDelPaso = step?.code;
   useEffect(() => {
-    if (!enSeguros) return;
-    const alVolver = (e: PopStateEvent) => {
-      if (e.state?.paso4 === 'seguros') return;
-      volverADatos();
-      tracker?.track('form_step_back', { step_code: codigoDelPaso, vista: 'seguros', diseno: 2 });
-      window.scrollTo({ top: 0 });
+    if (!enSeguros || !stepSlug) return;
+    // `form_step_back` al salir de la página HACIA el Resumen (los dos
+    // «Atrás»). No se usa `popstate`: Next resuelve el «Atrás» y desmonta
+    // esta página antes de que llegue ese evento (visto en local con
+    // Playwright). Se mira la URL justo después de desmontar: si es la del
+    // Resumen, se volvió; si es otra (envío, «Editar»), no.
+    return () => {
+      window.setTimeout(() => {
+        const ruta = window.location.pathname.replace(/\/+$/, '');
+        if (!ruta.endsWith(`/solicitar/${stepSlug}`)) return;
+        tracker?.track('form_step_back', { step_code: codigoDelPaso, vista: 'seguros', diseno: 2 });
+      }, 0);
     };
-    window.addEventListener('popstate', alVolver);
-    return () => window.removeEventListener('popstate', alVolver);
-  }, [enSeguros, volverADatos, tracker, codigoDelPaso]);
-  // Recargar estando en los seguros vuelve a los datos (la vista no se
-  // guarda), pero la entrada del historial seguía marcada como «seguros»: el
-  // siguiente «Atrás» desde los seguros caía en ella y no hacía nada. Se
-  // desmarca al montar.
-  useEffect(() => {
-    const estado = window.history.state as Record<string, unknown> | null;
-    if (estado?.paso4 !== 'seguros') return;
-    const resto = { ...estado };
-    delete resto.paso4;
-    window.history.replaceState(resto, '');
-  }, []);
+  }, [enSeguros, tracker, codigoDelPaso, stepSlug]);
+
+  /** Las secciones de después del wizard que no son seguros (p. ej. accesorios). */
+  const otrasSecciones = useMemo(
+    () => (sectionsAfterWizard ?? []).filter((s) => s.type !== 'insurance'),
+    [sectionsAfterWizard],
+  );
 
   /**
    * Paso 4 de Diseño 2: una protección que pasaría la cuota por encima del
@@ -574,6 +607,32 @@ function StepContent() {
     }
     return values;
   }, [formData]);
+
+  /**
+   * La página de seguros solo se ve llegando desde un Resumen completo y con
+   * algo que mostrar (BAL-5237). Si no, vuelve al Resumen (con lo llenado):
+   * - no se pasó por el Resumen (entrada directa, recarga): el paso no quedó
+   *   marcado como completo en esta visita;
+   * - el Resumen tiene un campo inválido (se volvió y se borró algo);
+   * - los planes ya cargaron y no hay ninguno (y no hay otra sección): nunca
+   *   una página de seguros vacía. Mientras cargan no se decide.
+   * Tras un envío exitoso no se mueve: el envío navega por su cuenta.
+   */
+  const pasoListoParaSeguros = enSeguros && step ? isStepCompleted(step.url_slug || step.code) : false;
+  const resumenValido = useMemo(
+    // Solo en la página de seguros: el Resumen valida al tocar sus botones.
+    () => (enSeguros && step ? validateStepFields(step, formValues, sinMarcarErrores, getAllDynamicOptions(), { diseno2: usarDiseno2 }) === null : false),
+    [enSeguros, step, formValues, getAllDynamicOptions, usarDiseno2],
+  );
+  const sinNadaQueMostrar = !paso4.cargandoPlanes && !paso4.conPantallaDeSeguros && otrasSecciones.length === 0;
+  const listoParaDecidir = enSeguros && usarDiseno2 && !!step && !isConfigLoading && !isFlowConfigLoading && !configLoadFailed;
+  const volverAlResumen = listoParaDecidir && !submitSucceeded && !isAppSubmitting &&
+    (!pasoListoParaSeguros || !resumenValido || sinNadaQueMostrar);
+  useEffect(() => {
+    if (!volverAlResumen || !stepSlug) return;
+    router.replace(routes.solicitarStep(landing, stepSlug));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [volverAlResumen, landing, stepSlug]);
 
   // Diseño 2: el título del Paso 1 sigue siendo el del paso. El saludo
   // "¡Hola, {Nombre}!" sale una sola vez, en la tarjeta bajo el documento
@@ -796,7 +855,10 @@ function StepContent() {
       // Diseño 2: en celular el campo puede estar en la vista 1; se vuelve
       // ahí y se baja al campo con la guía, y después recibe el foco
       // (BAL-4969). Diseño 1, como siempre.
-      if (usarDiseno2) {
+      if (enSeguros) {
+        // El campo está en el Resumen, no en esta página: se vuelve ahí.
+        router.replace(routes.solicitarStep(landing, stepSlug));
+      } else if (usarDiseno2) {
         paso4.volverAlCampo(firstErrorField);
         window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
       }
@@ -874,12 +936,14 @@ function StepContent() {
   };
 
   /**
-   * Diseño 2 con seguros (BAL-5204): «Continuar» de la pantalla de datos.
+   * Diseño 2 con seguros (BAL-5204 → BAL-5237): «Continuar» del Resumen.
    * Valida los campos del paso; si falta algo lleva al campo, como al
-   * enviar. Si está completo, pasa a la pantalla de seguros arriba de todo.
+   * enviar. Si está completo, marca el paso y navega a la página de seguros
+   * (`/solicitar/complementos`). Mientras cargan los planes el botón está
+   * ocupado (`paso4.cargandoPlanes`): no se decide a ciegas.
    */
   const continuarASeguros = () => {
-    if (isFlowConfigLoading) return;
+    if (isFlowConfigLoading || paso4.cargandoPlanes) return;
     hideToast();
     setSubmitted(true);
     const firstErrorField = validateStep();
@@ -888,17 +952,13 @@ function StepContent() {
       window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
       return;
     }
+    if (!tomarCandado()) return;
     setSubmitted(false);
-    // Arriba ANTES de la entrada nueva del historial: el navegador guarda en
-    // la entrada de los datos el scroll que tiene al dejarla, y al volver lo
-    // restaura (sin esto, «Atrás» dejaba los datos a media pantalla). Sin
-    // animación: el contenido cambia entero, no hay recorrido que mostrar.
-    window.scrollTo({ top: 0, behavior: 'auto' });
-    paso4.irASeguros();
+    if (step) markStepCompleted(step.url_slug || step.code);
     tracker?.track('form_step_complete', { step_code: step?.code, vista: 'datos', diseno: 2 });
-    window.history.pushState({ paso4: 'seguros' }, '');
+    router.push(routes.solicitarComplementos(landing));
   };
-  /** «Atrás» de la pantalla de seguros: lo mismo que el del navegador (ver el `popstate`). */
+  /** «Atrás» de la página de seguros: lo mismo que el del navegador (ver el `popstate`). */
   const atrasDesdeSeguros = () => window.history.back();
 
   const handleSummaryBack = () => {
@@ -1321,6 +1381,11 @@ function StepContent() {
       // seguros, una sola pantalla con «Enviar…», como hasta ahora.
       const dosPantallas = paso4.conPantallaDeSeguros;
       const enDatosAntesDeSeguros = dosPantallas && !enSeguros;
+      // Los planes todavía cargan: el Resumen no sabe aún si «Continuar» o
+      // «Enviar», así que el botón queda ocupado hasta saberlo (BAL-5237).
+      const esperandoPlanes = !enSeguros && paso4.cargandoPlanes;
+      // La página de seguros envía desde ahí.
+      const enviaAqui = enSeguros || (!enDatosAntesDeSeguros && isActuallyLastStep);
       const frecuencia = getAllProducts()[0]?.paymentFrequency;
 
       return (
@@ -1340,12 +1405,12 @@ function StepContent() {
             sinTarjeta
             onBack={enSeguros ? atrasDesdeSeguros : handleSummaryBack}
             onNext={enDatosAntesDeSeguros ? continuarASeguros : nextHandler}
-            onSubmit={!enDatosAntesDeSeguros && isActuallyLastStep ? handleSummarySubmit : undefined}
+            onSubmit={enviaAqui ? handleSummarySubmit : undefined}
             onStepClick={handleStepClick}
             condicionesFijas={condicionesFijas}
-            isLastStep={!enDatosAntesDeSeguros && isActuallyLastStep}
+            isLastStep={enviaAqui}
             isSubmitting={isAppSubmitting}
-            isBusy={isSubmitting}
+            isBusy={isSubmitting || esperandoPlanes}
             submitMessage={submitMessage}
             canProceed={!bloqueadoPorWhitelist && !guardaV2}
             navbarProps={navbarProps || undefined}
@@ -1371,7 +1436,7 @@ function StepContent() {
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
                   </div>
                 )}
-                {(enSeguros || (segurosEnPaso4 && !dosPantallas)) && (
+                {((enSeguros && dosPantallas) || (!enSeguros && segurosEnPaso4 && !dosPantallas)) && (
                   <div data-vista-paso4="2">
                     <ProteccionesV2
                       conTituloDeLaPagina={enSeguros}
@@ -1381,6 +1446,11 @@ function StepContent() {
                       landing={landing} frecuencia={frecuencia} onDetalleAbiertoChange={setDetalleSeguroAbierto} />
                   </div>
                 )}
+                {/* La página de seguros pinta también las otras secciones de
+                    después del wizard (accesorios); sin ellas, nada (BAL-5237). */}
+                {enSeguros && otrasSecciones.map((seccion) => (
+                  <SectionRenderer key={seccion.type} type={seccion.type} />
+                ))}
                 <ConfirmarSinProteccionesV2
                   isOpen={confirmarSinProtecciones && paso4.pideConfirmarEnvio}
                   elegidas={paso4.seguros.elegidos.length}
@@ -2234,10 +2304,10 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
   );
 }
 
-export default function StepClient() {
+export default function StepClient({ pantalla }: StepContentProps = {}) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <StepContent />
+      <StepContent pantalla={pantalla} />
     </Suspense>
   );
 }

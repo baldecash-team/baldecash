@@ -124,6 +124,19 @@ describe('usePasoDelWizard: form_step_view', () => {
     expect(track).toHaveBeenCalledWith('form_step_view', expect.objectContaining({ diseno: 2 }));
   });
 
+  it('BAL-5237: la página de seguros lo manda con step_code y vista «seguros» (mismo step_index: no es un paso nuevo)', () => {
+    renderHook(() => usePasoDelWizard({ stepSlug: 'datos-personales', flujo, diseno2: true, vista: 'seguros' }));
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('form_step_view', {
+      step_slug: 'datos-personales',
+      step_code: expect.any(String),
+      step_index: 0,
+      total_steps: 2,
+      diseno: 2,
+      vista: 'seguros',
+    });
+  });
+
   it('no se repite en un re-render aunque el objeto `step` sea uno nuevo', () => {
     const { rerender } = renderHook(
       ({ slug }: { slug: string }) => usePasoDelWizard({ stepSlug: slug, flujo }),
