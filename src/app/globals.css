@@ -385,6 +385,21 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   .d2-sale-hoja { animation: d2Sale 0.16s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
 }
 .d2-fundido { animation: d2Fundido 0.2s ease-out backwards; }
+/* Modal base de Diseño 2 (ModalV2, BAL-5203): el estándar del «Detalle del
+   financiamiento» de la ficha. Celular: hoja que sube con curva de resorte
+   (sin rebote, como el spring damping 30 / stiffness 300 de la ficha);
+   escritorio: fade + scale suave. La entrada es `backwards` para que, al
+   terminar, el arrastre de la manija pueda mover la hoja con `transform`. */
+@keyframes d2ModalSube { 0% { transform: translateY(100%); } 100% { transform: translateY(0); } }
+@keyframes d2ModalBaja { 100% { transform: translateY(100%); } }
+@keyframes d2ModalEntra { 0% { opacity: 0; transform: scale(0.96); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes d2ModalSale { 100% { opacity: 0; transform: scale(0.96); } }
+.d2-modal-entra { animation: d2ModalSube 0.42s cubic-bezier(0.32, 0.72, 0, 1) backwards; }
+.d2-modal-sale { animation: d2ModalBaja 0.18s cubic-bezier(0.4, 0, 1, 1) both; pointer-events: none; }
+@media (min-width: 768px) {
+  .d2-modal-entra { animation: d2ModalEntra 0.2s ease-out backwards; }
+  .d2-modal-sale { animation: d2ModalSale 0.16s ease-in both; }
+}
 .d2-fundido-sale { animation: d2FundidoSale 0.16s ease-in both; pointer-events: none; }
 /* Saludo del Paso 1 (BAL-4963): fundido y 6 px hacia arriba. */
 @keyframes d2Sube {
@@ -414,6 +429,9 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 .d2-pulso-a { animation: d2PulsoA 0.45s ease-out; }
 .d2-pulso-b { animation: d2PulsoB 0.45s ease-out; }
 .d2-check-in { animation: d2CheckIn 0.3s ease-out both; }
+/* Accesorios que aparecen al tocar «+N más»: entran uno tras otro (el retraso va en style). */
+.d2-acc-entra { animation: d2AccEntra 0.28s ease-out both; }
+@keyframes d2AccEntra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 /* Progreso: el check del paso recién hecho y el número del actual. */
 .d2-check-hecho { animation: d2CheckIn 0.45s ease-out 0.1s both; }
 .d2-check-actual { animation: d2CheckIn 0.4s ease-out 0.85s both; }
@@ -424,7 +442,8 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 @media (prefers-reduced-motion: reduce) {
   .d2-pop, .d2-pop-lento, .d2-pop-modal, .d2-pop-modal-chico, .d2-pop-hoja,
   .d2-sale, .d2-sale-hoja, .d2-fundido, .d2-fundido-sale, .d2-aparece,
-  .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-check-hecho, .d2-check-actual,
+  .d2-modal-entra, .d2-modal-sale,
+  .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-acc-entra, .d2-check-hecho, .d2-check-actual,
   .d2-crece, .d2-crece-movil, .d2-saludo,
   .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b {
     animation: none !important;
