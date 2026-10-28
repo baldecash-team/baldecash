@@ -32,6 +32,8 @@ export interface PlanesDeSeguro {
    * nada, no porque no haya. Un error NO cuenta como cargado (ver `error`).
    */
   cargado: boolean;
+  /** El equipo no lleva seguros y no se piden (seminuevo o sin precio). */
+  noAplica: boolean;
   /**
    * El pedido de planes para el equipo de ahora FALLÓ (tras un reintento
    * automático). No dice nada de si hay planes: la selección se conserva
@@ -214,6 +216,12 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
 
   return {
     planes: seVaAPedir ? insurancePlans : [],
+    /**
+     * Este equipo no lleva seguros y NO se piden (seminuevo/reacondicionado o
+     * sin precio). No es «cargando»: el Diseño 2 no debe esperar planes que
+     * nunca van a llegar (BAL-5237, en prod el Resumen se quedaba girando).
+     */
+    noAplica: activo && !seVaAPedir,
     cargando: isLoading,
     cargado,
     error,
