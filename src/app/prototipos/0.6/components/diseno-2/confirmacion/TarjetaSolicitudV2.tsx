@@ -78,7 +78,7 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
         <ImagenDelEquipo src={resumen.imagen} nombre={resumen.nombreEquipo} />
         <div className="min-w-0 self-center">
           <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
-          <p className="truncate text-[15px] font-bold text-[var(--d2-texto)]">{resumen.nombreEquipo}</p>
+          <p className="line-clamp-2 text-[15px] font-bold leading-snug text-[var(--d2-texto)]">{resumen.nombreEquipo}</p>
           <p className="text-xs text-[var(--d2-texto-suave)]">{resumen.leyenda}</p>
         </div>
       </div>
@@ -96,16 +96,23 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
         <GrupoConCuota titulo="Protecciones" icono={ShieldCheck} items={resumen.seguros} sufijo={resumen.sufijoCuota} />
         {resumen.diaDePago && <Fila etiqueta="Día de pago" valor={resumen.diaDePago} />}
         {resumen.entrega && <Fila etiqueta="Entrega" valor={resumen.entrega} />}
-        {resumen.regalo && (
-          <Fila
-            etiqueta="Regalo"
-            valor={
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave-2)] px-2.5 py-1 text-xs font-bold text-[var(--d2-ok-texto)]">
-                <Gift className="h-3.5 w-3.5" aria-hidden />
-                {resumen.regalo}
-              </span>
-            }
-          />
+        {resumen.regalos.length > 0 && (
+          // Igual que Accesorios y Protecciones: título y una línea por regalo
+          // (Emilio, 28-oct: la cápsula con todos juntos se partía en celular).
+          <div className="border-t border-[var(--d2-chip-numero)] py-3">
+            <p className="mb-1.5 flex items-center gap-1.5 text-sm text-[var(--d2-texto-suave)]">
+              <Gift className="h-4 w-4" aria-hidden />
+              {resumen.regalos.length === 1 ? 'Regalo' : 'Regalos'}
+            </p>
+            <ul className="space-y-1">
+              {resumen.regalos.map((nombre) => (
+                <li key={nombre} className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="min-w-0 text-[var(--d2-texto)]">{nombre}</span>
+                  <span className="shrink-0 text-xs font-bold text-[var(--d2-ok-texto)]">Gratis</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {resumen.regaloBaldecash && (
           <Fila

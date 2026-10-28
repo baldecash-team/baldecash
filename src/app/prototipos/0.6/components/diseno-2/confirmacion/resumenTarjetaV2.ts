@@ -31,6 +31,8 @@ export interface ResumenTarjetaV2 {
   regaloBaldecash: string | null;
   /** Foto del equipo (solo con un equipo; con varios no hay una sola foto). */
   imagen: string | null;
+  /** Cada regalo por separado: en celular una cápsula con todos se partía mal. */
+  regalos: string[];
   /** Accesorios pagados, con su cuota (los regalos van en `regalo`). */
   accesorios: LineaConCuota[];
   /** Seguros elegidos, con su cuota. */
@@ -117,6 +119,7 @@ export function resumenDeTarjetaV2(
     entrega,
     regalo,
     regaloBaldecash,
+    regalos,
     imagen,
     accesorios,
     seguros,

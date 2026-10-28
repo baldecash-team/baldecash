@@ -100,4 +100,19 @@ describe('TarjetaSolicitudV2', () => {
     expect(screen.queryByText('Accesorios')).not.toBeInTheDocument();
     expect(screen.queryByText('Protecciones')).not.toBeInTheDocument();
   });
+
+  it('con varios regalos: título «Regalos» y cada uno en su línea con «Gratis» (no una cápsula con todos)', () => {
+    render(
+      <TarjetaSolicitudV2
+        data={baseData({ accessories: [
+          { name: 'Kaspersky Estándar 1 pc', monthlyQuota: 0, isGift: true },
+          { name: 'Teclado gamer TE-4072G', monthlyQuota: 0, isGift: true },
+        ] })}
+        landingSlug="pago-diferido"
+      />,
+    );
+    expect(screen.getByText('Regalos')).toBeInTheDocument();
+    const items = screen.getAllByRole('listitem');
+    expect(items.map((li) => li.textContent)).toEqual(['Kaspersky Estándar 1 pcGratis', 'Teclado gamer TE-4072GGratis']);
+  });
 });
