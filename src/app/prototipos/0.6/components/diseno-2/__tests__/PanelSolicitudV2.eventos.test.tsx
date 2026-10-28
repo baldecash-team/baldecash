@@ -3,7 +3,6 @@
  * - `plan_change_panel_toggle` al abrir o cerrar «Cambiar plazo o inicial»
  *   (escritorio, resumen —con «Enviar»— y la cabecera de celular).
  * - `plan_term_change_panel` / `plan_initial_change_panel` al elegir ahí.
- * - `summary_detail_toggle` en «Ver detalle».
  */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -117,13 +116,6 @@ describe('Panel de escritorio (BAL-5207)', () => {
     expect(llamadas('plan_initial_change_panel')).toEqual([{ initial_percent: 0, step_code: 'resumen' }]);
   });
 
-  it('«Ver detalle» emite summary_detail_toggle al abrir y al cerrar', () => {
-    render(<PanelSolicitudV2 datos={datos()} codigoDelPaso="resumen" detalle={<p>Repaso</p>} />);
-    const ver = screen.getByRole('button', { name: /Ver detalle/ });
-    fireEvent.click(ver);
-    fireEvent.click(ver);
-    expect(llamadas('summary_detail_toggle')).toEqual([{ abierto: true }, { abierto: false }]);
-  });
 });
 
 describe('Cabecera de celular (BAL-5207)', () => {

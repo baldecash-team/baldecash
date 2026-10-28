@@ -146,8 +146,15 @@ export function usePasoDelWizard(opciones: {
    * Diseño 2. Sin la opción (intro, tests) cuenta como resuelto.
    */
   disenoResuelto?: boolean;
+  /**
+   * La página de seguros de Diseño 2 (`/solicitar/complementos`, BAL-5237)
+   * monta el mismo paso resumen: su `form_step_view` lleva `vista: 'seguros'`
+   * y el `step_code`, con el mismo `step_index`, para que el embudo no la
+   * cuente como un paso nuevo.
+   */
+  vista?: 'seguros';
 }): PasoDelWizardControles {
-  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false, consentimientoEnPantalla, disenoResuelto = true } = opciones;
+  const { stepSlug, flujo, gamer, Celebracion, diseno2 = false, consentimientoEnPantalla, disenoResuelto = true, vista } = opciones;
 
   const router = useRouter();
   const params = useParams();
@@ -421,13 +428,22 @@ export function usePasoDelWizard(opciones: {
     const slug = step.url_slug || step.code;
     if (pasosVistosRef.current.has(slug)) return;
     pasosVistosRef.current.add(slug);
-    tracker.track('form_step_view', {
-      step_slug: slug,
-      step_index: navigation.currentIndex,
-      total_steps: steps.length,
-      diseno: diseno2 ? 2 : 1,
-    });
-  }, [step, tracker, navigation.currentIndex, steps.length, diseno2, disenoResuelto]);
+    tracker.track('form_step_view', vista
+      ? {
+          step_slug: slug,
+          step_code: step.code,
+          step_index: navigation.currentIndex,
+          total_steps: steps.length,
+          diseno: diseno2 ? 2 : 1,
+          vista,
+        }
+      : {
+          step_slug: slug,
+          step_index: navigation.currentIndex,
+          total_steps: steps.length,
+          diseno: diseno2 ? 2 : 1,
+        });
+  }, [step, tracker, navigation.currentIndex, steps.length, diseno2, disenoResuelto, vista]);
 
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {

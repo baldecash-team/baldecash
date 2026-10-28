@@ -6,14 +6,16 @@
  * - los seguros (con `usePlanesDeSeguro`, la misma lógica de `/complementos`);
  * - el Resumen en dos pantallas como en el prototipo de Brenda (BAL-5204,
  *   27-oct): 1) día de pago + dirección → Continuar; 2) Protege tu laptop →
- *   Enviar. Sin seguros, una sola (como hasta BAL-4969);
+ *   Enviar. Desde BAL-5237 la segunda es su propia página,
+ *   `/solicitar/complementos` (la misma ruta de Diseño 1). Sin seguros, una
+ *   sola pantalla (como hasta BAL-4969);
  * - los ids de seguros que viajan en el submit.
  *
  * Lo llama `StepClient` siempre (es un hook), con `activo` en `false` fuera
  * del resumen de Diseño 2: ahí no pide nada ni toca nada.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { usePlanesDeSeguro } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/sections/usePlanesDeSeguro';
 import { buildSubmitInsuranceIds } from '@/app/prototipos/0.6/[landing]/solicitar/utils/submitInsuranceIds';
@@ -21,8 +23,9 @@ import { abrirSeccionDe } from '../SeccionPlegable';
 import { resaltar } from '../useGuiaDeCampos';
 import { textoDelEnvio } from './paso4';
 
+
 /** Espera para que la sección se abra antes de bajar al campo. */
-const ESPERA_AL_CAMBIAR_VISTA_MS = 60;
+const ESPERA_AL_ABRIR_SECCION_MS = 60;
 
 /**
  * Baja al campo que falta y lo resalta (la guía de F1). Si está dentro de una
@@ -34,7 +37,7 @@ export function irAlCampoV2(codigo: string) {
     document.getElementById(codigo)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
-  if (abrirSeccionDe(el)) window.setTimeout(() => resaltar(el), ESPERA_AL_CAMBIAR_VISTA_MS);
+  if (abrirSeccionDe(el)) window.setTimeout(() => resaltar(el), ESPERA_AL_ABRIR_SECCION_MS);
   else resaltar(el);
 }
 
@@ -81,26 +84,24 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: Opciones
   const soltarParaEnviarSinProtecciones = useCallback(() => clearInsurance(), [clearInsurance]);
 
   /**
-   * Pantalla de seguros aparte (BAL-5204): hay planes para mostrar, todavía
-   * cargan (ahí va el esqueleto), o fallaron con seguros elegidos (ahí están
-   * «Reintentar» y la confirmación de «Enviar sin protecciones»). Sin planes,
-   * con seguros apagados o con error sin elegidos: una sola pantalla.
+   * Pantalla de seguros aparte (BAL-5204; página propia desde BAL-5237): hay
+   * planes para mostrar, todavía cargan (en la página va el esqueleto), o
+   * fallaron con seguros elegidos (ahí están «Reintentar» y la confirmación
+   * de «Enviar sin protecciones»). Sin planes, con seguros apagados o con
+   * error sin elegidos: una sola pantalla.
    */
   const conPantallaDeSeguros =
     activo && conSeguros && !creadaAntes &&
     (seguros.planes.length > 0 || (!seguros.cargado && !seguros.error) || pideConfirmarEnvio);
-  const [vista, setVista] = useState<'datos' | 'seguros'>('datos');
-  const irASeguros = useCallback(() => setVista('seguros'), []);
-  const volverADatos = useCallback(() => setVista('datos'), []);
-
   /**
-   * Falta un campo al enviar: vuelve a la pantalla de datos (si estaba en la
-   * de seguros) y lleva al campo (abre su sección si hace falta).
+   * Los planes todavía no llegan (ni con error): el Resumen NO decide aún si
+   * va a la página de seguros o envía. Nunca se manda a la persona a una
+   * página de seguros que termina vacía (BAL-5237).
    */
-  const volverAlCampo = useCallback((codigo: string) => {
-    setVista('datos');
-    window.setTimeout(() => irAlCampoV2(codigo), ESPERA_AL_CAMBIAR_VISTA_MS);
-  }, []);
+  const cargandoPlanes = activo && conSeguros && !creadaAntes && !seguros.cargado && !seguros.error;
+
+  /** Falta un campo al enviar: lleva al campo (abre su sección si hace falta). */
+  const volverAlCampo = useCallback((codigo: string) => irAlCampoV2(codigo), []);
 
   return {
     seguros,
@@ -113,12 +114,10 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: Opciones
     pideConfirmarEnvio,
     soltarParaEnviarSinProtecciones,
     volverAlCampo,
-    /** El Resumen va en dos pantallas: datos → seguros (BAL-5204). */
+    /** El Resumen va en dos pantallas: datos → `/complementos` (BAL-5204, BAL-5237). */
     conPantallaDeSeguros,
-    /** La pantalla del Resumen que se ve. Sin pantalla de seguros, siempre 'datos'. */
-    vista: conPantallaDeSeguros ? vista : ('datos' as const),
-    irASeguros,
-    volverADatos,
+    /** Los planes todavía cargan: el Resumen espera para decidir (BAL-5237). */
+    cargandoPlanes,
     protecciones,
     textoEnviar: textoDelEnvio(protecciones),
     /** Los ids que viajan en el submit (vacío si este paso no lleva seguros). */

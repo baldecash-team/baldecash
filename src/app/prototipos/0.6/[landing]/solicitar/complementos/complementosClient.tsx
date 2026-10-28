@@ -40,6 +40,7 @@ import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { AvisoLinkEspecialRechazado } from '../components/solicitar/submit/AvisoLinkEspecialRechazado';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
 import { seccionesDeComplementos } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
+import StepClient from '../[stepSlug]/StepClient';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -812,10 +813,30 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
   );
 }
 
+/**
+ * Diseño 2 (BAL-5237): `/solicitar/complementos` es «Protege tu laptop», el
+ * mismo paso resumen de `StepClient` montado en modo `pantalla="seguros"` (su
+ * validación, su panel y su envío, sin duplicarlos). Diseño 1, las landings
+ * que no admiten Diseño 2 y los formularios sin paso resumen siguen con la
+ * página de siempre. Mientras no se sabe el diseño ni los pasos, solo el
+ * spinner: montar la de Diseño 1 por un instante dispararía sus redirecciones.
+ */
+export function ComplementosSegunDiseno({ PaginaDiseno1 }: { PaginaDiseno1: React.ComponentType }) {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+  const { disenoSolicitud, disenoResuelto = true } = useLayout();
+  const { steps, isLoading: pasosCargando } = useWizardConfig();
+  if (!disenoResuelto) return <LoadingFallback />;
+  if (disenoSolicitud !== 2 || !admiteDiseno2(landing)) return <PaginaDiseno1 />;
+  if (pasosCargando && steps.length === 0) return <LoadingFallback />;
+  if (!steps.some((s) => s.is_summary_step)) return <PaginaDiseno1 />;
+  return <StepClient pantalla="seguros" />;
+}
+
 export default function ComplementosClient() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <ComplementosContent />
+      <ComplementosSegunDiseno PaginaDiseno1={ComplementosContent} />
     </Suspense>
   );
 }

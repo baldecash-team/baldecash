@@ -94,11 +94,6 @@ export interface ShellV2Props {
   ocultarBarraInferior?: boolean;
   /** Línea corta sobre el título (Paso 4: "¡Último paso, {Nombre}!"). */
   antetitulo?: string | null;
-  /**
-   * Repaso de los datos (Paso 4, BAL-4966): va en "Ver detalle" del panel
-   * "Tu solicitud" (escritorio) y de la cabecera desplegable (celular).
-   */
-  detalle?: React.ReactNode;
   /** Texto del botón en el paso que envía ("Enviar con 2 protecciones"). */
   textoEnviar?: string;
   /**
@@ -172,7 +167,6 @@ export function ShellV2({
   sinTarjeta = false,
   ocultarBarraInferior = false,
   antetitulo,
-  detalle,
   textoEnviar,
   accionMovil,
   atrasMovil,
@@ -274,7 +268,6 @@ export function ShellV2({
         indiceActual={indiceActual}
         totalPasos={pasos.length}
         landing={landing}
-        detalle={detalle}
         codigoDelPaso={step?.code ?? currentStep}
       />
       <div className="lg:hidden" style={{ height: ALTO_CABECERA_MOVIL }} aria-hidden />
@@ -372,7 +365,7 @@ export function ShellV2({
           </div>
 
           <div className="hidden lg:block">
-            {/* Con «Ver detalle» o «Cambiar plazo» abiertos el panel crece más
+            {/* Con «Cambiar plazo» abierto el panel crece más
                 que la pantalla: va fijo, así que se desplaza dentro de su caja
                 (un solo scroll; antes el detalle quedaba cortado sin poder bajar). */}
             <div
@@ -384,7 +377,6 @@ export function ShellV2({
             >
               <PanelSolicitudV2
                 datos={datosDelPanel}
-                detalle={detalle}
                 conEnvio={conEnvio}
                 cuponObligatorio={cuponObligatorio}
                 codigoDelPaso={step?.code ?? currentStep}

@@ -1,7 +1,7 @@
 /**
- * BAL-4966 · "Ver detalle" del Paso 4: el repaso de datos va en el panel
- * "Tu solicitud" (escritorio) y en la cabecera desplegable (celular). Sin
- * `detalle` (otro paso, o `summary-off`) no hay botón. Y la barra fija de
+ * BAL-4966 → BAL-5237 · "Ver detalle" (el repaso de los datos con «Editar»)
+ * ya no está en el panel "Tu solicitud" de Diseño 2: ni en escritorio ni en
+ * la cabecera desplegable de celular (Emilio, 28-oct). Y la barra fija de
  * celular acepta el texto del Paso 4 ("Enviar con N protecciones").
  */
 import React from 'react';
@@ -60,74 +60,27 @@ const datos = (overrides: Record<string, unknown> = {}) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any;
 
-const REPASO = <div>Datos personales · Editar</div>;
-
-describe('Ver detalle — escritorio', () => {
-  it('con detalle: el botón despliega el repaso', () => {
-    render(<PanelSolicitudV2 datos={datos()} detalle={REPASO} />);
-    const boton = screen.getByRole('button', { name: /Ver detalle/ });
-    expect(boton).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('Datos personales · Editar')).not.toBeInTheDocument();
-    fireEvent.click(boton);
-    expect(boton).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('region', { name: 'Detalle de tu solicitud' })).toHaveTextContent('Datos personales · Editar');
-  });
-
-  it('sin detalle (summary-off u otro paso): no hay botón', () => {
+describe('Sin «Ver detalle» (BAL-5237)', () => {
+  it('escritorio: el panel no tiene «Ver detalle» ni región de repaso', () => {
     render(<PanelSolicitudV2 datos={datos()} />);
+    expect(screen.getByRole('complementary', { name: 'Tu solicitud' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Ver detalle/ })).not.toBeInTheDocument();
-  });
-});
-
-describe('Ver detalle — celular', () => {
-  it('dentro del desplegable de la cabecera', () => {
-    render(<CabeceraSolicitudV2 datos={datos()} indiceActual={3} totalPasos={4} landing="pago-diferido" detalle={REPASO} />);
-    fireEvent.click(screen.getAllByRole('button')[0]);
-    fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }));
-    expect(screen.getByText('Datos personales · Editar')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Detalle de tu solicitud' })).not.toBeInTheDocument();
   });
 
-  it('la cabecera se puede abrir aunque solo haya detalle que mostrar', () => {
-    const sinNada = datos({ principal: { id: '1', name: 'X', shortName: 'X', image: null, specs: null, paymentPlans: [], initialPercent: 0 } });
-    const { rerender } = render(<CabeceraSolicitudV2 datos={sinNada} indiceActual={3} totalPasos={4} landing="pago-diferido" />);
-    expect(screen.getAllByRole('button')[0]).toBeDisabled();
-    rerender(<CabeceraSolicitudV2 datos={sinNada} indiceActual={3} totalPasos={4} landing="pago-diferido" detalle={REPASO} />);
-    expect(screen.getAllByRole('button')[0]).not.toBeDisabled();
-  });
-});
-
-describe('Revisión de F7 · M-6 y M-1', () => {
-  it('escritorio sin producto principal: igual se muestra el repaso', () => {
-    const { rerender } = render(<PanelSolicitudV2 datos={datos({ principal: null, productos: [] })} detalle={REPASO} />);
-    fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }));
-    expect(screen.getByRole('region', { name: 'Detalle de tu solicitud' })).toHaveTextContent('Datos personales · Editar');
-    // Sin principal y sin detalle, nada (como antes).
-    rerender(<PanelSolicitudV2 datos={datos({ principal: null, productos: [] })} />);
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
-  });
-
-  it('celular sin producto principal: la cabecera abre y muestra el repaso', () => {
-    render(<CabeceraSolicitudV2 datos={datos({ principal: null, productos: [] })} indiceActual={3} totalPasos={4} landing="pago-diferido" detalle={REPASO} />);
+  it('celular: el desplegable de la cabecera abre sin «Ver detalle»', () => {
+    render(<CabeceraSolicitudV2 datos={datos()} indiceActual={3} totalPasos={4} landing="pago-diferido" />);
     const cabecera = screen.getAllByRole('button')[0];
-    expect(cabecera).toHaveTextContent('Tu solicitud');
     fireEvent.click(cabecera);
-    fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }));
-    expect(screen.getByText('Datos personales · Editar')).toBeInTheDocument();
+    expect(cabecera).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.queryByText('Ver detalle')).not.toBeInTheDocument();
   });
 
-  it('el chevron de "Ver detalle" no gira con movimiento reducido', () => {
-    const original = window.matchMedia;
-    window.matchMedia = ((q: string) => ({
-      matches: q.includes('prefers-reduced-motion'), media: q, onchange: null,
-      addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
-    })) as unknown as typeof window.matchMedia;
-    try {
-      render(<PanelSolicitudV2 datos={datos()} detalle={REPASO} />);
-      const chevron = screen.getByRole('button', { name: /Ver detalle/ }).querySelector('svg');
-      expect((chevron as SVGElement).style.transition).toBe('none');
-    } finally {
-      window.matchMedia = original;
-    }
+  it('sin producto principal no hay panel ni cabecera desplegable (ya no hay repaso que mostrar)', () => {
+    render(<PanelSolicitudV2 datos={datos({ principal: null, productos: [] })} />);
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    render(<CabeceraSolicitudV2 datos={datos({ principal: null, productos: [] })} indiceActual={3} totalPasos={4} landing="pago-diferido" />);
+    expect(screen.queryByRole('button', { name: /Tu solicitud/ })).not.toBeInTheDocument();
   });
 });
 
@@ -149,7 +102,6 @@ describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
     const { rerender } = render(
       <PanelSolicitudV2
         datos={datos({ hayQueElegir: true })}
-        detalle={REPASO}
         envio={{ texto: 'Enviar solicitud', onEnviar, deshabilitado: false, ocupado: false, diaDePago: null }}
       />,
     );
@@ -162,7 +114,6 @@ describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
     rerender(
       <PanelSolicitudV2
         datos={datos({ hayQueElegir: true })}
-        detalle={REPASO}
         envio={{ texto: 'Enviar solicitud', onEnviar, deshabilitado: true, ocupado: false, diaDePago: 'Día 3 de cada mes' }}
       />,
     );
