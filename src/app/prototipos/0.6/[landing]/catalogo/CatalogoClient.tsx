@@ -477,8 +477,13 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   // Used instead of raw `setFilters` where the change comes from user intent
   // (UI toggles, Quiz apply, Clear all). Ref-driven rehydration keeps using
   // `setFilters` to avoid false-positive events during initial load.
+  // Al filtrar u ordenar se sube a ver los resultados desde el primero
+  // (Emilio, 27-oct). Se marca aquí y se ejecuta al cerrar el drawer de
+  // filtros del celular, que al cerrarse restaura el scroll anterior.
+  const subirAlFiltrarRef = useRef(false);
   const setFiltersTracked = useCallback<typeof setFilters>(
     (next) => {
+      subirAlFiltrarRef.current = true;
       setFilters((prev) => {
         const applied = typeof next === 'function'
           ? (next as (p: FilterState) => FilterState)(prev)
@@ -495,6 +500,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
     (value: SortOption) => {
       setSortRaw((prev) => {
         if (prev !== value) {
+          subirAlFiltrarRef.current = true;
           analytics.trackSortChange({ from: prev, to: value });
         }
         return value;
@@ -1197,6 +1203,35 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       window.scrollTo(0, savedScrollY);
     }
   }, [isAnyDrawerOpen]);
+
+  // Va DESPUÉS del efecto de arriba: primero se restaura el scroll del drawer
+  // y recién entonces se sube suave a los resultados.
+  // En celular el filtro se aplica con la hoja de filtros todavía abierta: se
+  // espera a que se cierre (y suelte el scroll) para que el subir se vea.
+  useEffect(() => {
+    if (!subirAlFiltrarRef.current || isAnyDrawerOpen) return;
+    const hayHojaAbierta = () => !!document.querySelector('[role="dialog"]');
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const subir = () => {
+      subirAlFiltrarRef.current = false;
+      timer = setTimeout(() => {
+        if (window.scrollY < 8) return;
+        const reducir = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({ top: 0, behavior: reducir ? 'auto' : 'smooth' });
+      }, 80);
+    };
+    if (!hayHojaAbierta()) {
+      subir();
+      return () => clearTimeout(timer);
+    }
+    const obs = new MutationObserver(() => {
+      if (hayHojaAbierta()) return;
+      obs.disconnect();
+      subir();
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    return () => { obs.disconnect(); clearTimeout(timer); };
+  }, [filters, sort, isAnyDrawerOpen]);
 
   // v0.6.1: localStorage persistence is handled by useCatalogSharedState hook
   // These useEffects fetch full product data from API for display purposes
