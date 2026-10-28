@@ -337,42 +337,6 @@ function Confianza({ conEnvio = true }: { conEnvio?: boolean }) {
 }
 
 /**
- * "Ver detalle" (Paso 4, BAL-4966): el repaso de los datos ya llenados, con
- * su "Editar" que lleva a cada paso. Sin `detalle` (otro paso, o la landing
- * con `summary-off`) no se pinta nada.
- */
-function VerDetalle({ detalle, className = '' }: { detalle?: React.ReactNode; className?: string }) {
-  const [abierto, setAbierto] = useState(false);
-  const tracker = useEventTrackerOptional();
-  const alternar = () => {
-    const nuevo = !abierto;
-    setAbierto(nuevo);
-    tracker?.track('summary_detail_toggle', { abierto: nuevo });
-  };
-  const id = useId();
-  const menos = useMenosMovimiento();
-  if (!detalle) return null;
-  return (
-    <div className={className}>
-      <button
-        type="button"
-        aria-expanded={abierto}
-        aria-controls={id}
-        onClick={alternar}
-        data-ver-detalle-v2
-        className="inline-flex min-h-[44px] items-center gap-1 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-      >
-        Ver detalle
-        <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
-      </button>
-      <PlegableV2 abierto={abierto} id={id} role="region" aria-label="Detalle de tu solicitud" classNameContenido="mt-2 space-y-3 text-left">
-        {detalle}
-      </PlegableV2>
-    </div>
-  );
-}
-
-/**
  * Cupón en los pasos (BAL-5203, escritorio): "¿Tienes un cupón?" abre la caja
  * de siempre (`CouponInput`: valida, aplica y reporta igual que en el modal
  * "Lo quiero"); aplicado, el código con "Quitar" (`useQuitarCupon`, el mismo
@@ -518,14 +482,12 @@ export interface EnvioDelPanel {
 
 export function PanelSolicitudV2({
   datos,
-  detalle,
   envio,
   conEnvio = true,
   cuponObligatorio = false,
   codigoDelPaso,
 }: {
   datos: DatosDelPanel;
-  detalle?: React.ReactNode;
   envio?: EnvioDelPanel | null;
   conEnvio?: boolean;
   /** La landing pide el cupón para continuar: el botón lo dice. */
@@ -552,36 +514,14 @@ export function PanelSolicitudV2({
   useAbrirAlPedirPlazo(true, abrirSelector);
   // La cuota cambió (plazo, inicial): pulso como el total del modal (`bcPulse`).
   const pulso = usePulsoAlCambiar(datos.total);
-  if (!datos.principal) {
-    // Sin producto principal no hay equipo ni cuota que mostrar, pero el
-    // repaso del Paso 4 sigue: es lo que permite revisar y "Editar".
-    if (!detalle) return null;
-    return (
-      <aside aria-label="Tu solicitud">
-        <div className="rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-marca-suave)] px-5 py-4" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}>
-          <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:max-h-[60vh] [&_[role=region]]:overflow-y-auto [&_[role=region]]:basis-full">
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
-            <VerDetalle detalle={detalle} className="contents" />
-          </div>
-        </div>
-      </aside>
-    );
-  }
+  // Sin producto principal no hay equipo ni cuota que mostrar.
+  if (!datos.principal) return null;
 
   return (
     <aside aria-label="Tu solicitud">
       <div className="overflow-hidden rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-tarjeta)] shadow-md" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary), 0 10px 28px rgba(30,34,48,0.06)' }}>
         <div className="bg-[var(--d2-marca-suave)] px-5 pt-5 pb-4">
-          {detalle ? (
-            // El repaso abierto ocupa todo el ancho; el scroll lo da el panel
-            // fijo entero (ShellV2), no una caja chica adentro.
-            <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:basis-full">
-              <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
-              <VerDetalle detalle={detalle} className="contents" />
-            </div>
-          ) : (
-            <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
-          )}
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
           {datos.mostrarImagen && (
             <div className="mx-auto mt-3 flex h-28 w-36 items-center justify-center">
               <ImagenEquipo datos={datos} tam={140} />
@@ -687,15 +627,12 @@ export function CabeceraSolicitudV2({
   indiceActual,
   totalPasos,
   landing,
-  detalle,
   codigoDelPaso,
 }: {
   datos: DatosDelPanel;
   indiceActual: number;
   totalPasos: number;
   landing: string;
-  /** "Ver detalle" del Paso 4 dentro del desplegable. */
-  detalle?: React.ReactNode;
   /** `step.code` del paso: va como `step_code` en los eventos (BAL-5207). */
   codigoDelPaso?: string;
 }) {
@@ -758,7 +695,7 @@ export function CabeceraSolicitudV2({
       )}
       <div className="relative border-b border-[var(--d2-borde)] bg-[var(--d2-marca-suave)] shadow-[0_2px_10px_rgba(30,34,48,0.06)]">
         <div className="flex items-center pr-3.5">
-          {datos.principal || detalle ? (
+          {datos.principal ? (
             <button
               type="button"
               aria-expanded={abierto}
@@ -766,7 +703,7 @@ export function CabeceraSolicitudV2({
               // DOM, así que el id nunca es una referencia rota (BAL-4959).
               aria-controls={idSelector}
               onClick={() => cambiarPorGesto(!abierto)}
-              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo && !detalle}
+              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)]">
@@ -779,12 +716,10 @@ export function CabeceraSolicitudV2({
                 )}
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-[15px] font-bold text-[var(--d2-texto)]">{datos.principal ? datos.nombre : 'Tu solicitud'}</span>
+                <span className="block truncate text-[15px] font-bold text-[var(--d2-texto)]">{datos.nombre}</span>
                 <span className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary-text)]">
                   <span className="truncate">
-                    {datos.principal
-                      ? <><span className={`inline-block origin-left ${pulso}`}>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)}</span> · {datos.leyenda}</>
-                      : 'Revisa tus datos'}
+                    <span className={`inline-block origin-left ${pulso}`}>{datos.precio(datos.total)}{sufijoDeFrecuencia(datos.frecuencia)}</span> · {datos.leyenda}
                   </span>
                   <ChevronDown className={`h-3.5 w-3.5 shrink-0 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
                 </span>
@@ -799,14 +734,13 @@ export function CabeceraSolicitudV2({
         </div>
         <ProgresoMovilV2 indiceActual={indiceActual} total={totalPasos} />
 
-        {(datos.principal || detalle) && (
+        {datos.principal && (
           <PlegableV2 abierto={abierto} id={idSelector}>
           <div
             ref={panelRef}
             tabIndex={-1}
             className="max-h-[70vh] overflow-y-auto border-t border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] px-4 pt-3 pb-4"
           >
-            {datos.principal && (<>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 {detalleEquipo && <p className="text-xs text-[var(--d2-texto-suave)]">{detalleEquipo}</p>}
@@ -829,8 +763,6 @@ export function CabeceraSolicitudV2({
             <div className="mt-2">
               <SelectorPlazoInicial datos={datos} codigoDelPaso={codigoDelPaso} />
             </div>
-            </>)}
-            <VerDetalle detalle={detalle} className={datos.principal ? 'mt-2 border-t border-[var(--d2-borde)] pt-1' : ''} />
           </div>
           </PlegableV2>
         )}

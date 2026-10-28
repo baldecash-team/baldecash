@@ -415,14 +415,25 @@ describe('Paso 4 de Diseño 2 · encabezado y "Ver detalle"', () => {
     }
   });
 
-  it('el repaso de datos va en "Ver detalle", no en el cuerpo', async () => {
+  it('BAL-5237: en Diseño 2 no hay «Ver detalle» (ni el repaso con «Editar»), en el Resumen ni en la página de seguros', async () => {
     mockFormData.first_name = { value: 'Brenda' };
     render(<StepClient />);
-    const detalle = await screen.findByTestId('ver-detalle');
-    expect(detalle).toHaveTextContent('Datos personales');
-    expect(detalle).toHaveTextContent('Editar');
-    // El cuerpo solo trae los campos del paso y las protecciones.
-    expect(vista(1)).not.toHaveTextContent('Editar');
+    await screen.findByTestId('campos-del-paso');
+    expect(screen.queryByTestId('ver-detalle')).not.toBeInTheDocument();
+    expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+    await irASeguros();
+    await screen.findByText('Garantía Extendida Laptop 24M');
+    expect(screen.queryByTestId('ver-detalle')).not.toBeInTheDocument();
+    expect(screen.queryByText('Editar')).not.toBeInTheDocument();
+  });
+
+  it('BAL-5237: Diseño 1 sigue con el repaso (con «Editar») en el resumen', async () => {
+    mockLayout.disenoSolicitud = 1;
+    mockFormData.first_name = { value: 'Brenda' };
+    render(<StepClient />);
+    expect(screen.queryByTestId('shell-v2')).not.toBeInTheDocument();
+    expect(await screen.findAllByText('Editar')).not.toHaveLength(0);
+    expect(screen.getByRole('heading', { level: 3, name: 'Datos personales' })).toBeInTheDocument();
   });
 
   it('con `summary-off` (D3) el Paso 4 sale igual, sin "Ver detalle"', async () => {
@@ -671,9 +682,7 @@ describe('Revisión de F7 · I-2: no se borran selecciones válidas al llegar al
     fireEvent.click(screen.getByRole('button', { name: 'Agregar Seguro Contra Robo Laptop 24M' }));
     await waitFor(() => expect(mockSeguros.map((s) => s.id)).toEqual(['14', '16']));
 
-    // "Editar" lleva a otro paso: la página se desmonta.
-    fireEvent.click(within(screen.getByTestId('ver-detalle')).getAllByText('Editar')[0]);
-    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining('/datos-personales'));
+    // La persona va a otro paso (la barra de progreso): la página se desmonta.
     expect(primero.container).toBeDefined();
     cleanup();
 
@@ -1118,13 +1127,14 @@ describe('BAL-5237 · «Protege tu laptop» en su propia página /solicitar/comp
     expect(mockCompletados.has('resumen')).toBe(true);
   });
 
-  it('la página: «Protege tu laptop», el panel, las protecciones y «Enviar solicitud» con el mismo envío', async () => {
+  it('la página: «Protege tu laptop», las protecciones y «Enviar solicitud» con el mismo envío', async () => {
     mockCompletados.add('resumen');
     montarPaginaDeSeguros();
     expect(await screen.findByText('Garantía Extendida Laptop 24M')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Protege tu laptop');
     expect(screen.queryByTestId('campos-del-paso')).not.toBeInTheDocument();
-    expect(screen.getByTestId('ver-detalle')).toBeInTheDocument();
+    // Sin «Ver detalle» (BAL-5237).
+    expect(screen.queryByTestId('ver-detalle')).not.toBeInTheDocument();
     expect(screen.getByTestId('escritorio')).toHaveTextContent('Enviar solicitud');
     expect(screen.getByTestId('celular')).toHaveTextContent('Enviar solicitud');
     expect(mockReplace).not.toHaveBeenCalled();

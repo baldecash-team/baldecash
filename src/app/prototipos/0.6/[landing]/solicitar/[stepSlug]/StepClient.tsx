@@ -1086,10 +1086,8 @@ function StepContent({ pantalla }: StepContentProps = {}) {
     );
   }
 
-  // Summary section component
-  // Diseño 2: el repaso vive dentro del panel angosto «Tu solicitud» (Ver
-  // detalle). Ahí va en filas finas con separadores y los colores del kit
-  // (también en oscuro), no en las cajas grises de Diseño 1.
+  // Summary section component (solo Diseño 1: Diseño 2 no tiene repaso
+  // desde BAL-5237, ni en el cuerpo ni en el panel)
   const SummarySection = ({
     icon: Icon,
     title,
@@ -1100,28 +1098,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
     title: string;
     onEdit: () => void;
     children: React.ReactNode;
-  }) => usarDiseno2 ? (
-    <section className="border-t border-[var(--d2-borde)] pt-3 first:border-t-0 first:pt-0">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--color-primary-rgb),0.08)]">
-            <Icon className="h-4 w-4 text-[var(--color-primary-text)]" aria-hidden />
-          </span>
-          <h3 className="truncate text-[13px] font-bold text-[var(--d2-texto)]">{title}</h3>
-        </div>
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label={`Editar ${title}`}
-          className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-md px-1.5 text-xs font-bold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-        >
-          <Edit2 className="h-3.5 w-3.5" aria-hidden />
-          Editar
-        </button>
-      </div>
-      <dl className="space-y-1.5 pl-9">{children}</dl>
-    </section>
-  ) : (
+  }) => (
     <div className="bg-neutral-50 rounded-xl p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -1141,12 +1118,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
   );
 
   // Summary item component
-  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => usarDiseno2 ? (
-    <div className="flex justify-between gap-3 text-xs leading-snug">
-      <dt className="shrink-0 text-[var(--d2-texto-suave)]">{label}</dt>
-      <dd className="min-w-0 break-words text-right font-semibold text-[var(--d2-texto)]">{value || '-'}</dd>
-    </div>
-  ) : (
+  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex justify-between gap-4 text-sm">
       <span className="text-neutral-500 flex-shrink-0">{label}</span>
       <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>
@@ -1250,8 +1222,9 @@ function StepContent({ pantalla }: StepContentProps = {}) {
     // El cuerpo del resumen es el mismo en los dos diseños. Diseño 2 le pasa
     // los campos tocados para los errores al salir del campo; Diseño 1 no, y
     // el render queda como siempre.
-    // El repaso de lo ya llenado: un bloque por paso con su "Editar". Diseño 1
-    // lo pinta en el cuerpo; Diseño 2, en "Ver detalle" del panel.
+    // El repaso de lo ya llenado: un bloque por paso con su "Editar". Solo
+    // Diseño 1, en el cuerpo. Diseño 2 no lo tiene (Emilio, BAL-5237): ni
+    // «Ver detalle» en el panel ni en la cabecera de celular.
     const repasoDeDatos = () => regularSteps.map((s) => {
           const visibleFields = getVisibleFields(s);
           if (visibleFields.length === 0) return null;
@@ -1414,8 +1387,6 @@ function StepContent({ pantalla }: StepContentProps = {}) {
             submitMessage={submitMessage}
             canProceed={!bloqueadoPorWhitelist && !guardaV2}
             navbarProps={navbarProps || undefined}
-            // `summary-off` (D3): el Paso 4 sale igual, sin "Ver detalle".
-            detalle={sinResumen ? undefined : <>{repasoDeDatos()}</>}
             pasoResumen
             textoEnviar={paso4.textoEnviar}
             // Con la hoja "¿Qué cubre?" abierta no hay "Enviar" abajo (QA en
