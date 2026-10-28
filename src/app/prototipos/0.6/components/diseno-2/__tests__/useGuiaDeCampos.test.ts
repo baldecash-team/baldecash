@@ -111,10 +111,12 @@ describe('irAlPrimerErrorV2: el foco va al campo con error (BAL-4969, casuístic
     document.body.innerHTML = `
       <div data-campo="email"><label for="email">Correo</label><input id="email" /></div>
       <button id="continuar">Continuar</button>`;
-    Element.prototype.scrollIntoView = jest.fn();
+    // BAL-5206: `resaltar` ya no centra con scrollIntoView; desplaza lo justo.
+    // En jsdom el campo mide 0 y queda "bajo la cabecera": hay que moverse.
+    window.scrollBy = jest.fn() as unknown as typeof window.scrollBy;
     (document.getElementById('continuar') as HTMLElement).focus();
     irAlPrimerErrorV2('email');
     expect(document.activeElement).toBe(document.getElementById('email'));
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(window.scrollBy).toHaveBeenCalled();
   });
 });
