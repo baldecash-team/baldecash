@@ -395,7 +395,9 @@ function CuponDelPanel({ datos, obligatorio }: { datos: DatosDelPanel; obligator
   return (
     // dt + dd (+ dd con la caja): lo único que un <div> puede llevar dentro de un <dl>.
     <div ref={filaRef} tabIndex={-1} data-cupon-panel-v2={appliedCoupon ? 'aplicado' : 'vacio'} className="flex flex-wrap items-start justify-between gap-x-2 outline-none">
-        <dt className="pt-1 text-[var(--d2-texto-suave)]">Cupón</dt>
+        {/* Misma altura que la primera fila de la derecha (botón de 36 px o chip
+            de 28 px) y centrado: así «Cupón» queda a la altura del botón. */}
+        <dt className={`flex items-center text-[var(--d2-texto-suave)] ${appliedCoupon ? 'min-h-[28px]' : 'min-h-[36px]'}`}>Cupón</dt>
         <dd className="flex min-w-0 flex-col items-end gap-0.5 text-right">
           {appliedCoupon ? (
             <>
@@ -430,7 +432,7 @@ function CuponDelPanel({ datos, obligatorio }: { datos: DatosDelPanel; obligator
               aria-expanded={abierto}
               aria-controls={id}
               onClick={() => setAbierto((v) => !v)}
-              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-dashed border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-xl border-[1.5px] border-dashed border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.07)] px-3 text-[13px] font-bold text-[var(--color-primary-text)] cursor-pointer transition-colors duration-150 hover:bg-[rgba(var(--color-primary-rgb),0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             >
               {abierto ? <X className="h-3.5 w-3.5 shrink-0" aria-hidden /> : <Tag className="h-3.5 w-3.5 shrink-0" aria-hidden />}
               ¿Tienes un cupón?
@@ -539,9 +541,9 @@ export function PanelSolicitudV2({
       <div className="overflow-hidden rounded-2xl border border-[var(--d2-borde-tarjeta)] bg-[var(--d2-tarjeta)] shadow-md" style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary), 0 10px 28px rgba(30,34,48,0.06)' }}>
         <div className="bg-[var(--d2-marca-suave)] px-5 pt-5 pb-4">
           {detalle ? (
-            // Con "Ver detalle" el panel puede crecer más que la pantalla
-            // (va fijo): el repaso abierto se desplaza dentro de su caja.
-            <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:max-h-[45vh] [&_[role=region]]:overflow-y-auto [&_[role=region]]:basis-full">
+            // El repaso abierto ocupa todo el ancho; el scroll lo da el panel
+            // fijo entero (ShellV2), no una caja chica adentro.
+            <div className="flex flex-wrap items-center justify-between gap-x-2 [&_[role=region]]:basis-full">
               <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
               <VerDetalle detalle={detalle} className="contents" />
             </div>
@@ -586,12 +588,25 @@ export function PanelSolicitudV2({
                   )}
                 </div>
               )}
-              {/* El aviso de tope pidió "Cambiar plazo": en el paso que envía
-                  el selector no tiene botón propio, se abre acá. */}
+              {/* En el resumen también se puede cambiar plazo o inicial, igual
+                  que en los pasos anteriores (Emilio, 27-oct). El aviso de tope
+                  lo abre solo. */}
               {datos.hayQueElegir && (
-                <PlegableV2 abierto={abierto} id={`${idSelector}-envio`} contenidoRef={selectorRef} classNameContenido="mt-3 border-t border-[var(--d2-borde)] pt-3">
-                  <SelectorPlazoInicial datos={datos} />
-                </PlegableV2>
+                <>
+                  <button
+                    type="button"
+                    aria-expanded={abierto}
+                    aria-controls={`${idSelector}-envio`}
+                    onClick={() => setAbierto((v) => !v)}
+                    className="mt-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-[var(--color-primary-text)] cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  >
+                    Cambiar plazo o inicial
+                    <ChevronDown className={`h-4 w-4 ${abierto ? 'rotate-180' : ''}`} style={transicionFlecha(abierto, menos)} aria-hidden />
+                  </button>
+                  <PlegableV2 abierto={abierto} id={`${idSelector}-envio`} contenidoRef={selectorRef} classNameContenido="mt-1 border-t border-[var(--d2-borde)] pt-3">
+                    <SelectorPlazoInicial datos={datos} />
+                  </PlegableV2>
+                </>
               )}
               <button
                 type="button"

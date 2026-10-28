@@ -363,7 +363,16 @@ export function ShellV2({
           </div>
 
           <div className="hidden lg:block">
-            <div className="sticky d2-pop-lento" style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}>
+            {/* Con «Ver detalle» o «Cambiar plazo» abiertos el panel crece más
+                que la pantalla: va fijo, así que se desplaza dentro de su caja
+                (un solo scroll; antes el detalle quedaba cortado sin poder bajar). */}
+            <div
+              className="sticky d2-pop-lento overflow-y-auto overscroll-contain rounded-2xl [scrollbar-width:thin]"
+              style={{
+                top: 'calc(var(--header-total-height, 6.5rem) + 1rem)',
+                maxHeight: 'calc(100vh - var(--header-total-height, 6.5rem) - 2rem)',
+              }}
+            >
               <PanelSolicitudV2
                 datos={datosDelPanel}
                 detalle={detalle}

@@ -79,6 +79,7 @@ import {
 import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePaso4V2';
 import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
 import { ConfirmarSinProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ConfirmarSinProteccionesV2';
+import { AvisoUnidadTomadaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoUnidadTomadaV2';
 // Guardas del paso en Diseño 2 (BAL-4969, casuísticas): aviso en el paso, nunca la intro de Diseño 1.
 import {
   guardaActivaV2,
@@ -890,7 +891,10 @@ function StepContent() {
   };
 
   // El mismo modal de "unidad tomada" del paso regular (z-60 por la navbar).
-  const modalUnidadTomadaResumen = unidadTomada ? (
+  // Diseño 2: el mismo aviso sobre el modal base del kit (BAL-5203, punto 10).
+  const modalUnidadTomadaResumen = usarDiseno2 ? (
+    <AvisoUnidadTomadaV2 mensaje={unidadTomada} onElegirOtro={() => router.push(routes.catalogo(landing))} />
+  ) : unidadTomada ? (
     <div className="relative z-[60]">
       <ModalAviso
         titulo="Ese equipo ya no está disponible"
@@ -949,6 +953,9 @@ function StepContent() {
   }
 
   // Summary section component
+  // Diseño 2: el repaso vive dentro del panel angosto «Tu solicitud» (Ver
+  // detalle). Ahí va en filas finas con separadores y los colores del kit
+  // (también en oscuro), no en las cajas grises de Diseño 1.
   const SummarySection = ({
     icon: Icon,
     title,
@@ -959,7 +966,28 @@ function StepContent() {
     title: string;
     onEdit: () => void;
     children: React.ReactNode;
-  }) => (
+  }) => usarDiseno2 ? (
+    <section className="border-t border-[var(--d2-borde)] pt-3 first:border-t-0 first:pt-0">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[rgba(var(--color-primary-rgb),0.08)]">
+            <Icon className="h-4 w-4 text-[var(--color-primary-text)]" aria-hidden />
+          </span>
+          <h3 className="truncate text-[13px] font-bold text-[var(--d2-texto)]">{title}</h3>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          aria-label={`Editar ${title}`}
+          className="inline-flex min-h-[32px] shrink-0 items-center gap-1 rounded-md px-1.5 text-xs font-bold text-[var(--color-primary-text)] hover:bg-[rgba(var(--color-primary-rgb),0.06)] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        >
+          <Edit2 className="h-3.5 w-3.5" aria-hidden />
+          Editar
+        </button>
+      </div>
+      <dl className="space-y-1.5 pl-9">{children}</dl>
+    </section>
+  ) : (
     <div className="bg-neutral-50 rounded-xl p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -979,7 +1007,12 @@ function StepContent() {
   );
 
   // Summary item component
-  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
+  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => usarDiseno2 ? (
+    <div className="flex justify-between gap-3 text-xs leading-snug">
+      <dt className="shrink-0 text-[var(--d2-texto-suave)]">{label}</dt>
+      <dd className="min-w-0 break-words text-right font-semibold text-[var(--d2-texto)]">{value || '-'}</dd>
+    </div>
+  ) : (
     <div className="flex justify-between gap-4 text-sm">
       <span className="text-neutral-500 flex-shrink-0">{label}</span>
       <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>

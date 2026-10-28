@@ -144,7 +144,7 @@ describe('BarraInferiorV2 — texto del Paso 4', () => {
 });
 
 describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
-  it('muestra "Cuota mensual total", el día de pago y su propio "Enviar solicitud"; sin "Cambiar plazo o inicial"', () => {
+  it('muestra "Cuota mensual total", el día de pago, su propio "Enviar solicitud" y "Cambiar plazo o inicial" (Emilio, 27-oct)', () => {
     const onEnviar = jest.fn();
     const { rerender } = render(
       <PanelSolicitudV2
@@ -155,7 +155,7 @@ describe('Panel del paso que envía (prototipo de Brenda, Paso 4)', () => {
     );
     expect(screen.getByText(/Cuota mensual total/)).toBeInTheDocument();
     expect(screen.getByText('Por elegir')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Cambiar plazo o inicial/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Cambiar plazo o inicial/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
     expect(onEnviar).toHaveBeenCalledTimes(1);
 
