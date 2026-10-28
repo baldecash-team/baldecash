@@ -78,6 +78,7 @@ import {
   encabezadoDelPaso4,
 } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
 import { usePaso4V2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/usePaso4V2';
+import { saludoBloqueado } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { ProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ProteccionesV2';
 import { ConfirmarSinProteccionesV2 } from '@/app/prototipos/0.6/components/diseno-2/paso4/ConfirmarSinProteccionesV2';
 // Guardas del paso en Diseño 2 (BAL-4969, casuísticas): aviso en el paso, nunca la intro de Diseño 1.
@@ -1335,7 +1336,7 @@ function StepContent() {
         hideNavbar={isGamer}
         navbarProps={isGamer ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
-        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' && !saludoBloqueado(formValues) ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
         ctaFijoEnMovil
       >
         {cuerpoResumen()}

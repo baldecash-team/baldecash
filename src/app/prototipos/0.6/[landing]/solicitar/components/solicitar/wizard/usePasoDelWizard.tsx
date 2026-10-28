@@ -50,7 +50,7 @@ import { useToast, ModalAviso } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
-import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
+import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR, saludoBloqueado } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 import { irAlPrimerErrorV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 
@@ -343,6 +343,9 @@ export function usePasoDelWizard(opciones: {
   const stepMotivational = useMemo((): WizardMotivational | null => {
     if (!step) return null;
     if (isVipLanding) return step.motivational;
+    // DNI bloqueado (link especial de otro DNI o fuera de la whitelist): el
+    // nombre que encontró la búsqueda es de otra persona, no se saluda.
+    if (saludoBloqueado(formValues)) return step.motivational;
 
     const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
     if (prefillStatus !== 'found') return step.motivational;
@@ -361,7 +364,7 @@ export function usePasoDelWizard(opciones: {
       subtitle: 'Ya casi terminamos este paso, sigue adelante.',
       illustration: step.motivational?.illustration || '',
     };
-  }, [step, formData, isVipLanding]);
+  }, [step, formData, formValues, isVipLanding]);
 
   // Track form_abandon on beforeunload (when user closes/reloads mid-form)
   useEffect(() => {
@@ -599,7 +602,7 @@ export function usePasoDelWizard(opciones: {
     showErrors: submitted,
     celebrando: showCelebration,
     motivational: stepMotivational,
-    firstName: formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || ''),
+    firstName: formData['_prefill_status_document_number']?.value === 'found' && !saludoBloqueado(formValues) ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || ''),
     submitSucceeded,
     overlays,
   };
