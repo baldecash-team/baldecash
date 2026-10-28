@@ -120,6 +120,10 @@ export type EventType =
   | 'form_step_validation_error'
   // Error de un campo al salir de él (Diseño 2, `useErroresAlSalir`, BAL-4969).
   | 'form_field_error'
+  // «Otro» escrito en el mismo campo (Diseño 2, BAL-5205/BAL-5207): la lista
+  // se vuelve caja y «Ver opciones» la devuelve. Ver `DynamicWizardStep.tsx`.
+  | 'form_field_other_open'
+  | 'form_field_other_back'
   | 'form_submit_success'
   | 'form_submit_error'
   | 'coupon_applied'

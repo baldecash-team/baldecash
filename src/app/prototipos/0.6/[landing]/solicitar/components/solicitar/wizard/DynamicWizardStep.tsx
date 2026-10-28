@@ -21,6 +21,7 @@ import { armarBloques, camposPegados, ordenConPegados, resumenDeSeccion, seccion
 import { OtraEnElCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/OtraEnElCampoV2';
 import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/useErroresAlSalir';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
+import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -394,8 +395,18 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     pasoMontadoRef.current = step.code;
   }, [step.code]);
 
+  // BAL-5207: abrir «Otr…» y volver con «Ver opciones» (solo Diseño 2).
+  const tracker = useEventTrackerOptional();
+  const propsDeOtra = (codigoLista: string, codigoOtra: string) => ({
+    field_code: codigoLista,
+    other_field_code: codigoOtra,
+    step_code: step.code,
+    diseno: 2,
+  });
+
   /** «Ver opciones»: vacía la lista y su «¿Cuál…?» y vuelve a la lista, sin errores todavía. */
   const verOpciones = (codigoLista: string, codigoOtra: string) => {
+    tracker?.track('form_field_other_back', propsDeOtra(codigoLista, codigoOtra));
     updateField(codigoOtra, '');
     updateField(codigoLista, '');
     reiniciarCampoTocado(codigoOtra);
@@ -501,6 +512,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 error={errorVisibleDe(campoOtra.code) ? formData[campoOtra.code]?.error ?? undefined : undefined}
                 // Si el paso ya llegó en «Otro», no abre el teclado solo.
                 enfocarAlMontar={pasoMontadoRef.current === step.code}
+                onAbiertaPorLaPersona={() => tracker?.track('form_field_other_open', propsDeOtra(field.code, campoOtra.code))}
                 onCambiar={(v) => updateField(campoOtra.code, v)}
                 onEnfocar={() => onFieldFocus(campoOtra.code)}
                 onVerOpciones={() => verOpciones(field.code, campoOtra.code)}

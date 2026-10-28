@@ -22,6 +22,12 @@ interface Props {
   pista?: string | null;
   /** `false` al volver a un paso que ya estaba en «Otro»: no abre el teclado solo. */
   enfocarAlMontar?: boolean;
+  /**
+   * La persona acaba de elegir «Otr…» y la caja apareció por eso (BAL-5207,
+   * `form_field_other_open`). Se llama una vez al montar, solo con
+   * `enfocarAlMontar`: al volver a un paso que ya estaba en «Otro» no.
+   */
+  onAbiertaPorLaPersona?: () => void;
   onCambiar: (v: string) => void;
   onVerOpciones: () => void;
   onEnfocar?: () => void;
@@ -36,6 +42,7 @@ export function OtraEnElCampoV2({
   error,
   pista,
   enfocarAlMontar = true,
+  onAbiertaPorLaPersona,
   onCambiar,
   onVerOpciones,
   onEnfocar,
@@ -43,8 +50,14 @@ export function OtraEnElCampoV2({
 }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [foco, setFoco] = useState(false);
+  // StrictMode corre el efecto dos veces en desarrollo: el aviso sale una sola.
+  const avisadaRef = useRef(false);
   useEffect(() => {
     if (enfocarAlMontar) ref.current?.focus();
+    if (enfocarAlMontar && !avisadaRef.current) {
+      avisadaRef.current = true;
+      onAbiertaPorLaPersona?.();
+    }
     // Solo al aparecer: la persona acaba de elegir «Otro».
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
