@@ -337,7 +337,7 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={handleAllow}
-            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center gap-2 active:brightness-90 transition-colors"
+            className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center gap-2 active:brightness-90 transition-colors"
           >
             <MapPin className="w-5 h-5" />
             Permitir ubicación
@@ -391,7 +391,7 @@ const LocationModalContent: React.FC<{
           <button
             type="button"
             onClick={handleAllow}
-            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center active:brightness-90 transition-colors"
+            className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center active:brightness-90 transition-colors"
           >
             Intentar de nuevo
           </button>
@@ -455,7 +455,7 @@ const LocationModalContent: React.FC<{
         <Button
           onPress={handleConfirm}
           isDisabled={!currentPlace || isReverseGeocoding}
-          className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer disabled:opacity-50"
+          className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] font-semibold h-12 rounded-xl cursor-pointer disabled:opacity-50"
           startContent={<Check className="w-5 h-5" />}
         >
           Confirmar ubicación
