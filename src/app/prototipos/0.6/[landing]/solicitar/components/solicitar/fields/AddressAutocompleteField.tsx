@@ -41,12 +41,20 @@ interface AddressAutocompleteFieldProps {
    * aunque ese error nunca haya pasado por el validador del campo.
    */
   onLocalErrorChange?: (hasError: boolean) => void;
+  /**
+   * Rastreo de foco (`input_focus`/`input_blur`, BAL-5210); lo pasa
+   * DynamicField. Se suma al foco visual del campo, no lo reemplaza.
+   */
+  onFocus?: () => void;
+  onBlur?: () => void;
 }
 
 export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> = ({
   field,
   showError = false,
   onLocalErrorChange,
+  onFocus,
+  onBlur,
 }) => {
   const { getFieldValue, getFieldError, updateField, updateFieldBatch } = useWizard();
   const [isFocused, setIsFocused] = useState(false);
@@ -364,6 +372,12 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   // automatically, so we simply avoid fighting it.
   const handleFocus = () => {
     setIsFocused(true);
+    onFocus?.();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    onBlur?.();
   };
 
   // Determine display error. El de Google Maps no es un error de la persona:
@@ -428,7 +442,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           value={value}
           onChange={handleInputChange}
           onFocus={handleFocus}
-          onBlur={() => setIsFocused(false)}
+          onBlur={handleBlur}
           placeholder={field.placeholder || 'Escribe tu dirección...'}
           // Sin Maps se escribe a mano: el campo nunca queda trabado.
           disabled={field.readonly || (!isLoaded && !sinMapa)}

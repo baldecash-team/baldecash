@@ -30,6 +30,8 @@ import { conTiposPermitidos, parametrosDeFiltro } from '../../../../../services/
 import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
+import { useInstitutionSearchTracking } from '../../../hooks/useInstitutionSearchTracking';
+import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { SelectInput } from './SelectInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -129,6 +131,14 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   const hasOptionsSource = Boolean(
     field.options_source && !field.cascade_from && staticOptions.length === 0 && !isLazySearch
   );
+
+  // BAL-5210: `institution_search` en los buscadores que consultan ws2
+  // (institución y carrera). Las listas locales no lo registran.
+  const disenoDelCampo = useCamposV2() ? 2 : 1;
+  const registroBusqueda = useInstitutionSearchTracking(field.code, {
+    activo: isLazySearch && Boolean(field.options_source),
+    diseno: disenoDelCampo,
+  });
 
   // Get parent field value (only for cascading fields)
   const parentValue = isCascading ? (getFieldValue(field.cascade_from!) as string) : undefined;
@@ -350,6 +360,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       return false;
     }
     const filtro = extraDeFiltro;
+    registroBusqueda.alEscribir(searchTerm);
 
     // Debounce search by 300ms
     searchTimeoutRef.current = setTimeout(async () => {
@@ -361,6 +372,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
           filtro
         );
         setLocalDynamicOptions(options);
+        registroBusqueda.alLlegarResultados(searchTerm, options.length);
       } catch (error) {
         console.error('Error searching options:', error);
         setLocalDynamicOptions([]);
@@ -486,7 +498,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       id={field.code}
       label={field.label}
       value={value}
-      onChange={(newValue: string, selectedLabel?: string) => updateField(field.code, newValue, selectedLabel)}
+      onChange={(newValue: string, selectedLabel?: string) => {
+        updateField(field.code, newValue, selectedLabel);
+        if (newValue) registroBusqueda.alElegir(newValue, selectedLabel);
+      }}
       options={options}
       placeholder={getPlaceholder()}
       error={error}
@@ -503,7 +518,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       // Saved label for lazy-loaded fields (persisted across refresh)
       savedLabel={savedLabel}
       onFocus={onFocus}
-      onBlur={onBlur}
+      onBlur={() => {
+        registroBusqueda.alSalir();
+        onBlur?.();
+      }}
     />
   );
 };

@@ -124,6 +124,9 @@ export type EventType =
   // se vuelve caja y «Ver opciones» la devuelve. Ver `DynamicWizardStep.tsx`.
   | 'form_field_other_open'
   | 'form_field_other_back'
+  // Buscador de institución y carrera (BAL-5210): qué busca, cuántos
+  // resultados y si eligió. Ver `useInstitutionSearchTracking.ts`.
+  | 'institution_search'
   | 'form_submit_success'
   | 'form_submit_error'
   | 'coupon_applied'
