@@ -55,9 +55,15 @@ export interface ProteccionesV2Props
    * (BAL-4969, casuísticas): el aviso va junto a esa protección.
    */
   avisoDelPlan?: { planId: string; texto: string } | null;
+  /**
+   * La pantalla ya se titula «Protege tu laptop» (pantalla de seguros aparte,
+   * BAL-5204): el título de la tarjeta queda solo para el lector de pantalla,
+   * para no repetirlo dos veces seguidas.
+   */
+  conTituloDeLaPagina?: boolean;
 }
 
-export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange, avisoDelPlan }: ProteccionesV2Props) {
+export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange, avisoDelPlan, conTituloDeLaPagina = false }: ProteccionesV2Props) {
   const [detalle, setDetalle] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
@@ -82,7 +88,7 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
       style={{ boxShadow: 'inset 0 4px 0 0 var(--color-primary)' }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 id="protecciones-v2-titulo" className="text-lg font-bold text-[var(--d2-texto)]">
+        <h2 id="protecciones-v2-titulo" className={conTituloDeLaPagina ? 'sr-only' : 'text-lg font-bold text-[var(--d2-texto)]'}>
           Protege tu {nombreDelEquipo(tipoDeEquipo)}
         </h2>
         <span className="rounded-full bg-[var(--d2-chip)] px-2.5 py-0.5 text-xs font-semibold text-[var(--d2-texto-2)]">Opcional</span>

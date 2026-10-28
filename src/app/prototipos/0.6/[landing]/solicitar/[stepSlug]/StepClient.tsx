@@ -93,6 +93,7 @@ import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGua
 import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
 import { enfocarCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
+import { nombreDelTipo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 /**
  * El Paso 4 vuelve a la vista 1 y abre la sección antes de bajar al campo
@@ -499,6 +500,38 @@ function StepContent() {
   });
 
   /**
+   * Paso 4 de Diseño 2 en dos pantallas (BAL-5204): datos → seguros. La de
+   * seguros lleva su propia entrada en el historial (`pushState` al entrar):
+   * el «Atrás» del navegador y el de la pantalla vuelven a los datos sin salir
+   * del paso. Va aquí, arriba de los `return` tempranos (regla de hooks).
+   */
+  const enSeguros = paso4.conPantallaDeSeguros && paso4.vista === 'seguros';
+  const { volverADatos } = paso4;
+  const codigoDelPaso = step?.code;
+  useEffect(() => {
+    if (!enSeguros) return;
+    const alVolver = (e: PopStateEvent) => {
+      if (e.state?.paso4 === 'seguros') return;
+      volverADatos();
+      tracker?.track('form_step_back', { step_code: codigoDelPaso, vista: 'seguros', diseno: 2 });
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener('popstate', alVolver);
+    return () => window.removeEventListener('popstate', alVolver);
+  }, [enSeguros, volverADatos, tracker, codigoDelPaso]);
+  // Recargar estando en los seguros vuelve a los datos (la vista no se
+  // guarda), pero la entrada del historial seguía marcada como «seguros»: el
+  // siguiente «Atrás» desde los seguros caía en ella y no hacía nada. Se
+  // desmarca al montar.
+  useEffect(() => {
+    const estado = window.history.state as Record<string, unknown> | null;
+    if (estado?.paso4 !== 'seguros') return;
+    const resto = { ...estado };
+    delete resto.paso4;
+    window.history.replaceState(resto, '');
+  }, []);
+
+  /**
    * Paso 4 de Diseño 2: una protección que pasaría la cuota por encima del
    * tope NO se agrega. Se avisa junto a esa protección (y arriba, por si la
    * hoja "¿Qué cubre?" la tapa), en vez de dejarla y bloquear el envío.
@@ -833,6 +866,34 @@ function StepContent() {
       // (o muestra el gate de OTP full-screen antes del resumen si aplica)
     }
   };
+
+  /**
+   * Diseño 2 con seguros (BAL-5204): «Continuar» de la pantalla de datos.
+   * Valida los campos del paso; si falta algo lleva al campo, como al
+   * enviar. Si está completo, pasa a la pantalla de seguros arriba de todo.
+   */
+  const continuarASeguros = () => {
+    if (isFlowConfigLoading) return;
+    hideToast();
+    setSubmitted(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      paso4.volverAlCampo(firstErrorField);
+      window.setTimeout(() => enfocarCampoV2(firstErrorField), ESPERA_FOCO_PASO4_MS);
+      return;
+    }
+    setSubmitted(false);
+    // Arriba ANTES de la entrada nueva del historial: el navegador guarda en
+    // la entrada de los datos el scroll que tiene al dejarla, y al volver lo
+    // restaura (sin esto, «Atrás» dejaba los datos a media pantalla). Sin
+    // animación: el contenido cambia entero, no hay recorrido que mostrar.
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    paso4.irASeguros();
+    tracker?.track('form_step_complete', { step_code: step?.code, vista: 'datos', diseno: 2 });
+    window.history.pushState({ paso4: 'seguros' }, '');
+  };
+  /** «Atrás» de la pantalla de seguros: lo mismo que el del navegador (ver el `popstate`). */
+  const atrasDesdeSeguros = () => window.history.back();
 
   const handleSummaryBack = () => {
     // Gate G2: `bloqueaContrato` solo puede ser `true` cuando de verdad se
@@ -1242,8 +1303,11 @@ function StepContent() {
     // solicitud) van separados por lo mismo que en `MobileStickyCta`.
     if (usarDiseno2) {
       const encabezado = encabezadoDelPaso4(step, nombrePaso4);
-      // Celular: una sola pantalla como en el prototipo de Brenda (campos,
-      // protecciones y la barra con "Enviar…"), sin "Continuar" intermedio.
+      // Con seguros, dos pantallas como en el prototipo de Brenda (BAL-5204):
+      // datos con «Continuar» → «Protege tu laptop» con «Enviar…». Sin
+      // seguros, una sola pantalla con «Enviar…», como hasta ahora.
+      const dosPantallas = paso4.conPantallaDeSeguros;
+      const enDatosAntesDeSeguros = dosPantallas && !enSeguros;
       const frecuencia = getAllProducts()[0]?.paymentFrequency;
 
       return (
@@ -1252,19 +1316,21 @@ function StepContent() {
             cuponObligatorio={isCouponRequired}
             currentStep={step.url_slug || step.code}
             step={step}
-            title={encabezado.titulo}
+            // Pantalla de seguros: «Protege tu laptop» con el tipo real del
+            // equipo (la misma palabra de «¿Quieres complementar tu …?»).
+            title={enSeguros ? `Protege tu ${nombreDelTipo(paso4.seguros.tipoDeEquipo)}` : encabezado.titulo}
             antetitulo={encabezado.antetitulo}
             // Sin descripción en la BD, el subtítulo dice solo lo que el paso
             // pide (día de pago, dirección), no el de Brenda fijo (BAL-4969).
-            description={subtituloDelPaso4(step)}
+            description={enSeguros ? undefined : subtituloDelPaso4(step)}
             // Cada bloque (campos, protecciones) lleva su propia tarjeta.
             sinTarjeta
-            onBack={handleSummaryBack}
-            onNext={nextHandler}
-            onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
+            onBack={enSeguros ? atrasDesdeSeguros : handleSummaryBack}
+            onNext={enDatosAntesDeSeguros ? continuarASeguros : nextHandler}
+            onSubmit={!enDatosAntesDeSeguros && isActuallyLastStep ? handleSummarySubmit : undefined}
             onStepClick={handleStepClick}
             condicionesFijas={condicionesFijas}
-            isLastStep={isActuallyLastStep}
+            isLastStep={!enDatosAntesDeSeguros && isActuallyLastStep}
             isSubmitting={isAppSubmitting}
             isBusy={isSubmitting}
             submitMessage={submitMessage}
@@ -1282,7 +1348,7 @@ function StepContent() {
               <div className="space-y-4">
                 {avisoCampanaV2}
                 {avisoGuardaV2}
-                {step.fields.length > 0 && (
+                {step.fields.length > 0 && !enSeguros && (
                   <div
                     data-vista-paso4="1"
                     // Con secciones, cada una trae su tarjeta (prototipo).
@@ -1292,9 +1358,10 @@ function StepContent() {
                     <DynamicWizardStep step={step} showErrors={submitted} camposTocados={camposTocados} />
                   </div>
                 )}
-                {segurosEnPaso4 && (
+                {(enSeguros || (segurosEnPaso4 && !dosPantallas)) && (
                   <div data-vista-paso4="2">
                     <ProteccionesV2
+                      conTituloDeLaPagina={enSeguros}
                       {...paso4.seguros}
                       alternar={alternarProteccion}
                       avisoDelPlan={planSobreTope && !segurosElegidos.includes(planSobreTope) ? { planId: planSobreTope, texto: textoDeTopeDelPlan(maxMonthlyQuota) } : null}
