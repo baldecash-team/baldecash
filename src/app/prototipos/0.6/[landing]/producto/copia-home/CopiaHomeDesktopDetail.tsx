@@ -47,6 +47,7 @@ import { targetSlugForGrade, currentGrade } from './gradeSelector';
 import { FamilyFarmGradeSelector, type GradeOption } from '../family-farm/FamilyFarmGradeSelector';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from './copiaHomeDesktop.module.css';
+import { comboItemsDesdeDetalle, segurosParaElPlazo, TEXTO_INCLUIDO_EN_COMBO } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
@@ -297,6 +298,7 @@ export function CopiaHomeDesktopDetail({
       // no ve que esta eligiendo pagar la inicial en dos partes.
       paymentPlans,
       comboId: apiData.combo?.id,
+      comboItems: comboItemsDesdeDetalle(apiData.combo),
       // Link especial (BAL-5191): solo si el pase abrió este producto.
       specialLinkToken: specialLinkTokenFor(landing, apiData.specialLinkProductId, product.id),
     };
@@ -345,8 +347,15 @@ export function CopiaHomeDesktopDetail({
   // ---- "¿Qué incluye?" ----
   // Accesorios vienen del combo real en DB (landing_product.combo_id → combo_item).
   const comboAccessories = apiData.combo?.accessories?.map((a) => a.productName) ?? [];
-  const hasCombo = comboAccessories.length > 0;
-  const accesorios = comboAccessories;
+  // S3: los seguros del combo del plazo elegido, «Incluido en tu combo». El
+  // plazo va en MESES (en quincenal/semanal `term` son cuotas).
+  const termMeses = paymentPlans.find((p) => p.term === term)?.termMonths ?? term;
+  const segurosDelCombo = segurosParaElPlazo(comboItemsDesdeDetalle(apiData.combo)?.insurances ?? [], termMeses);
+  const hasCombo = comboAccessories.length > 0 || segurosDelCombo.length > 0;
+  const accesorios = [
+    ...comboAccessories.map((txt) => ({ txt, seguro: false })),
+    ...segurosDelCombo.map((s) => ({ txt: `${s.name} · ${TEXTO_INCLUIDO_EN_COMBO}`, seguro: true })),
+  ];
   const showIncluye = hasCombo;
 
   const condRows = [
@@ -596,12 +605,14 @@ export function CopiaHomeDesktopDetail({
               {showIncluye && (
                 <div className={styles.panel}>
                   <div className={styles.secTitle}>¿Qué incluye tu equipo?</div>
-                  <div className={styles.secSub}>Accesorios incluidos con tu compra</div>
+                  <div className={styles.secSub}>
+                    {segurosDelCombo.length > 0 ? 'Accesorios y seguros incluidos con tu compra' : 'Accesorios incluidos con tu compra'}
+                  </div>
                   <div className={styles.incluyeGrid}>
-                    {accesorios.map((txt, i) => (
+                    {accesorios.map((it, i) => (
                       <div key={i} className={styles.incTile}>
-                        <span className={styles.incIco}><Package size={18} /></span>
-                        <span className={styles.incTxt}>{txt}</span>
+                        <span className={styles.incIco}>{it.seguro ? <ShieldCheck size={18} /> : <Package size={18} />}</span>
+                        <span className={styles.incTxt}>{it.txt}</span>
                         <span className={styles.incChk}><Check size={16} strokeWidth={3} /></span>
                       </div>
                     ))}

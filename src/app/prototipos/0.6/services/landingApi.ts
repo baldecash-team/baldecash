@@ -1328,6 +1328,10 @@ interface ApiInsurancePlan {
   // BAL-2338: imagen del tipo de seguro (insurance_category.image_url). El backend
   // la resuelve para ambos flujos; el regular la consume desde BAL-2338.
   imageUrl?: string | null;
+  /** S3/R7: el plan viene dentro del combo (`combo_id`): S/0, fijo, no se compra. */
+  includedInCombo?: boolean;
+  /** 0 para los incluidos. */
+  price?: number;
 }
 
 /**
@@ -1351,6 +1355,7 @@ export async function obtenerPlanesDeSeguro(
   termMonths?: number,
   previewKey?: string | null,
   sessionUuid?: string | null,
+  comboId?: number | null,
 ): Promise<ApiInsurancePlan[]> {
   const params = new URLSearchParams({
     device_type: deviceType,
@@ -1361,6 +1366,11 @@ export async function obtenerPlanesDeSeguro(
   }
   if (previewKey) {
     params.set('preview_key', previewKey);
+  }
+  // S3/R7: con el combo, el backend devuelve sus seguros incluidos y no
+  // vuelve a ofrecer uno de su mismo tipo.
+  if (comboId) {
+    params.set('combo_id', String(comboId));
   }
   const insurancesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, slug);
   const response = await fetch(insurancesUrl, {
@@ -1386,9 +1396,10 @@ export async function getLandingInsurances(
   termMonths?: number,
   previewKey?: string | null,
   sessionUuid?: string | null,
+  comboId?: number | null,
 ): Promise<ApiInsurancePlan[]> {
   try {
-    return await obtenerPlanesDeSeguro(slug, deviceType, productPrice, termMonths, previewKey, sessionUuid);
+    return await obtenerPlanesDeSeguro(slug, deviceType, productPrice, termMonths, previewKey, sessionUuid, comboId);
   } catch (error) {
     console.error('Error fetching landing insurances:', error);
     return [];

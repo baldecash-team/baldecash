@@ -25,6 +25,7 @@ import {
   InitialPaymentPercentage,
   ComboInfo,
   ComboAccessory,
+  ComboInsurance,
 } from '../types/detail';
 import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../../../utils/deferredDelivery';
 import { getSpecialLinkToken, tomarRegistroDeApertura } from '../../../utils/specialLink';
@@ -266,6 +267,8 @@ interface ApiComboInsurance {
   name: string;
   code?: string;
   price: number;
+  duration_months?: number | null;
+  insurance_type?: string | null;
 }
 
 interface ApiCombo {
@@ -279,6 +282,7 @@ interface ApiCombo {
   micro_url?: string;
   accessories: ApiComboAccessory[];
   insurance?: ApiComboInsurance | null;
+  insurances?: ApiComboInsurance[] | null;
 }
 
 interface ApiProductDetailResponse {
@@ -529,6 +533,17 @@ function transformCombo(apiCombo: ApiCombo): ComboInfo {
           price: apiCombo.insurance.price,
         }
       : undefined,
+    // S3: todos los seguros del combo. Backend viejo (sin `insurances`): el único.
+    insurances: (apiCombo.insurances ?? (apiCombo.insurance ? [apiCombo.insurance] : [])).map(
+      (ins): ComboInsurance => ({
+        planId: ins.plan_id,
+        name: ins.name,
+        code: ins.code,
+        price: ins.price ?? 0,
+        durationMonths: ins.duration_months ?? null,
+        insuranceType: ins.insurance_type ?? null,
+      }),
+    ),
   };
 }
 

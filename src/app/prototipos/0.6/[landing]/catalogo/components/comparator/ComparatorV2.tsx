@@ -13,6 +13,7 @@ import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { cardKey } from '../../utils/cardKey';
 
 import type { TermMonths } from '../../types/catalog';
+import { comboItemsDesdeCatalogo } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 /**
  * ComparatorV2 - Panel Inline Expandible
@@ -61,6 +62,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       variantId: product.variantId,
       // Combo de la card comparada (el equipo convive en varias cards)
       comboId: product.comboId,
+      comboItems: comboItemsDesdeCatalogo(product),
       // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
       // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
       // campo llega vacio al submit, JSON.stringify lo borra y el backend lo

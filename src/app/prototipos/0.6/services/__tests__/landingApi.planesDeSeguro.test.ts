@@ -45,4 +45,18 @@ describe('obtenerPlanesDeSeguro', () => {
     responder(500);
     await expect(getLandingInsurances('pago-diferido', 'Laptop', 3200, 24)).resolves.toEqual([]);
   });
+
+  it('con combo: manda combo_id (R7)', async () => {
+    responder(200, { plans: [] });
+    await obtenerPlanesDeSeguro('home', 'Laptop', 2202, 24, null, null, 52);
+    const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(url).toContain('combo_id=52');
+  });
+
+  it('sin combo: no manda combo_id', async () => {
+    responder(200, { plans: [] });
+    await obtenerPlanesDeSeguro('home', 'Laptop', 2202, 24);
+    const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+    expect(url).not.toContain('combo_id');
+  });
 });

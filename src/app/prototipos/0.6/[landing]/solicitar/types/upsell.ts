@@ -61,6 +61,8 @@ export interface InsurancePlan {
   provider?: { name: string; code: string } | null;
   /** Origen del add-on en la oferta: catálogo, del pedido, o regalo del combo (BAL-2253). */
   source?: 'catalog' | 'order' | 'combo_free';
+  /** S3/R7: viene dentro del combo elegido. Se muestra fijo a S/0 y nunca entra a la selección. */
+  includedInCombo?: boolean;
 }
 
 export interface UpsellState {

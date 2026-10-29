@@ -156,4 +156,53 @@ describe('transformCombo (vía fetchProductDetail)', () => {
     expect(result!.combo!.accessories).toHaveLength(1);
     expect(result!.combo!.insurance).toBeUndefined();
   });
+
+  it('mapea TODOS los seguros del combo (robo 12M + robo 24M + garantía)', async () => {
+    mockFetchOnce(
+      baseApiResponse({
+        id: 52, code: 'COMBO-52', name: 'V15 + mochila + robo + garantía',
+        display_name: 'V15 combo', description: null, accessories: [],
+        insurance: { plan_id: 15, name: 'Robo 12M', code: 'INS-LAPTOP-SR-12', price: 0 },
+        insurances: [
+          { plan_id: 15, name: 'Robo 12M', code: 'INS-LAPTOP-SR-12', duration_months: 12, insurance_type: 'seguro_robo', price: 0 },
+          { plan_id: 16, name: 'Robo 24M', code: 'INS-LAPTOP-SR-24', duration_months: 24, insurance_type: 'seguro_robo', price: 0 },
+          { plan_id: 14, name: 'Garantía 24M', code: 'INS-LAPTOP-GE-24', duration_months: 24, insurance_type: 'garantia_extendida', price: 0 },
+        ],
+      }),
+    );
+
+    const result = await fetchProductDetail('home', 'x-combo-52');
+
+    expect(result!.combo!.insurances).toEqual([
+      { planId: 15, name: 'Robo 12M', code: 'INS-LAPTOP-SR-12', price: 0, durationMonths: 12, insuranceType: 'seguro_robo' },
+      { planId: 16, name: 'Robo 24M', code: 'INS-LAPTOP-SR-24', price: 0, durationMonths: 24, insuranceType: 'seguro_robo' },
+      { planId: 14, name: 'Garantía 24M', code: 'INS-LAPTOP-GE-24', price: 0, durationMonths: 24, insuranceType: 'garantia_extendida' },
+    ]);
+    // `insurance` no cambia de forma.
+    expect(result!.combo!.insurance).toEqual({ planId: 15, name: 'Robo 12M', price: 0 });
+  });
+
+  it('backend viejo sin `insurances`: cae a [insurance]', async () => {
+    mockFetchOnce(
+      baseApiResponse({
+        id: 52, code: 'C', name: 'C', display_name: 'C', description: null, accessories: [],
+        insurance: { plan_id: 15, name: 'Robo 12M', code: 'INS-LAPTOP-SR-12', price: 0 },
+      }),
+    );
+    const result = await fetchProductDetail('home', 'x-combo-52');
+    expect(result!.combo!.insurances).toEqual([
+      { planId: 15, name: 'Robo 12M', code: 'INS-LAPTOP-SR-12', price: 0, durationMonths: null, insuranceType: null },
+    ]);
+  });
+
+  it('sin seguros: insurances vacío', async () => {
+    mockFetchOnce(
+      baseApiResponse({
+        id: 37, code: 'C', name: 'C', display_name: 'C', description: null,
+        accessories: [], insurance: null, insurances: [],
+      }),
+    );
+    const result = await fetchProductDetail('home', 'x-combo-37');
+    expect(result!.combo!.insurances).toEqual([]);
+  });
 });

@@ -22,6 +22,8 @@ import {
 } from '@/app/prototipos/0.6/utils/couponDocument';
 import { TermSelect, getTermUnit } from './TermSelect';
 import { useCondicionesDelPlan } from './useCondicionesDelPlan';
+import { segurosIncluidosDelProducto } from '@/app/prototipos/0.6/utils/comboIncluidos';
+import { FilasIncluidasEnCombo } from '../../upsell/SegurosIncluidosEnCombo';
 import Image from 'next/image';
 
 /**
@@ -214,6 +216,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const hasAccessories = selectedAccessories.length > 0;
   const hasInsurance = selectedInsurances.length > 0;
   const hasCoupon = !!appliedCoupon;
+  // S3/R7: los seguros del combo, «Incluido en tu combo». No suman a la cuota.
+  const segurosIncluidos = segurosIncluidosDelProducto(mainProduct);
 
   // Calculate total initial payment from all products
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);
@@ -441,6 +445,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       ))}
                     </div>
                   )}
+
+                  <FilasIncluidasEnCombo seguros={segurosIncluidos} className="mt-3" />
 
                   {/* Insurance Selected */}
                   {hasInsurance && (
@@ -677,6 +683,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             </div>
           )}
         </div>
+
+        {/* S3/R7: seguros que trae el combo (fijos, sin costo) */}
+        {!hideAddons && <FilasIncluidasEnCombo seguros={segurosIncluidos} />}
 
         {/* Insurance Card with Accordion - Desktop - Only visible when insurance is selected */}
         {hasInsurance && !hideAddons && (

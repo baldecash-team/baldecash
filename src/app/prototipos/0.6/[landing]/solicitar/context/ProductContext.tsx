@@ -25,6 +25,9 @@ import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 import { descuentoPorCuota } from '@/app/prototipos/0.6/utils/couponPricing';
+import type { ComboItemsSeleccionados } from '@/app/prototipos/0.6/utils/comboIncluidos';
+import { alternarSeguro, quitarSeguros } from './segurosElegidos';
+import { mesesDelProducto } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 
 // Dynamic storage keys based on landing slug
 //
@@ -175,6 +178,13 @@ export interface SelectedProduct {
   // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
   comboId?: number;
   /**
+   * Lo que trae el combo elegido (S3): sus seguros, con las versiones por
+   * plazo. Solo para MOSTRAR «Incluido en tu combo» en la barra y el resumen:
+   * no suma a la cuota ni viaja en `insurance_ids`. El paso de seguros no lo
+   * usa para decidir: pregunta al backend con `combo_id`.
+   */
+  comboItems?: ComboItemsSeleccionados;
+  /**
    * Regalos del combo elegido, tal como los resolvió el modal "Lo quiero"
    * (Diseño 2). Solo para mostrarlos en el panel "Tu solicitud": no viajan al
    * submit (el backend resuelve el combo por `comboId`). Sin modal no existe.
@@ -258,6 +268,8 @@ interface ProductContextValue {
   selectedInsurances: InsurancePlan[];
   setSelectedInsurance: (insurance: InsurancePlan | null) => void;
   toggleInsurance: (insurance: InsurancePlan) => void;
+  /** Suelta estos seguros elegidos (p. ej. el combo ya trae ese tipo, R7). */
+  removeInsurances: (ids: string[]) => void;
   clearInsurance: () => void;
   // Plan Multiasistencia (A365) disponible para el producto/término actual.
   // Lo setea InsuranceSection al cargar sus planes (fuente de verdad de la
@@ -523,22 +535,31 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     }
   }, [insuranceKey]);
 
+  const persistirSeguros = useCallback((lista: InsurancePlan[]) => {
+    try {
+      if (lista.length > 0) {
+        localStorage.setItem(insuranceKey, JSON.stringify(lista));
+      } else {
+        localStorage.removeItem(insuranceKey);
+      }
+    } catch {}
+  }, [insuranceKey]);
+
   const toggleInsurance = useCallback((insurance: InsurancePlan) => {
     setSelectedInsurancesState(prev => {
-      const exists = prev.some(i => i.id === insurance.id);
-      const newState = exists
-        ? prev.filter(i => i.id !== insurance.id)
-        : [...prev, insurance];
-      try {
-        if (newState.length > 0) {
-          localStorage.setItem(insuranceKey, JSON.stringify(newState));
-        } else {
-          localStorage.removeItem(insuranceKey);
-        }
-      } catch {}
+      const newState = alternarSeguro(prev, insurance);
+      if (newState !== prev) persistirSeguros(newState);
       return newState;
     });
-  }, [insuranceKey]);
+  }, [persistirSeguros]);
+
+  const removeInsurances = useCallback((ids: string[]) => {
+    setSelectedInsurancesState(prev => {
+      const newState = quitarSeguros(prev, ids);
+      if (newState !== prev) persistirSeguros(newState);
+      return newState;
+    });
+  }, [persistirSeguros]);
 
   const clearInsurance = useCallback(() => {
     setSelectedInsurancesState([]);
@@ -904,16 +925,17 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       const activeProduct = updatedProducts[0];
       const deviceType = (activeProduct?.type || 'laptop').charAt(0).toUpperCase() + (activeProduct?.type || 'laptop').slice(1).toLowerCase();
       const productPrice = activeProduct?.price || 0;
-      const termMonthsForInsurance = activeProduct?.months ?? term;
+      // En meses, con la fórmula del submit (copia-home guarda cuotas en `months`).
+      const termMonthsForInsurance = mesesDelProducto(activeProduct) ?? term;
       if (productPrice > 0) {
-        getLandingInsurances(landingSlug, deviceType, productPrice, termMonthsForInsurance, previewKey, sessionUuid)
+        getLandingInsurances(landingSlug, deviceType, productPrice, termMonthsForInsurance, previewKey, sessionUuid, activeProduct?.comboId ?? null)
           .then((apiPlans) => {
             if (!apiPlans || apiPlans.length === 0) return;
             const plansMap = new Map(apiPlans.map(p => [p.id, p]));
             const updatedInsurances: InsurancePlan[] = [];
             for (const ins of selectedInsurances) {
               const fresh = plansMap.get(ins.id);
-              if (fresh) {
+              if (fresh && !fresh.includedInCombo) {
                 updatedInsurances.push({ ...ins, monthlyPrice: fresh.monthlyPrice, totalPrice: fresh.totalPrice, paymentMonths: fresh.paymentMonths });
               }
             }
@@ -1252,6 +1274,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         selectedInsurances,
         setSelectedInsurance,
         toggleInsurance,
+        removeInsurances,
         clearInsurance,
         availableMultiasistencia,
         setAvailableMultiasistencia,

@@ -8,11 +8,14 @@
  *
  * La carga de planes y la selección viven en `usePlanesDeSeguro`, que también
  * usa el Paso 4 de Diseño 2 (BAL-4966). Acá solo se dibujan.
+ *
+ * S3/R7: lo que trae el combo va arriba, fijo y a S/0; abajo, lo que se compra.
  */
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { InsuranceCards } from '../../upsell';
+import { SegurosIncluidosEnCombo } from '../../upsell/SegurosIncluidosEnCombo';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { usePlanesDeSeguro } from './usePlanesDeSeguro';
 
@@ -26,9 +29,9 @@ export function InsuranceSection({
   className = '',
 }: InsuranceSectionProps) {
   const { badgeText } = useWizardConfig();
-  const { planes: insurancePlans, cargando: isLoading, elegidos, alternar } = usePlanesDeSeguro();
+  const { planes: insurancePlans, incluidos, cargando: isLoading, elegidos, alternar } = usePlanesDeSeguro();
 
-  if (!isLoading && insurancePlans.length === 0) {
+  if (!isLoading && insurancePlans.length === 0 && incluidos.length === 0) {
     return null;
   }
 
@@ -39,13 +42,18 @@ export function InsuranceSection({
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </div>
       ) : (
-        <InsuranceCards
-          plans={insurancePlans}
-          selectedPlanIds={elegidos}
-          onToggle={alternar}
-          showIntro={showIntro}
-          badgeText={badgeText}
-        />
+        <>
+          <SegurosIncluidosEnCombo seguros={incluidos} className={insurancePlans.length > 0 ? 'mb-6' : ''} />
+          {insurancePlans.length > 0 && (
+            <InsuranceCards
+              plans={insurancePlans}
+              selectedPlanIds={elegidos}
+              onToggle={alternar}
+              showIntro={showIntro}
+              badgeText={badgeText}
+            />
+          )}
+        </>
       )}
     </div>
   );

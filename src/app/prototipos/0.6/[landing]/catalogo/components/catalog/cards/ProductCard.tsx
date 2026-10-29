@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
+import { textoIncluyeDelCombo } from '@/app/prototipos/0.6/utils/comboIncluidos';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Card, CardBody, Button } from '@nextui-org/react';
@@ -293,6 +294,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // «Laptop» y «Reacondicionado» al cambiar de grado.
   const displayName =
     selectedGradeSibling?.displayName || selectedGradeSibling?.name || selectedColor?.displayName || product.displayName;
+  // S3: la card de un combo con seguro dice qué trae (sin seguro no cambia, R8).
+  const lineaIncluye = textoIncluyeDelCombo(product.comboAccessories, product.comboInsurances);
   // El grado manda sobre el color cuando hay uno elegido: `price` y `minTermQuota`
   // vienen del hermano y son los del grado, no los de la card. `??` y no `||`
   // porque el API manda `null` cuando el grado no tiene pricing cargado, y ahí sí
@@ -956,6 +959,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
+            {lineaIncluye && (
+              <p
+                data-testid="card-combo-incluye"
+                className="-mt-1 mb-2 text-xs font-medium text-[var(--color-secondary)] line-clamp-1"
+                title={lineaIncluye}
+              >
+                {lineaIncluye}
+              </p>
+            )}
             {/* La franja bajo el nombre: grados O colores, nunca los dos.
                 Qué va lo decide `modoFranja`: lo que se eligió en el Universo
                 (BAL-4561) o, sin elección, la regla de siempre.

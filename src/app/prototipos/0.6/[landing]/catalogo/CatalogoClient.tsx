@@ -172,6 +172,7 @@ import { resolveWizardTarget } from './utils/resolveWizardTarget';
 import { resolveSavedItemDetail } from './utils/resolveSavedItemDetail';
 import type { SavedItem } from './utils/resolveSavedItemDetail';
 import { mergeColorSibling } from './utils/mergeColorSibling';
+import { comboItemsDesdeCatalogo } from '@/app/prototipos/0.6/utils/comboIncluidos';
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
@@ -796,6 +797,10 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       // Combo de la card elegida: el equipo convive en varias cards (suelto y
       // uno o mas combos) con el mismo product_id, y el submit lo reenvia.
       comboId: variantInfo?.comboId ?? product.comboId,
+      // Los seguros del combo solo si el combo elegido es el de esta card.
+      comboItems: (variantInfo?.comboId ?? product.comboId) === product.comboId
+        ? comboItemsDesdeCatalogo(product)
+        : undefined,
       // `product.paymentFrequency` es opcional (el catalogo lo deja undefined
       // cuando el hook no trae frecuencia). Cae a 'mensual' explicito: si el
       // campo llega vacio al submit, JSON.stringify lo borra y el backend lo
