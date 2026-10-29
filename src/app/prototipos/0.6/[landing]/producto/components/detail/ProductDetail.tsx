@@ -55,6 +55,7 @@ import { pideConfirmacionSemiNuevo } from '@/app/prototipos/0.6/utils/condition'
 import { DeferredDeliveryModal } from '@/app/prototipos/0.6/components/DeferredDeliveryModal';
 import { LoQuieroModal } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 import { avisosDelEquipo } from '@/app/prototipos/0.6/components/lo-quiero/avisoDelEquipo';
+import { comboItemsDesdeDetalle, segurosParaElPlazo, TEXTO_INCLUIDO_EN_COMBO } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -352,6 +353,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     const plan = activePlans.find(p => p.term === pricingSelection.term);
     return plan?.termMonths ?? pricingSelection.term;
   }, [pricingSelection, activePlans]);
+
+  // S3: los seguros del combo que aplican al plazo elegido (todos mientras no hay plazo).
+  const segurosDelCombo = useMemo(
+    () => segurosParaElPlazo(comboItemsDesdeDetalle(combo)?.insurances ?? [], selectedTermMonths),
+    [combo, selectedTermMonths],
+  );
 
   // controlledTerm: only updated by Cronograma chips, never by PricingCalculator's own notify.
   // This prevents the feedback loop where PC notifies → pricingSelection.term updates →
@@ -728,7 +735,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {isRefurbished && <RefurbishedInfoBanner />}
 
             {/* Combo Banner — accesorios (regalos) y/o seguro incluido */}
-            {combo && (combo.accessories.length > 0 || combo.insurance) && (
+            {combo && (combo.accessories.length > 0 || segurosDelCombo.length > 0) && (
               <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="w-5 h-5 text-[var(--color-primary)]" />
@@ -772,10 +779,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     </div>
                   ))}
 
-                  {/* Seguro incluido (price 0 → "Incluido") */}
-                  {combo.insurance && (
+                  {/* Seguros incluidos (S3): todos los del combo para el plazo elegido */}
+                  {segurosDelCombo.map((seguro) => (
                     <div
-                      key={`insurance-${combo.insurance.planId}`}
+                      key={`insurance-${seguro.planId}`}
+                      data-seguro-del-combo={seguro.planId}
                       className="flex items-center gap-3 bg-[var(--surface,#fff)] rounded-lg p-3 border border-[var(--border-soft,#f3f4f6)]"
                     >
                       <div className="w-12 h-12 rounded-md flex-shrink-0 flex items-center justify-center bg-[rgba(var(--color-primary-rgb),0.08)]">
@@ -783,19 +791,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 break-words">
-                          {combo.insurance.name}
+                          {seguro.name}
                         </p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <ShieldCheck className="w-3.5 h-3.5 text-green-600" />
-                          <span className="text-xs font-semibold text-green-600">
-                            {combo.insurance.price > 0
-                              ? `S/ ${combo.insurance.price.toFixed(2)}`
-                              : 'Incluido'}
-                          </span>
+                          <span className="text-xs font-semibold text-green-600">{TEXTO_INCLUIDO_EN_COMBO}</span>
                         </div>
                       </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             )}

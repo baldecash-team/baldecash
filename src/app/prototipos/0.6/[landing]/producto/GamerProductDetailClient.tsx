@@ -44,6 +44,7 @@ import { CubeGridSpinner, Toast, useToast, useScrollToTop } from '@/app/prototip
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
+import { comboItemsDesdeDetalle, segurosParaElPlazo, TEXTO_INCLUIDO_EN_COMBO } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 // Theme helper (same as GamerCatalogoClient)
 function gamerTheme(isDark: boolean) {
@@ -524,6 +525,12 @@ function DetailContent() {
     const plan = paymentPlans.find((p) => p.term === selectedTerm);
     return plan?.termMonths ?? selectedTerm;
   }, [paymentPlans, selectedTerm]);
+
+  // S3: los seguros del combo que aplican al plazo elegido.
+  const segurosDelCombo = useMemo(
+    () => segurosParaElPlazo(comboItemsDesdeDetalle(combo)?.insurances ?? [], selectedTermMonths),
+    [combo, selectedTermMonths],
+  );
 
   // Sync URL params when pricing changes (term, initial)
   const syncUrlParams = useCallback((term: number, initial: number) => {
@@ -1305,7 +1312,7 @@ function DetailContent() {
         <div id="section-pricing" className="gamer-detail-pricing-order" style={{ position: 'sticky', top: 168, alignSelf: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.5vw, 24px)' }}>
             {/* Combo banner */}
-            {combo && combo.accessories.length > 0 && (
+            {combo && (combo.accessories.length > 0 || segurosDelCombo.length > 0) && (
               <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(0,255,213,0.05))' : 'linear-gradient(135deg, rgba(79,70,229,0.06), rgba(0,137,122,0.04))', borderRadius: 16, border: `1px solid ${isDark ? 'rgba(99,102,241,0.2)' : 'rgba(79,70,229,0.15)'}`, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <Package size={18} style={{ color: T.neonPurple }} />
@@ -1330,6 +1337,15 @@ function DetailContent() {
                       ) : (
                         <span style={{ fontSize: 13, fontWeight: 600, color: T.neonCyan }}>+S/{Math.round(acc.unitPrice)}</span>
                       )}
+                    </div>
+                  ))}
+                  {segurosDelCombo.map((s) => (
+                    <div key={`seguro-${s.planId}`} data-seguro-del-combo={s.planId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 10 }}>
+                      <ShieldCheck size={20} style={{ color: T.neonPurple, flexShrink: 0 }} aria-hidden />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</p>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>{TEXTO_INCLUIDO_EN_COMBO}</span>
                     </div>
                   ))}
                 </div>

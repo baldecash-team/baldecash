@@ -40,6 +40,7 @@ import { GRADE_HEADING } from '../family-farm/familyFarmGrades';
 import { esFamilyFarms } from '@/app/prototipos/0.6/utils/familyFarms';
 import type { WishlistItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import styles from '@/app/prototipos/0.6/[landing]/catalogo/copia-home/copiaHome.module.css';
+import { comboItemsDesdeDetalle, segurosParaElPlazo, TEXTO_INCLUIDO_EN_COMBO } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
@@ -370,8 +371,15 @@ export function CopiaHomeMobileDetail({
   // ---- "¿Qué incluye?" ----
   // Accesorios vienen del combo real en DB (landing_product.combo_id → combo_item).
   const comboAccessories = apiData.combo?.accessories?.map((a) => a.productName) ?? [];
-  const hasCombo = comboAccessories.length > 0;
-  const accesorios = comboAccessories;
+  // S3: los seguros del combo del plazo elegido, «Incluido en tu combo». El
+  // plazo va en MESES (en quincenal/semanal `term` son cuotas).
+  const termMeses = paymentPlans.find((p) => p.term === term)?.termMonths ?? term;
+  const segurosDelCombo = segurosParaElPlazo(comboItemsDesdeDetalle(apiData.combo)?.insurances ?? [], termMeses);
+  const hasCombo = comboAccessories.length > 0 || segurosDelCombo.length > 0;
+  const accesorios = [
+    ...comboAccessories.map((txt) => ({ txt, seguro: false })),
+    ...segurosDelCombo.map((s) => ({ txt: `${s.name} · ${TEXTO_INCLUIDO_EN_COMBO}`, seguro: true })),
+  ];
   const showIncluye = hasCombo;
 
   const condRows = [
@@ -560,11 +568,11 @@ export function CopiaHomeMobileDetail({
           <>
             {/* Qué incluye — combos (sus productos) e iPhones seminuevos (mica + cable) */}
             {showIncluye && (
-              <Acc title="¿Qué incluye tu equipo?" sub="Accesorios incluidos con tu compra" icon={<Package size={20} />} isOpen={!!open.incluye} onToggle={() => toggle('incluye')}>
-                {accesorios.map((txt, i) => (
+              <Acc title="¿Qué incluye tu equipo?" sub={segurosDelCombo.length > 0 ? 'Accesorios y seguros incluidos con tu compra' : 'Accesorios incluidos con tu compra'} icon={<Package size={20} />} isOpen={!!open.incluye} onToggle={() => toggle('incluye')}>
+                {accesorios.map((it, i) => (
                   <div key={i} className={styles.incluyeItem}>
-                    <span className={styles.incIco}><Package size={18} /></span>
-                    <span className={styles.incTxt}>{txt}</span>
+                    <span className={styles.incIco}>{it.seguro ? <ShieldCheck size={18} /> : <Package size={18} />}</span>
+                    <span className={styles.incTxt}>{it.txt}</span>
                     <span className={styles.incChk}><Check size={14} strokeWidth={3} /></span>
                   </div>
                 ))}
