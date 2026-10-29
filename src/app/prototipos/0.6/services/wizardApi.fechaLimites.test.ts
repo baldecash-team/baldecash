@@ -38,7 +38,7 @@ describe('BAL-4396 · validateField con fecha mínima/máxima', () => {
 
   it('mayor de 18: rechaza a un menor con el mensaje automático', () => {
     const r = validateField(campoFecha({ date_max: '-18y' }), '2010-01-01', {});
-    expect(r).toEqual({ isValid: false, error: 'Elige una fecha hasta el 03/10/2008.' });
+    expect(r).toEqual({ isValid: false, error: 'Elige una fecha hasta el 03/10/2008.', rule: 'date_limit' });
   });
 
   it('acepta justo el borde', () => {

@@ -84,10 +84,10 @@ jest.mock('@/app/prototipos/0.6/services/landingConfigApi', () => ({
 
 
 // Valida como la API salvo cuando el test pide un error.
-let mockErrorDeValidacion: string | null = null;
+let mockErrorDeValidacion: { field: string; rule: string | null; message: string | null } | null = null;
 jest.mock('@/app/prototipos/0.6/services/wizardApi', () => {
   const real = jest.requireActual('@/app/prototipos/0.6/services/wizardApi');
-  return { ...real, validateStep: () => mockErrorDeValidacion };
+  return { ...real, validateStepDetallado: () => mockErrorDeValidacion };
 });
 // Diseño 2 lleva el foco al campo; acá no hay DOM que enfocar.
 jest.mock('@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos', () => ({
@@ -132,13 +132,16 @@ describe.each([
   });
 
   it('form_step_validation_error', () => {
-    mockErrorDeValidacion = 'first_name';
+    mockErrorDeValidacion = { field: 'phone', rule: 'phone', message: 'Ingresa un celular válido' };
     const { result } = renderHook(() => usePasoDelWizard({ stepSlug: 'datos-personales', flujo, diseno2 }));
     act(() => result.current.handleNext());
+    // BAL-5254: lleva la regla que falló y el texto que vio la persona.
     expect(track).toHaveBeenCalledWith('form_step_validation_error', {
       step_code: 'datos_personales',
       step_title: 'Datos personales',
-      error_field: 'first_name',
+      error_field: 'phone',
+      error_rule: 'phone',
+      error_message: 'Ingresa un celular válido',
       diseno,
     });
     expect(track).not.toHaveBeenCalledWith('form_step_complete', expect.anything());
