@@ -82,6 +82,8 @@ interface DocumentNumberFieldProps {
    */
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Diseño 1 (BAL-5261): pista bajo el campo, en la línea del error; el error la reemplaza. */
+  pista?: string | null;
 }
 
 // Mapping from backend field names to frontend field codes
@@ -111,6 +113,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   showError = false,
   onFocus,
   onBlur,
+  pista,
 }) => {
   const { getFieldValue, getFieldError, getFieldLabel, updateField, setFieldError, formData, getAllDynamicOptions } = useWizard();
   // Diseño 2 (BAL-4963): saludo, mensajes por tipo y modal con el estilo del kit.
@@ -649,6 +652,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         showCounter={field.show_counter}
         success={isSuccess}
         isLoading={isChecking || isCheckingLinkEspecial}
+        pista={v2 ? null : pista}
         {...(v2 ? { inputRef } : {})}
       />
 

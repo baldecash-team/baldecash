@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import { PistaD1 } from './PistaD1';
 import {
   useCamposV2,
   ETIQUETA_V2,
@@ -59,6 +60,7 @@ export interface TextInputProps {
    * Diseño 2 (BAL-4960): la pista bajo el campo, cuando el campo también lleva
    * contador: van en la misma fila (pista a la izquierda, número a la
    * derecha). Sin contador la pinta `DynamicWizardStep`, como siempre.
+   * Diseño 1 (BAL-5261): va en la línea del error; si hay error, no se ve.
    */
   pista?: string | null;
   compact?: boolean;
@@ -288,13 +290,15 @@ export const TextInput: React.FC<TextInputProps> = ({
       </div>
 
       {/* Error message & Character counter */}
-      {(!compact || error || verContador) && !hideErrorText && (
+      {(!compact || error || verContador || pista) && !hideErrorText && (
         <div className={`flex items-center justify-between gap-2 ${compact ? '' : 'min-h-[20px]'}`}>
           {error ? (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {error}
             </p>
+          ) : pista ? (
+            <PistaD1 id={id}>{pista}</PistaD1>
           ) : (
             <span />
           )}

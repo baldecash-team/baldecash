@@ -446,7 +446,7 @@ describe('Celular (Diseño 2)', () => {
 });
 
 describe('Diseño 1 no cambia', () => {
-  it('found: sin saludo, sin resumen; los prellenados siguen escondidos y la pista no se pinta', () => {
+  it('found: sin saludo, sin resumen; los prellenados siguen escondidos y la pista configurada se ve', () => {
     poner('document_number', '12345678');
     montar(false);
     act(() => lookup.onPrefillReady!(RENIEC));
@@ -454,7 +454,8 @@ describe('Diseño 1 no cambia', () => {
     expect(document.querySelector('[data-saludo-v2]')).toBeNull();
     expect(document.querySelector('[data-resumen-prellenado-v2]')).toBeNull();
     expect(screen.queryByText('Nombres')).not.toBeInTheDocument();
-    expect(screen.queryByText('Lo usamos para validar tu identidad.')).not.toBeInTheDocument();
+    // BAL-5261: Diseño 1 también pinta la pista configurada (`hint`), con su estilo.
+    expect(screen.getByText('Lo usamos para validar tu identidad.').className).toBe('text-xs text-neutral-500');
   });
 
   it('los mensajes son los del validador, sin la tabla de Brenda', () => {

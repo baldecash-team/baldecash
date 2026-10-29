@@ -32,6 +32,7 @@ import { CheckboxField } from './CheckboxField';
 import { ListaDeVarias, comoLista } from './ListaDeVarias';
 import { DocumentNumberField } from './DocumentNumberField';
 import { AddressAutocompleteField } from './AddressAutocompleteField';
+import { PistaD1 } from './PistaD1';
 import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { mensajeCelularV2 } from '@/app/prototipos/0.6/components/diseno-2/paso1/datosPersonalesV2';
 
@@ -52,6 +53,8 @@ interface DynamicFieldProps {
    * Diseño 2 (BAL-4960): la pista, cuando el campo la pinta junto a su
    * contador de caracteres (ver `pistaVaEnElCampo`). Si no, la pinta
    * `DynamicWizardStep` y esto llega vacío.
+   * Diseño 1 (BAL-5261): llega siempre (`hint`) y la pinta el campo, en la
+   * línea que reserva para su error; si hay error, el error la reemplaza.
    */
   pista?: string | null;
 }
@@ -283,6 +286,18 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
   );
 
 
+  // Diseño 1 (BAL-5261): la pista la pinta cada campo en la línea de su
+  // error. Los que no reservan esa línea (botones, tarjetas, varias, archivo)
+  // la llevan debajo; con error visible no se ve.
+  const pistaD1 = !v2 && pista ? pista : null;
+  const conPistaDebajo = (elemento: React.ReactElement) =>
+    pistaD1 && !error ? (
+      <>
+        {elemento}
+        <PistaD1 id={field.code} className="mt-1">{pistaD1}</PistaD1>
+      </>
+    ) : elemento;
+
   // Common props for all field types
   const commonProps = {
     id: field.code,
@@ -323,6 +338,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           // BAL-5210: entrada y salida como los demás campos (titular y familiar).
           onFocus={handleFocus}
           onBlur={handleBlur}
+          pista={pistaD1}
         />
       );
 
@@ -338,6 +354,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           // BAL-5210: entrada y salida como los demás campos.
           onFocus={handleFocus}
           onBlur={handleBlur}
+          pista={pistaD1}
         />
       );
 
@@ -374,6 +391,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           type="email"
           placeholder={field.placeholder || undefined}
           inputMode="email"
+          pista={pista}
           success={!error && !!value}
         />
       );
@@ -412,6 +430,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           max={field.max_value ?? undefined}
           step={field.step ?? undefined}
           decimales={field.decimal_places}
+          pista={pistaD1}
         />
       );
 
@@ -422,6 +441,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           type="number"
           placeholder={field.placeholder || undefined}
           inputMode="numeric"
+          pista={pista}
           success={!error && !!value}
           startContent={field.prefix || undefined}
           endContent={field.suffix || undefined}
@@ -451,6 +471,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           maxDate={limitesFecha.max}
           limitMessage={limitesFecha.mensaje}
           onLocalErrorChange={onLocalErrorChange ? handleLocalErrorChange : undefined}
+          pista={pistaD1}
         />
       );
 
@@ -463,7 +484,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
 
       if (radioOptions.length <= 3) {
         // 2-3 options: horizontal buttons
-        return (
+        return conPistaDebajo(
           <SegmentedControl
             {...commonProps}
             onChange={onChangeOpcion}
@@ -474,7 +495,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
       }
       if (radioOptions.length <= 5) {
         // 4-5 options: vertical card list (like 0.5)
-        return (
+        return conPistaDebajo(
           <RadioGroup
             {...commonProps}
             onChange={onChangeOpcion}
@@ -492,6 +513,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           placeholder={field.placeholder || 'Selecciona una opción'}
           searchable={false}
           success={!error && !!value}
+          pista={pistaD1}
         />
       );
 
@@ -517,7 +539,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
       });
       if (varias) {
         // BAL-4354: el cliente marca varias; se guarda `string[]`.
-        return (
+        return conPistaDebajo(
           <ListaDeVarias
             id={field.code}
             label={field.label}
@@ -536,10 +558,10 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
         );
       }
       if (forma === 'buttons') {
-        return <SegmentedControl {...commonProps} onChange={onChangeOpcion} options={opcionesLista} success={!error && !!value} />;
+        return conPistaDebajo(<SegmentedControl {...commonProps} onChange={onChangeOpcion} options={opcionesLista} success={!error && !!value} />);
       }
       if (forma === 'cards') {
-        return <RadioGroup {...commonProps} onChange={onChangeOpcion} options={opcionesLista} success={!error && !!value} />;
+        return conPistaDebajo(<RadioGroup {...commonProps} onChange={onChangeOpcion} options={opcionesLista} success={!error && !!value} />);
       }
       return (
         <CascadingSelectField
@@ -550,6 +572,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           disabled={commonProps.disabled}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          pista={pistaD1}
         />
       );
     }
@@ -563,6 +586,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           showCounter={field.show_counter}
           rows={4}
           success={!error && !!value}
+          pista={pistaD1}
         />
       );
 
@@ -591,6 +615,8 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           required={field.required}
           disabled={field.readonly}
           tooltip={tooltip}
+          // Diseño 1 (BAL-5261): la pista va donde el checkbox ya pinta su ayuda.
+          helpText={pistaD1 ?? undefined}
           success={!error && (Array.isArray(checkboxValue) ? checkboxValue.length > 0 : !!checkboxValue)}
           // Este campo vive en el grid de 12 columnas del paso (gap-y-1): sin
           // esta línea reservada, un checkbox simple queda pegado a la
@@ -611,7 +637,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
       const lostFileNames = needsReupload ? formData[field.code]?.label : undefined;
       const files = Array.isArray(fileValue) ? fileValue : [];
 
-      return (
+      return conPistaDebajo(
         <FileUpload
           id={field.code}
           label={field.label}
@@ -639,6 +665,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
           {...commonProps}
           type="text"
           placeholder={field.placeholder || undefined}
+          pista={pista}
           success={!error && !!value}
         />
       );

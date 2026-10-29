@@ -8,6 +8,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Check, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import { PistaD1 } from './PistaD1';
 import {
   useCamposV2,
   ETIQUETA_V2,
@@ -71,6 +72,8 @@ interface SelectInputProps {
   small?: boolean;
   /** Suppress error text below the field (border stays red) */
   hideErrorText?: boolean;
+  /** Diseño 1 (BAL-5261): pista bajo el campo, en la línea del error; el error la reemplaza. */
+  pista?: string | null;
   /** Compact: no reserva alto para el error (solo aparece al haber error) — evita gaps desiguales */
   compact?: boolean;
 }
@@ -99,6 +102,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   small = false,
   hideErrorText = false,
   compact = false,
+  pista,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -522,14 +526,17 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       {v2 && !hideErrorText && error && <ErrorCampoV2 id={`${id}-error`}>{error}</ErrorCampoV2>}
 
       {/* Error message - reserva alto para alinear en grids, salvo en modo compact */}
-      {!v2 && !hideErrorText && (!compact || error) && (
+      {!v2 && !hideErrorText && (!compact || error || pista) && (
         <div className={compact ? '' : 'min-h-[20px]'}>
-          {error && (
+          {error ? (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {error}
             </p>
-          )}
+          ) : pista ? (
+            // Diseño 1 (BAL-5261): la pista, en la línea del error.
+            <PistaD1 id={id}>{pista}</PistaD1>
+          ) : null}
         </div>
       )}
     </div>
