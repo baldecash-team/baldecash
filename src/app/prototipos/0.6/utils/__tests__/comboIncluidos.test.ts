@@ -97,4 +97,17 @@ describe('comboIncluidos', () => {
     expect(idsQueNoSeVendenConElCombo(elegidos, [{ id: '16', insuranceType: 'seguro_robo' }])).toEqual(['16', '99']);
     expect(idsQueNoSeVendenConElCombo(elegidos, [])).toEqual([]);
   });
+
+  it('idsQueNoSeVendenConElCombo: un elegido guardado SIN tipo se resuelve contra lo que se ofrece (E2E bug 3)', () => {
+    const incluidos = [{ id: '16', insuranceType: 'seguro_robo' }];
+    const ofrecidos = [{ id: '23', insuranceType: 'multiasistencia' }];
+    // El mismo plan del combo, sin tipo: se suelta por id.
+    expect(idsQueNoSeVendenConElCombo([{ id: '16' }], incluidos, ofrecidos)).toEqual(['16']);
+    // Otro plan sin tipo que no está a la venta (R7 lo sacó: es del tipo incluido): se suelta.
+    expect(idsQueNoSeVendenConElCombo([{ id: '99' }], incluidos, ofrecidos)).toEqual(['99']);
+    // Sin tipo pero a la venta y de otro tipo: se queda.
+    expect(idsQueNoSeVendenConElCombo([{ id: '23' }], incluidos, ofrecidos)).toEqual([]);
+    // Sin combo con incluidos no se toca nada.
+    expect(idsQueNoSeVendenConElCombo([{ id: '99' }], [], ofrecidos)).toEqual([]);
+  });
 });

@@ -126,15 +126,30 @@ export function separarIncluidos<T extends { includedInCombo?: boolean }>(planes
 /**
  * Seguros elegidos que ya no se pueden vender porque el combo trae ese mismo
  * plan o uno de su tipo (p. ej. quedaron guardados de un equipo anterior).
+ *
+ * Un elegido guardado SIN `insuranceType` (E2E bug 3: `{id, monthlyPrice}`)
+ * se resuelve contra `ofrecidos` (lo que `/insurances?combo_id=` vende ahora):
+ * si está ahí se usa su tipo; si no está, no se vende con este combo (R7 ya
+ * sacó a los de un tipo incluido) y se suelta. Sin esto la barra cobraba un
+ * seguro que el backend descarta.
  */
 export function idsQueNoSeVendenConElCombo(
   elegidos: { id: string; insuranceType?: string | null }[],
   incluidos: { id: string; insuranceType?: string | null }[],
+  ofrecidos?: { id: string; insuranceType?: string | null }[],
 ): string[] {
   if (incluidos.length === 0) return [];
   const ids = new Set(incluidos.map((i) => i.id));
   const tipos = new Set(incluidos.map((i) => i.insuranceType).filter(Boolean));
+  const tipoOfrecido = new Map((ofrecidos ?? []).map((o) => [o.id, o.insuranceType ?? null]));
   return elegidos
-    .filter((e) => ids.has(e.id) || (e.insuranceType != null && tipos.has(e.insuranceType)))
+    .filter((e) => {
+      if (ids.has(e.id)) return true;
+      if (e.insuranceType != null) return tipos.has(e.insuranceType);
+      if (!ofrecidos) return false;
+      if (!tipoOfrecido.has(e.id)) return true;
+      const tipo = tipoOfrecido.get(e.id);
+      return tipo != null && tipos.has(tipo);
+    })
     .map((e) => e.id);
 }

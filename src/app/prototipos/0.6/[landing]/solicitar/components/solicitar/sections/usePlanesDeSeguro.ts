@@ -217,9 +217,10 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
   }, [activo, isRefurbished, landing, deviceType, productPrice, termMonths, previewKey, sessionUuid, comboId, setAvailableMultiasistencia, clave, intento]);
 
   // R7: un seguro elegido que el combo ya trae (mismo plan o mismo tipo) no se
-  // cobra. Solo con el pedido de AHORA cargado: un error no prueba nada.
+  // cobra. Solo con el pedido de AHORA cargado: un error no prueba nada. Uno
+  // guardado sin tipo se resuelve contra lo que se vende ahora (E2E bug 3).
   const incluidosDeAhora = cargado ? planesIncluidos : [];
-  const claveQuitar = idsQueNoSeVendenConElCombo(selectedInsurances, incluidosDeAhora).join(',');
+  const claveQuitar = idsQueNoSeVendenConElCombo(selectedInsurances, incluidosDeAhora, insurancePlans).join(',');
   useEffect(() => {
     if (claveQuitar) removeInsurances(claveQuitar.split(','));
   }, [claveQuitar, removeInsurances]);
