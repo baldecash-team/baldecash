@@ -24,6 +24,7 @@ import type {
 import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/catalog';
 import { mapApiDeferredDelivery, type ApiDeferredDelivery } from '../utils/deferredDelivery';
 import { preferenciaDeSelector } from '../[landing]/catalogo/utils/cardSelectorMode';
+import { segurosDelComboDesdeApi } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -689,6 +690,10 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     comboId,
     comboAddons: (apiProduct as { combo_addons?: CatalogProduct['comboAddons'] }).combo_addons,
     comboAccessories: comboAccessoriesFromApi(apiProduct.combo),
+    comboInsurances: (() => {
+      const seguros = segurosDelComboDesdeApi(apiProduct.combo);
+      return seguros.length > 0 ? seguros : undefined;
+    })(),
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],

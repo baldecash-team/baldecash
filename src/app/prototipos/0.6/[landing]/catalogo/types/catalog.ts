@@ -1,6 +1,7 @@
 // types/catalog.ts - BaldeCash Catalog Types v0.4
 
 import { ReactNode } from 'react';
+import type { SeguroDelCombo } from '@/app/prototipos/0.6/utils/comboIncluidos';
 import type { CatalogFiltersResponse } from '../../../types/filters';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { DeferredDelivery } from '@/app/prototipos/0.6/utils/deferredDelivery';
@@ -709,6 +710,9 @@ export interface CatalogProduct {
    *  El modal de "Lo quiero" los muestra como incluidos y no los ofrece para
    *  agregar (BAL-4957). Solo presente cuando el ítem es un combo. */
   comboAccessories?: { productId: number; name: string; price: number }[];
+  /** Seguros que vienen dentro del combo (S3), con sus versiones por plazo.
+   *  Solo presente cuando el ítem es un combo con seguro. */
+  comboInsurances?: SeguroDelCombo[];
   colors?: ProductColor[]; // NUEVO v0.6: colores disponibles
   deviceType?: CatalogDeviceType; // NUEVO v0.6: tipo de dispositivo para link al detalle
   price: number;
