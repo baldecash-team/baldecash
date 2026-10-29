@@ -24,6 +24,7 @@ import { useWizard } from '../../../context/WizardContext';
 import { PistaD1 } from './PistaD1';
 import { useGooglePlacesAutocomplete } from '../../../hooks/useGooglePlacesAutocomplete';
 import { ParsedAddress } from '../../../../../types/googleMaps';
+import { useAddressTracking, resultadoDeErrorGeo } from '../../../hooks/useAddressTracking';
 
 /**
  * Lo que ve la persona si Google Maps no carga (sin llave, red, cuota…).
@@ -67,6 +68,10 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const [initialModalCoords, setInitialModalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Diseño 2 (BAL-4960): mismo autocompletado, otro vestido.
+  const v2 = useCamposV2();
+  // BAL-5277: eventos de la dirección (sin la dirección ni coordenadas).
+  const registro = useAddressTracking({ fieldName: field.code, diseno: v2 ? 2 : 1, inputRef });
 
   // Get current value and error from wizard context
   const value = (getFieldValue(field.code) as string) || '';
@@ -88,7 +93,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
 
   // Handle place selection
   const handlePlaceSelected = useCallback(
-    async (place: ParsedAddress) => {
+    async (place: ParsedAddress, origen: 'sugerencia' | 'mapa' = 'sugerencia') => {
       // Update the main address field immediately
       updateField(field.code, place.formattedAddress);
 
@@ -99,6 +104,10 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
       if (autoFillFields?.longitude) {
         updateField(autoFillFields.longitude, String(place.longitude));
       }
+
+      // BAL-5277: ¿departamento/provincia/distrito se llenaron solos?
+      const llenaUbigeo = !!(autoFillFields?.department || autoFillFields?.province || autoFillFields?.district);
+      const llenos = { departamento: false, provincia: false, distrito: false };
 
       // Resolve geo-unit text names to IDs via backend, then batch-update
       if (autoFillFields && (place.department || place.province || place.district)) {
@@ -137,16 +146,36 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
             if (batchUpdates.length > 0) {
               updateFieldBatch(batchUpdates);
             }
+            llenos.departamento = !!(autoFillFields.department && resolved.department);
+            llenos.provincia = !!(autoFillFields.province && resolved.province);
+            llenos.distrito = !!(autoFillFields.district && resolved.district);
           }
         } catch (error) {
           console.error('[AddressAutocomplete] Error resolving geo-units:', error);
+          // Sin la dirección: solo qué campo y qué paso falló.
+          Sentry.captureException(error, {
+            level: 'warning',
+            tags: { modulo: 'direccion_autocompletado', accion: 'resolver_ubigeo' },
+            extra: { field_code: field.code },
+          });
         }
       }
+      if (llenaUbigeo) registro.alAutollenarUbigeo(origen, llenos);
 
       // Clear any location error
       setLocationError(null);
     },
-    [field.code, autoFillFields, updateField, updateFieldBatch]
+    [field.code, autoFillFields, updateField, updateFieldBatch, registro]
+  );
+
+  // Elegida desde la lista de Google (el mapa entra por `handleLocationConfirm`).
+  const { alElegirSugerencia } = registro;
+  const handleSuggestionSelected = useCallback(
+    (place: ParsedAddress) => {
+      alElegirSugerencia();
+      return handlePlaceSelected(place, 'sugerencia');
+    },
+    [alElegirSugerencia, handlePlaceSelected]
   );
 
   // Errores de carga/inicio de Google Maps: ya los muestra `googleError`
@@ -159,7 +188,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const { isLoaded, isLoading, error: googleError } = useGooglePlacesAutocomplete({
     inputRef,
     countryRestriction,
-    onPlaceSelected: handlePlaceSelected,
+    onPlaceSelected: handleSuggestionSelected,
     onError: handleError,
   });
 
@@ -291,6 +320,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
 
     if (typeof window === 'undefined' || !navigator.geolocation) {
       setLocationError('Tu navegador no soporta geolocalización');
+      registro.alGeolocalizar('boton', 'no_soportado');
       return;
     }
 
@@ -304,6 +334,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           setInitialModalCoords({ latitude, longitude });
           setIsLocationModalOpen(true);
           setIsRequestingLocation(false);
+          registro.alGeolocalizar('boton', 'concedido');
+          registro.alAbrirMapa('mapa');
         },
         (geoError) => {
           if (typeof console !== 'undefined') {
@@ -327,9 +359,12 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           }
           setLocationError(msg);
           setIsRequestingLocation(false);
+          const geo = resultadoDeErrorGeo(geoError);
+          registro.alGeolocalizar('boton', geo.resultado, geo.motivo);
           // Fall back to opening the modal in permission state so the user can retry.
           setInitialModalCoords(null);
           setIsLocationModalOpen(true);
+          registro.alAbrirMapa('permiso');
         },
         {
           enableHighAccuracy: true,
@@ -343,6 +378,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
       }
       setLocationError('No se pudo iniciar la geolocalización.');
       setIsRequestingLocation(false);
+      registro.alGeolocalizar('boton', 'error', 'otro');
       return;
     }
 
@@ -352,7 +388,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
 
   // Handle location confirmed from modal
   const handleLocationConfirm = (place: ParsedAddress) => {
-    handlePlaceSelected(place);
+    registro.alCerrarMapa(true);
+    handlePlaceSelected(place, 'mapa');
     if (inputRef.current) {
       inputRef.current.value = place.formattedAddress;
     }
@@ -363,6 +400,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateField(field.code, e.target.value);
     setLocationError(null);
+    registro.alEscribir();
   };
 
   // On focus, let iOS handle the native input-into-view scroll.
@@ -376,11 +414,13 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   // automatically, so we simply avoid fighting it.
   const handleFocus = () => {
     setIsFocused(true);
+    registro.alEnfocar();
     onFocus?.();
   };
 
   const handleBlur = () => {
     setIsFocused(false);
+    registro.alSalir();
     onBlur?.();
   };
 
@@ -390,8 +430,6 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const displayError = error || locationError;
   const showDisplayError = !!displayError;
   const showSuccess = !showDisplayError && !!value;
-  // Diseño 2 (BAL-4960): mismo autocompletado, otro vestido.
-  const v2 = useCamposV2();
 
   const getBorderColor = () => {
     if (showDisplayError) return 'border-[#ef4444]';
@@ -447,6 +485,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           onChange={handleInputChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onKeyDown={registro.alTecla}
           placeholder={field.placeholder || 'Escribe tu dirección...'}
           // Sin Maps se escribe a mano: el campo nunca queda trabado.
           disabled={field.readonly || (!isLoaded && !sinMapa)}
@@ -563,11 +602,14 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
       <LocationModal
         isOpen={isLocationModalOpen}
         onClose={() => {
+          registro.alCerrarMapa(false);
           setIsLocationModalOpen(false);
           setInitialModalCoords(null);
         }}
         onConfirm={handleLocationConfirm}
         initialCoords={initialModalCoords}
+        onPinMovido={registro.alMoverPin}
+        onGeolocalizado={(resultado, motivo) => registro.alGeolocalizar('modal', resultado, motivo)}
       />
     </div>
   );

@@ -127,6 +127,19 @@ export type EventType =
   // Buscador de institución y carrera (BAL-5210): qué busca, cuántos
   // resultados y si eligió. Ver `useInstitutionSearchTracking.ts`.
   | 'institution_search'
+  // BAL-5277 — campo dirección (D1 y D2): sugerencias de Google o a mano,
+  // «Usar mi ubicación actual», mapa y ubigeo autollenado. Sin la dirección
+  // ni coordenadas. Ver `useAddressTracking.ts`.
+  | 'address_suggestions_shown'
+  | 'address_suggestion_selected'
+  | 'address_typed_manual'
+  | 'address_geolocate'
+  | 'address_map_open'
+  | 'address_map_pin_move'
+  | 'address_map_confirm'
+  | 'address_map_close'
+  | 'address_ubigeo_autofill'
+  // fin BAL-5277
   // Pedidos de Data para la prueba A/B Home vs Express 2 (BAL-5254), los dos
   // diseños: elige una opción de lista/radio/botones y abre la ayuda de un
   // campo. Ver `useRegistroDeOpciones.ts`.
