@@ -115,6 +115,13 @@
   --d2-cabecera-texto: var(--color-on-primary);
   --d2-cabecera-medio: color-mix(in srgb, var(--color-primary) 85%, black);
   --d2-cabecera-fin: color-mix(in srgb, var(--color-primary) 70%, black);
+
+  /* Confirmación (BAL-5274): texto del botón blanco «Sigue tu solicitud en
+     Zona Estudiantes» (prototipo #2F3CB0 sobre el primary #4352D1) y el
+     degradado de la cabecera de «Tu solicitud». */
+  --d2-boton-cabecera-texto: color-mix(in srgb, var(--color-primary) 80%, black);
+  --d2-resumen-inicio: #EEF0FD;
+  --d2-resumen-fin: #E5F6F1;
 }
 
 [data-theme="nvidia"] {
@@ -214,6 +221,13 @@
   --d2-cabecera-texto: #FFFFFF;
   --d2-cabecera-medio: color-mix(in srgb, var(--color-primary) 50%, black);
   --d2-cabecera-fin: color-mix(in srgb, var(--color-primary) 40%, black);
+
+  /* Botón blanco de la cabecera: el texto en el tono más oscuro del
+     degradado (#2F4A00 sobre blanco, 10:1). Degradado de «Tu solicitud»
+     con las superficies oscuras de marca y de «correcto». */
+  --d2-boton-cabecera-texto: color-mix(in srgb, var(--color-primary) 40%, black);
+  --d2-resumen-inicio: #161826;
+  --d2-resumen-fin: #0F2A26;
 }
 
 /* Placeholders en la landing oscura: el puente de `globals.css` fuerza

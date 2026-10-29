@@ -77,19 +77,18 @@ describe('resumenDeTarjetaV2', () => {
     expect(r!.entrega).toBe('En tu casa · Miraflores');
   });
 
-  it('sin accesorios de regalo: regalo es null', () => {
-    const r = resumenDeTarjetaV2(baseData(), 'pago-diferido');
-    expect(r!.regalo).toBeNull();
+  it('sin accesorios de regalo: no hay regalos', () => {
+    expect(resumenDeTarjetaV2(baseData(), 'pago-diferido')!.regalos).toEqual([]);
   });
 
   it('con un accesorio regalo: lo muestra', () => {
     const data = baseData({ accessories: [{ name: 'Mochila', monthlyQuota: 0, isGift: true }] });
-    expect(resumenDeTarjetaV2(data, 'pago-diferido')!.regalo).toBe('Mochila');
+    expect(resumenDeTarjetaV2(data, 'pago-diferido')!.regalos).toEqual(['Mochila']);
   });
 
   it('accesorio sin isGift no cuenta como regalo', () => {
     const data = baseData({ accessories: [{ name: 'Mouse', monthlyQuota: 20, isGift: false }] });
-    expect(resumenDeTarjetaV2(data, 'pago-diferido')!.regalo).toBeNull();
+    expect(resumenDeTarjetaV2(data, 'pago-diferido')!.regalos).toEqual([]);
   });
 
   it('plan no mensual: usa el periodo real y el sufijo de frecuencia', () => {
@@ -102,19 +101,17 @@ describe('resumenDeTarjetaV2', () => {
   });
 
   // Revisión final I2 (BAL-4969): en main el regalo Dinet sale de `accessories`
-  // y viaja aparte en `regaloBaldecash`; Diseño 2 no lo puede perder.
-  it('regalo Dinet (`regaloBaldecash`): sale en su propio campo', () => {
-    const data = baseData({ regaloBaldecash: { name: 'Mouse Logitech M170', image: '' } });
-    const r = resumenDeTarjetaV2(data, 'pago-diferido')!;
-    expect(r.regaloBaldecash).toBe('Mouse Logitech M170');
-    expect(r.regalo).toBeNull();
+  // y viaja aparte en `regaloBaldecash`; Diseño 2 no lo puede perder. Desde
+  // BAL-5274 va con los demás regalos, en la fila «Regalo».
+  it('regalo Dinet (`regaloBaldecash`): entra en los regalos', () => {
+    const data = baseData({
+      accessories: [{ name: 'Mochila', monthlyQuota: 0, isGift: true }],
+      regaloBaldecash: { name: 'Mouse Logitech M170', image: '' },
+    });
+    expect(resumenDeTarjetaV2(data, 'pago-diferido')!.regalos).toEqual(['Mochila', 'Mouse Logitech M170']);
   });
 
-  it('sin regalo Dinet: regaloBaldecash es null', () => {
-    expect(resumenDeTarjetaV2(baseData({ regaloBaldecash: null }), 'pago-diferido')!.regaloBaldecash).toBeNull();
-  });
-
-  describe('foto, accesorios y seguros (Emilio, 28-oct)', () => {
+  describe('foto del equipo (Emilio, 28-oct)', () => {
     it('trae la foto del equipo cuando es uno solo', () => {
       const r = resumenDeTarjetaV2(baseData({ products: [{ ...baseData().products[0], image: 'https://x/laptop.png' }] }), 'pago-diferido');
       expect(r?.imagen).toBe('https://x/laptop.png');
@@ -126,27 +123,16 @@ describe('resumenDeTarjetaV2', () => {
       expect(resumenDeTarjetaV2(baseData({ products: [{ ...dos, image: 'a' }, { ...dos, image: 'b' }] }), 'pago-diferido')?.imagen).toBeNull();
     });
 
-    it('lista los accesorios pagados y todos los seguros con su cuota; los regalos no entran', () => {
+    it('BAL-5274: el prototipo ya no lista accesorios ni seguros (la cuota total los incluye)', () => {
       const r = resumenDeTarjetaV2(baseData({
-        accessories: [
-          { name: 'Mochila Nova', monthlyQuota: 6 },
-          { name: 'Kaspersky', monthlyQuota: 0, isGift: true },
-        ],
-        insurances: [
-          { name: 'Garantía Extendida', monthlyPrice: 20 },
-          { name: 'Seguro Contra Robo', monthlyPrice: 25 },
-        ],
-      }), 'pago-diferido');
-      expect(r?.accesorios).toEqual([{ nombre: 'Mochila Nova', cuota: 'S/6' }]);
-      expect(r?.seguros).toEqual([
-        { nombre: 'Garantía Extendida', cuota: 'S/20' },
-        { nombre: 'Seguro Contra Robo', cuota: 'S/25' },
-      ]);
-    });
-
-    it('con solo `insurance` (respuesta vieja) igual muestra el seguro', () => {
-      const r = resumenDeTarjetaV2(baseData({ insurance: { name: 'Multiasistencia', monthlyPrice: 6 } }), 'pago-diferido');
-      expect(r?.seguros).toEqual([{ nombre: 'Multiasistencia', cuota: 'S/6' }]);
+        accessories: [{ name: 'Mochila Nova', monthlyQuota: 6 }],
+        insurances: [{ name: 'Seguro Contra Robo', monthlyPrice: 25 }],
+        totalMonthlyQuota: 190,
+      }), 'pago-diferido')!;
+      expect(r).not.toHaveProperty('accesorios');
+      expect(r).not.toHaveProperty('seguros');
+      expect(r.regalos).toEqual([]);
+      expect(r.cuota).toBe('S/190');
     });
   });
 });

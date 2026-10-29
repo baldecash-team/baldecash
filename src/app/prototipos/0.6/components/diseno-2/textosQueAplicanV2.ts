@@ -66,9 +66,3 @@ export function subtituloDelPaso4(paso: PasoMinimo): string {
   if (direccion) return 'Confirma tu dirección y envía tu solicitud.';
   return 'Revisa tu solicitud y envíala.';
 }
-
-/** "laptop", "celular", "tablet"… para "te enviamos tu {equipo}". */
-export function nombreDelEquipoV2(tipo: string | null | undefined): string {
-  const t = String(tipo ?? '').trim().toLocaleLowerCase('es-PE');
-  return t && t !== 'efectivo' ? t : 'equipo';
-}

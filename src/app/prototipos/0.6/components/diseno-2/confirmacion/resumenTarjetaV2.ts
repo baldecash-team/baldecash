@@ -1,14 +1,16 @@
 /**
- * Datos de la tarjeta "Tu solicitud" de `ConfirmacionV2` (F8, BAL-4967):
- * reglas puras a partir de `ReceivedData`, la MISMA data que arma
- * `buildReceivedData` para Diseño 1 (sin endpoints nuevos, sin recalcular
- * nada acá — la cuota y la inicial son las que ya mandó el backend).
+ * Datos de la tarjeta "Tu solicitud" de `ConfirmacionV2` (F8, BAL-4967;
+ * rediseño BAL-5274): reglas puras a partir de `ReceivedData`, la MISMA data
+ * que arma `buildReceivedData` para Diseño 1 (sin recalcular nada acá — la
+ * cuota y la inicial son las que ya mandó el backend).
  *
- * `paymentDay` y `entrega` no están en `ApplicationStatusData` hoy — el
- * `/status` público no los trae (ver nota en el reporte de F8) — así que
- * llegan `undefined` desde `ConfirmacionV2` y esta función ya los omite sin
- * dejar una línea vacía. El parámetro queda listo para cuando el backend los
- * agregue: es el único cambio que haría falta.
+ * El prototipo de BAL-5274 muestra: equipo, plazo con «Sin inicial» o
+ * «Inicial S/X», cuota mensual total, día de pago, entrega y regalo. Ya no
+ * lista accesorios ni protecciones (la cuota total los incluye).
+ *
+ * `paymentDay` y `entrega` no vienen en el `/status` público: los deja el
+ * propio envío en esta pestaña (`datosDelEnvioV2`). Sin ellos (link abierto
+ * en otro equipo) la fila se omite, sin dejar una línea vacía.
  */
 import type { ReceivedData } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/types/received';
 import { displayMonths, periodUnitLabel } from '@/app/prototipos/0.6/utils/paymentTerm';
@@ -22,26 +24,14 @@ export interface ResumenTarjetaV2 {
   sufijoCuota: string;
   diaDePago: string | null;
   entrega: string | null;
-  regalo: string | null;
-  /**
-   * Regalo de BaldeCash (regalo Dinet, `gift_source = "regalo_dinet"`). En
-   * `main` sale de `accessories` y viaja aparte en `regaloBaldecash`; Diseño 1
-   * lo pinta en su bloque «BaldeCash te regala» y Diseño 2 en su propia fila.
-   */
-  regaloBaldecash: string | null;
   /** Foto del equipo (solo con un equipo; con varios no hay una sola foto). */
   imagen: string | null;
-  /** Cada regalo por separado: en celular una cápsula con todos se partía mal. */
+  /**
+   * Cada regalo por separado (una cápsula por regalo: con todos juntos se
+   * partía en celular). Incluye el regalo de BaldeCash (regalo Dinet,
+   * `regaloBaldecash`), que en `main` viaja aparte de `accessories`.
+   */
   regalos: string[];
-  /** Accesorios pagados, con su cuota (los regalos van en `regalo`). */
-  accesorios: LineaConCuota[];
-  /** Seguros elegidos, con su cuota. */
-  seguros: LineaConCuota[];
-}
-
-export interface LineaConCuota {
-  nombre: string;
-  cuota: string;
 }
 
 export interface OpcionesTarjetaV2 {
@@ -95,19 +85,14 @@ export function resumenDeTarjetaV2(
 
   const entrega = opciones.entrega?.trim() || null;
 
-  const regalos = (data.accessories || []).filter((a) => a.isGift).map((a) => a.name);
-  const regalo = regalos.length ? regalos.join(', ') : null;
-
   const regaloBaldecash = data.regaloBaldecash?.name?.trim() || null;
+  const regalos = [
+    ...(data.accessories || []).filter((a) => a.isGift).map((a) => a.name),
+    ...(regaloBaldecash ? [regaloBaldecash] : []),
+  ];
 
-  // Foto, accesorios y seguros elegidos: la persona tiene que ver todo lo que
-  // pidió (Emilio, 28-oct). Montos tal cual los manda el backend.
+  // Foto del equipo: la persona tiene que ver lo que pidió (Emilio, 28-oct).
   const imagen = data.products.length === 1 ? data.products[0].image?.trim() || null : null;
-  const accesorios = (data.accessories || [])
-    .filter((a) => !a.isGift)
-    .map((a) => ({ nombre: a.name, cuota: formatPrecio(a.monthlyQuota, landingSlug) }));
-  const listaDeSeguros = data.insurances?.length ? data.insurances : data.insurance ? [data.insurance] : [];
-  const seguros = listaDeSeguros.map((s) => ({ nombre: s.name, cuota: formatPrecio(s.monthlyPrice, landingSlug) }));
 
   return {
     nombreEquipo,
@@ -117,11 +102,7 @@ export function resumenDeTarjetaV2(
     sufijoCuota,
     diaDePago,
     entrega,
-    regalo,
-    regaloBaldecash,
     regalos,
     imagen,
-    accesorios,
-    seguros,
   };
 }

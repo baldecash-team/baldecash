@@ -1,13 +1,19 @@
 /**
- * F8 (BAL-4967): integración de `ConfirmacionV2` — arma la cabecera, la
- * línea de tiempo (solo en el caso por defecto) y la tarjeta a partir de la
+ * F8 (BAL-4967) y BAL-5274: integración de `ConfirmacionV2` — cabecera con la
+ * barra de pasos de Zona Estudiantes (solo en el caso por defecto), botón a
+ * Zona Estudiantes, tarjeta «Tu solicitud» e «Ir al inicio», a partir de la
  * MISMA `ReceivedData` que usa Diseño 1.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ConfirmacionV2 } from '../ConfirmacionV2';
 import type { ReceivedData } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/types/received';
+
+const mockTrack = jest.fn();
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext', () => ({
+  useEventTrackerOptional: () => ({ track: mockTrack }),
+}));
 
 function baseData(overrides: Partial<ReceivedData> = {}): ReceivedData {
   return {
@@ -26,50 +32,89 @@ function baseData(overrides: Partial<ReceivedData> = {}): ReceivedData {
   };
 }
 
+function pasos(): string[] {
+  const lista = screen.queryByRole('list', { name: 'Pasos de tu solicitud' });
+  return lista ? Array.from(lista.querySelectorAll('li')).map((li) => li.textContent ?? '') : [];
+}
+
 describe('ConfirmacionV2', () => {
-  it('caso por defecto: cabecera + línea de tiempo (4 hitos) + tarjeta', () => {
-    render(<ConfirmacionV2 data={baseData()} landing="pago-diferido" />);
+  beforeEach(() => mockTrack.mockClear());
+
+  it('caso por defecto sin inicial: cabecera, 4 pasos, Zona Estudiantes y tarjeta', () => {
+    render(<ConfirmacionV2 data={baseData()} landing="home" telefono="9XX XXX 321" />);
     expect(screen.getByText(/Solicitud N\.° APP-2026-00123/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '¡Recibimos tu solicitud, Brenda!' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '¿Qué pasa ahora?' })).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
-    expect(screen.getByText('Laptop Lenovo V15')).toBeInTheDocument();
+    expect(pasos()).toEqual(['Recibida', 'Evaluación', '3Firma', '4Entrega']);
+    expect(screen.getByText(/Paso 2 de 4:/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ })).toHaveAttribute('target', '_blank');
+    expect(screen.getByText('24 meses · Sin inicial')).toBeInTheDocument();
+    // Sin la línea de tiempo vieja ni horas.
+    expect(screen.queryByRole('heading', { name: '¿Qué pasa ahora?' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/horas/)).not.toBeInTheDocument();
   });
 
-  it('sin nombre: título sin nombre', () => {
-    render(<ConfirmacionV2 data={baseData({ userName: 'Usuario' })} landing="pago-diferido" />);
-    expect(screen.getByRole('heading', { name: '¡Recibimos tu solicitud!' })).toBeInTheDocument();
+  it('con inicial: 5 pasos con «Cuota inicial» y «Inicial S/210» en la tarjeta', () => {
+    render(<ConfirmacionV2 data={baseData({ initialPayment: 210 })} landing="home" />);
+    expect(pasos()).toEqual(['Recibida', 'Evaluación', '3Firma', '4Cuota inicial', '5Entrega']);
+    expect(screen.getByText(/Paso 2 de 5:/)).toBeInTheDocument();
+    expect(screen.getByText('24 meses · Inicial S/210')).toBeInTheDocument();
   });
 
-  it('firmada: sin línea de tiempo (sería falso decir "estamos revisando")', () => {
+  it('pasa día de pago y entrega a la tarjeta', () => {
     render(
       <ConfirmacionV2
         data={baseData()}
-        landing="pago-diferido"
+        landing="home"
+        tarjeta={{ paymentDay: 3, entrega: 'En tu casa · Miraflores' }}
+      />,
+    );
+    expect(screen.getByText('Día 3 de cada mes')).toBeInTheDocument();
+    expect(screen.getByText('En tu casa · Miraflores')).toBeInTheDocument();
+  });
+
+  it('sin nombre: título sin nombre', () => {
+    render(<ConfirmacionV2 data={baseData({ userName: 'Usuario' })} landing="home" />);
+    expect(screen.getByRole('heading', { name: '¡Recibimos tu solicitud!' })).toBeInTheDocument();
+  });
+
+  it('firmada: sin barra de pasos (sería falso decir «en evaluación»), con su subtítulo', () => {
+    render(
+      <ConfirmacionV2
+        data={baseData()}
+        landing="home"
         cierre={{ firmada: true, pendiente: { pago_inicial: false, formulario: false } }}
       />,
     );
     expect(screen.getByRole('heading', { name: '¡Solicitud firmada, Brenda!' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: '¿Qué pasa ahora?' })).not.toBeInTheDocument();
-    // La tarjeta se conserva igual.
+    expect(pasos()).toEqual([]);
+    expect(screen.getByText(/Tu contrato quedó firmado/)).toBeInTheDocument();
     expect(screen.getByText('Laptop Lenovo V15')).toBeInTheDocument();
   });
 
-  it('la hora del primer hito sale de `submittedAt` (no del fallback "ahora" de `ReceivedData`)', () => {
-    render(<ConfirmacionV2 data={baseData()} landing="pago-diferido" submittedAt="2026-10-22T08:38:00-05:00" />);
-    expect(screen.getByText(/Hoy, \d{2}:\d{2}/)).toBeInTheDocument();
-  });
-
-  it('sin `submittedAt`: el primer hito dice solo "Hoy"', () => {
-    render(<ConfirmacionV2 data={baseData()} landing="pago-diferido" />);
-    const items = screen.getAllByRole('listitem');
-    expect(items[0]).toHaveTextContent('Hoy');
+  it('sin Baldi ni el bloque de WhatsApp de antes', () => {
+    render(<ConfirmacionV2 data={baseData()} landing="home" />);
+    expect(screen.queryByLabelText(/Baldecito/)).not.toBeInTheDocument();
+    expect(screen.queryByText('¿Tienes alguna duda?')).not.toBeInTheDocument();
   });
 
   it('muestra el `otpCta` donde iba', () => {
-    render(
-      <ConfirmacionV2 data={baseData()} landing="pago-diferido" otpCta={<div>Valida tu correo</div>} />,
-    );
+    render(<ConfirmacionV2 data={baseData()} landing="home" otpCta={<div>Valida tu correo</div>} />);
     expect(screen.getByText('Valida tu correo')).toBeInTheDocument();
+  });
+
+  it('«Ir al inicio» emite los mismos eventos que el «Volver al inicio» de antes', () => {
+    const onGoToHome = jest.fn();
+    render(<ConfirmacionV2 data={baseData()} landing="home" onGoToHome={onGoToHome} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ir al inicio' }));
+    expect(onGoToHome).toHaveBeenCalledTimes(1);
+    expect(mockTrack).toHaveBeenCalledWith('cta_click', { cta_name: 'go_home', location: 'confirmacion' });
+  });
+
+  it('el clic en Zona Estudiantes se registra (cta_click + aviso para confirmation_cta_click)', () => {
+    const onZonaEstudiantes = jest.fn();
+    render(<ConfirmacionV2 data={baseData()} landing="home" onZonaEstudiantes={onZonaEstudiantes} />);
+    fireEvent.click(screen.getByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ }));
+    expect(mockTrack).toHaveBeenCalledWith('cta_click', { cta_name: 'zona_estudiantes', location: 'confirmacion' });
+    expect(onZonaEstudiantes).toHaveBeenCalledTimes(1);
   });
 });
