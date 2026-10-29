@@ -5,6 +5,7 @@
  * Cards con selección visual destacada
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useRef } from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -116,7 +117,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
     return (
       <div id={id} className="flex flex-col gap-2.5">
         <span id={`${id}-label`} className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </span>
@@ -176,7 +177,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
     <div id={id} className="space-y-3">
       {/* Label */}
       <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
+        {conNombreEnNegrita(label)}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>

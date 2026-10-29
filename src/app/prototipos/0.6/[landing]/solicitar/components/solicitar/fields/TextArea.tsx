@@ -5,6 +5,7 @@
  * Label arriba, textarea con bordes redondeados
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useState } from 'react';
 import { Check, AlertCircle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -87,13 +88,13 @@ export const TextArea: React.FC<TextAreaProps> = ({
       {/* Label */}
       {v2 ? (
         <label className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
       ) : (
         <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>

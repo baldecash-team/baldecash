@@ -80,14 +80,40 @@ export function vinculoDe(formValues: Record<string, unknown> | null | undefined
   return String(Array.isArray(v) ? v[0] ?? '' : v ?? '').trim().toLowerCase();
 }
 
+/**
+ * Separador invisible que rodea el nombre del familiar en la ETIQUETA, para
+ * pintarlo en negrita («Celular de **tu mamá**», pedido de Brenda). Lo corta
+ * `conNombreEnNegrita` al dibujar; donde no se corta, no se ve.
+ */
+export const NEGRITA = '⁣';
+
+function reemplazarMarcas(texto: string, vinculo: string | null | undefined, envolver: boolean): string {
+  const nombre = nombreDelVinculo(vinculo);
+  const n = envolver ? `${NEGRITA}${nombre}${NEGRITA}` : nombre;
+  return texto.replace(MARCAS, (_m, marca: string) => {
+    const mayuscula = marca.charAt(0) === 'T' || marca.charAt(0) === 'D';
+    if (marca.toLowerCase() === 'de_tu_familiar') return `${mayuscula ? 'De' : 'de'} ${n}`;
+    if (!mayuscula) return n;
+    return envolver ? `${NEGRITA}${conMayuscula(nombre)}${NEGRITA}` : conMayuscula(nombre);
+  });
+}
+
 /** Reemplaza las marcas del texto según el vínculo. Sin marcas, el mismo texto. */
 export function textoSegunVinculo<T extends string | null | undefined>(texto: T, vinculo?: string | null): T {
   if (!texto || !texto.includes('{')) return texto;
-  const nombre = nombreDelVinculo(vinculo);
-  return texto.replace(MARCAS, (_m, marca: string) => {
-    const base = marca.toLowerCase() === 'de_tu_familiar' ? `de ${nombre}` : nombre;
-    return marca.charAt(0) === 'T' || marca.charAt(0) === 'D' ? conMayuscula(base) : base;
-  }) as T;
+  return reemplazarMarcas(texto, vinculo, false) as T;
+}
+
+/** Como `textoSegunVinculo`, pero marca el nombre para la negrita (solo etiquetas). */
+export function etiquetaSegunVinculo<T extends string | null | undefined>(texto: T, vinculo?: string | null): T {
+  if (!texto || !texto.includes('{')) return texto;
+  return reemplazarMarcas(texto, vinculo, true) as T;
+}
+
+/** El texto sin las marcas de negrita (para comparar o mandar a analítica). */
+export function sinNegrita<T extends string | null | undefined>(texto: T): T {
+  if (!texto || !texto.includes(NEGRITA)) return texto;
+  return texto.split(NEGRITA).join('') as T;
 }
 
 /** ¿El texto trae alguna marca? */
@@ -122,7 +148,7 @@ export function campoSegunVinculo(field: WizardField, vinculo?: string | null): 
   const t = <T extends string | null | undefined>(x: T) => textoSegunVinculo(x, vinculo);
   const resuelto: WizardField = {
     ...field,
-    label: t(field.label),
+    label: etiquetaSegunVinculo(field.label, vinculo),
     placeholder: t(field.placeholder),
     help_text: ayuda
       ? { ...ayuda, title: t(ayuda.title), description: t(ayuda.description), recommendation: t(ayuda.recommendation) }

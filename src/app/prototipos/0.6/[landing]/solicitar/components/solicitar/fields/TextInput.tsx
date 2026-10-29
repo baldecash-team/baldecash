@@ -5,6 +5,7 @@
  * Label arriba, input con bordes redondeados
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useState } from 'react';
 import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -195,7 +196,7 @@ export const TextInput: React.FC<TextInputProps> = ({
     return (
       <div id={id} className="flex flex-col gap-1.5">
         <label htmlFor={`${id}-input`} className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
@@ -243,7 +244,7 @@ export const TextInput: React.FC<TextInputProps> = ({
     <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
       {/* Label */}
       <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
-        {label}
+        {conNombreEnNegrita(label)}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>

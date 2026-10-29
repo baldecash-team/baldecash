@@ -5,6 +5,7 @@
  * Based on v0.3 FileUploadV3
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useCallback, useState, useRef } from 'react';
 import { Upload, X, FileText, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -191,7 +192,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     <div id={id} className="space-y-2">
       {/* Label */}
       <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
+        {conNombreEnNegrita(label)}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
