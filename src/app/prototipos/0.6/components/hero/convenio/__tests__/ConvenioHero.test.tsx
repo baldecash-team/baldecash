@@ -79,3 +79,38 @@ describe('ConvenioHero — switch de contenido', () => {
     expect(screen.queryByTestId('hero-image-cta')).not.toBeInTheDocument();
   });
 });
+
+describe('ConvenioHero — imagen de celular', () => {
+  it('con imagen de celular: el navegador la elige hasta 639px', () => {
+    const { container } = renderHero({ backgroundMobileImage: 'https://s3/hero-mobile.webp' });
+    const mobile = container.querySelector('picture source[media="(max-width: 639px)"]');
+    expect(mobile).not.toBeNull();
+    expect(mobile).toHaveAttribute('srcset', 'https://s3/hero-mobile.webp');
+  });
+
+  it('en celular usa el encuadre de celular sobre la imagen de celular', () => {
+    (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: true, media: query, onchange: null,
+      addListener: jest.fn(), removeListener: jest.fn(),
+      addEventListener: jest.fn(), removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
+    renderHero({
+      backgroundMobileImage: 'https://s3/hero-mobile.webp',
+      backgroundPositionX: 100, backgroundPositionY: 33,
+      mobilePositionX: 100, mobilePositionY: 84, mobileZoom: 1,
+    });
+    expect(screen.getByTestId('hero-bg-img').style.objectPosition).toBe('100% 84%');
+    (window.matchMedia as jest.Mock).mockImplementation((query: string) => ({
+      matches: false, media: query, onchange: null,
+      addListener: jest.fn(), removeListener: jest.fn(),
+      addEventListener: jest.fn(), removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
+  });
+
+  it('sin imagen de celular: no hay <picture> (no-regresion)', () => {
+    const { container } = renderHero();
+    expect(container.querySelector('picture')).toBeNull();
+  });
+});
