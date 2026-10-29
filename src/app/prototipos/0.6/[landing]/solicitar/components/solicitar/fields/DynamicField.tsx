@@ -12,6 +12,8 @@ import { isPersonNameField, sanitizeNameInput } from '../../../../../services/na
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
+import { largoAlSalir } from '../../../utils/largoAlSalir';
+import { CampoDelRegistroContext, useRegistroDeOpciones } from '../../../hooks/useRegistroDeOpciones';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
 import { resolverForma } from './formaDeLista';
@@ -65,10 +67,21 @@ export function pistaVaEnElCampo(field: WizardField, v2: boolean): boolean {
     && contadorVisible(field.show_counter, v2);
 }
 
-export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange, pista }) => {
+/**
+ * BAL-5254: el globo de ayuda (`FieldTooltip`) de cualquier campo sabe de qué
+ * campo es por este contexto, para registrar `help_open`.
+ */
+export const DynamicField: React.FC<DynamicFieldProps> = (props) => (
+  <CampoDelRegistroContext.Provider value={props.field.code}>
+    <DynamicFieldInterno {...props} />
+  </CampoDelRegistroContext.Provider>
+);
+
+const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange, pista }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
   const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
+  const { onOptionSelected } = useRegistroDeOpciones();
 
   // Get current value and error
   const value = getFieldValue(field.code) as string;
@@ -238,7 +251,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     const hasValue = Array.isArray(currentValue)
       ? currentValue.length > 0
       : !!currentValue;
-    onFieldBlur(field.code, hasValue);
+    // BAL-5254: en celular y documento (de la persona y del familiar) también
+    // el largo de lo escrito; en los demás campos, como siempre.
+    const largo = largoAlSalir(field.code, currentValue);
+    if (largo === undefined) onFieldBlur(field.code, hasValue);
+    else onFieldBlur(field.code, hasValue, largo);
   }, [field.code, getFieldValue, onFieldBlur]);
 
   // Diseño 2: reenvía el error local del campo (DateInput, AddressAutocompleteField)
@@ -271,6 +288,13 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       isLockedFromLead,
     tooltip,
     helpText: undefined as string | undefined,
+  };
+
+  // Listas, radios y botones de una opción: además de guardar, registran la
+  // opción elegida (`option_selected`, BAL-5254). `value` aún es la anterior.
+  const onChangeOpcion = (newValue: string) => {
+    onOptionSelected(field.code, newValue, value);
+    commonProps.onChange(newValue);
   };
 
   // Render based on field type
@@ -427,6 +451,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         return (
           <SegmentedControl
             {...commonProps}
+            onChange={onChangeOpcion}
             options={radioOptions}
             success={!error && !!value}
           />
@@ -437,6 +462,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         return (
           <RadioGroup
             {...commonProps}
+            onChange={onChangeOpcion}
             options={radioOptions}
             success={!error && !!value}
           />
@@ -446,6 +472,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <SelectInput
           {...commonProps}
+          onChange={onChangeOpcion}
           options={radioOptions}
           placeholder={field.placeholder || 'Selecciona una opción'}
           searchable={false}
@@ -494,10 +521,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         );
       }
       if (forma === 'buttons') {
-        return <SegmentedControl {...commonProps} options={opcionesLista} success={!error && !!value} />;
+        return <SegmentedControl {...commonProps} onChange={onChangeOpcion} options={opcionesLista} success={!error && !!value} />;
       }
       if (forma === 'cards') {
-        return <RadioGroup {...commonProps} options={opcionesLista} success={!error && !!value} />;
+        return <RadioGroup {...commonProps} onChange={onChangeOpcion} options={opcionesLista} success={!error && !!value} />;
       }
       return (
         <CascadingSelectField

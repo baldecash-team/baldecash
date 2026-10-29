@@ -41,7 +41,7 @@ import { WizardStepId } from '../../../types/solicitar';
 import {
   WizardStep,
   WizardMotivational,
-  validateStep as validateStepFields,
+  validateStepDetallado,
   evaluateFieldVisibility,
 } from '../../../../../services/wizardApi';
 
@@ -447,9 +447,9 @@ export function usePasoDelWizard(opciones: {
   }, [step, tracker, navigation.currentIndex, steps.length, diseno2, disenoResuelto, vista]);
 
   // Validate all fields in the step
-  const validateStep = useCallback((): string | null => {
+  const validateStep = useCallback(() => {
     if (!step) return null;
-    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2 });
+    return validateStepDetallado(step, formValues, setFieldError, getAllDynamicOptions(), { diseno2 });
   }, [step, formValues, setFieldError, getAllDynamicOptions, diseno2]);
 
   // Doble clic en "Continuar"/"Enviar": avanza una sola vez (E2E BAL-4969).
@@ -476,12 +476,17 @@ export function usePasoDelWizard(opciones: {
       return;
     }
 
-    const firstErrorField = validateStep();
-    if (firstErrorField) {
+    const primerError = validateStep();
+    if (primerError) {
+      const firstErrorField = primerError.field;
+      // `error_rule` y `error_message` (BAL-5254): qué regla falló y el texto
+      // que vio la persona. Nunca lo que escribió.
       tracker?.track('form_step_validation_error', {
         step_code: step?.code,
         step_title: step?.title,
         error_field: firstErrorField,
+        error_rule: primerError.rule,
+        error_message: primerError.message,
         diseno: diseno2 ? 2 : 1,
       });
       // Diseño 2: además del scroll, el foco va al campo (teclado y lector

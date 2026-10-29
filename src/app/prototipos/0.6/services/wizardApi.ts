@@ -968,6 +968,14 @@ function joinRucPrefixesForMessage(prefixes: string[]): string {
 export interface FieldValidationResult {
   isValid: boolean;
   error: string | null;
+  /**
+   * Regla que falló (BAL-5254): el `validation_type` del API (`required`,
+   * `phone`, `dni`, `not_equals_field`, …) o, para los chequeos propios del
+   * campo, `min_length` / `max_length` / `pattern` / `number` / `min_value` /
+   * `max_value` / `decimal_places` / `email` / `allowed_email_domains` /
+   * `date_limit`. Solo viene cuando `isValid` es false.
+   */
+  rule?: string;
 }
 
 /** Cómo valida quien llama, según el diseño de la solicitud. */
@@ -1014,10 +1022,10 @@ export function validateField(
   const mensajeRequerido = opciones.diseno2 ? field.required_message : undefined;
   // Para checkbox simple, "false" cuenta como no marcado → requerido debe fallar
   if (field.required && field.type === 'checkbox' && !Array.isArray(value) && trimmedValue === 'false') {
-    return { isValid: false, error: mensajeRequerido || 'Debes marcar esta casilla para continuar' };
+    return { isValid: false, error: mensajeRequerido || 'Debes marcar esta casilla para continuar', rule: 'required' };
   }
   if (field.required && isEmpty) {
-    return { isValid: false, error: mensajeRequerido || 'Este campo es requerido' };
+    return { isValid: false, error: mensajeRequerido || 'Este campo es requerido', rule: 'required' };
   }
 
   // Si está vacío y no es requerido, es válido
@@ -1039,6 +1047,7 @@ export function validateField(
         return {
           isValid: false,
           error: v.error_message || `Mínimo ${v.min_length} caracteres`,
+          rule: 'min_length',
         };
       }
 
@@ -1046,6 +1055,7 @@ export function validateField(
         return {
           isValid: false,
           error: v.error_message || `Máximo ${v.max_length} caracteres`,
+          rule: 'max_length',
         };
       }
 
@@ -1056,6 +1066,7 @@ export function validateField(
             return {
               isValid: false,
               error: v.error_message || 'Formato inválido',
+              rule: 'pattern',
             };
           }
         } catch {
@@ -1082,11 +1093,11 @@ export function validateField(
 
   if (!field.validation_source_field && !largoLoDecideElTipo) {
     if (field.min_length && trimmedValue.length < field.min_length) {
-      return { isValid: false, error: `Mínimo ${field.min_length} caracteres` };
+      return { isValid: false, error: `Mínimo ${field.min_length} caracteres`, rule: 'min_length' };
     }
 
     if (field.max_length && trimmedValue.length > field.max_length) {
-      return { isValid: false, error: `Máximo ${field.max_length} caracteres` };
+      return { isValid: false, error: `Máximo ${field.max_length} caracteres`, rule: 'max_length' };
     }
   }
 
@@ -1094,21 +1105,21 @@ export function validateField(
   if (field.type === 'currency' || field.type === 'number') {
     const numValue = Number(trimmedValue);
     if (isNaN(numValue)) {
-      return { isValid: false, error: 'Ingresa un valor numérico válido' };
+      return { isValid: false, error: 'Ingresa un valor numérico válido', rule: 'number' };
     }
     const effectiveMin = getEffectiveMinValue(field, formValues);
     const effectiveMax = getEffectiveMaxValue(field, formValues);
     if (effectiveMin !== null && numValue < effectiveMin) {
-      return { isValid: false, error: `El valor mínimo es ${effectiveMin}` };
+      return { isValid: false, error: `El valor mínimo es ${effectiveMin}`, rule: 'min_value' };
     }
     if (effectiveMax !== null && numValue > effectiveMax) {
-      return { isValid: false, error: `El valor máximo es ${effectiveMax}` };
+      return { isValid: false, error: `El valor máximo es ${effectiveMax}`, rule: 'max_value' };
     }
     // BAL-4400: campo «sin decimales». La web no deja escribirlos, pero un
     // valor guardado de antes de que el panel cambiara la opción sí puede
     // traerlos; el servidor también lo rechaza al enviar.
     if (field.type === 'currency' && field.decimal_places === 0 && !Number.isInteger(numValue)) {
-      return { isValid: false, error: 'Solo soles enteros, sin céntimos.' };
+      return { isValid: false, error: 'Solo soles enteros, sin céntimos.', rule: 'decimal_places' };
     }
   }
 
@@ -1116,7 +1127,7 @@ export function validateField(
   // en el form builder: el backend no puede entregar un address mal formado y el
   // postulante se queda esperando un código que nunca llega.
   if (field.type === 'email' && !isValidEmail(trimmedValue)) {
-    return { isValid: false, error: 'Ingresa un correo válido (ejemplo: nombre@dominio.com)' };
+    return { isValid: false, error: 'Ingresa un correo válido (ejemplo: nombre@dominio.com)', rule: 'email' };
   }
 
   // 3.c BAL-4343: dominios de correo permitidos por paso (solo si el formato ya es válido).
@@ -1129,7 +1140,7 @@ export function validateField(
     const mensaje =
       field.allowed_email_domains_message ||
       `Usa un correo que termine en ${field.allowed_email_domains.map((d) => `@${d}`).join(' o ')}`;
-    return { isValid: false, error: mensaje };
+    return { isValid: false, error: mensaje, rule: 'allowed_email_domains' };
   }
 
   // 3.d BAL-4396: fecha mínima / máxima exactas del campo.
@@ -1140,7 +1151,7 @@ export function validateField(
       field.date_max,
       field.date_limit_message
     );
-    if (errorFecha) return { isValid: false, error: errorFecha };
+    if (errorFecha) return { isValid: false, error: errorFecha, rule: 'date_limit' };
   }
 
   // 4. Validación de pattern (regex)
@@ -1148,7 +1159,7 @@ export function validateField(
     try {
       const regex = new RegExp(field.pattern);
       if (!regex.test(trimmedValue)) {
-        return { isValid: false, error: 'Formato inválido' };
+        return { isValid: false, error: 'Formato inválido', rule: 'pattern' };
       }
     } catch {
       // Si el pattern es inválido, ignorar
@@ -1283,7 +1294,7 @@ export function validateField(
     }
 
     if (hasError) {
-      return { isValid: false, error: errorMessage };
+      return { isValid: false, error: errorMessage, rule: validation.type };
     }
   }
 
@@ -1307,7 +1318,31 @@ export function validateStep(
   dynamicOptionsCache?: Record<string, CascadingOption[]>,
   opciones: OpcionesDeValidacion = {}
 ): string | null {
-  let firstErrorField: string | null = null;
+  return validateStepDetallado(step, formValues, setFieldError, dynamicOptionsCache, opciones)?.field ?? null;
+}
+
+/** Primer error de un paso: el campo, la regla que falló y el texto mostrado. */
+export interface PrimerErrorDelPaso {
+  field: string;
+  /** `FieldValidationResult.rule`; `null` si la validación no la informó. */
+  rule: string | null;
+  /** El texto que vio la persona (nunca lo que escribió). */
+  message: string | null;
+}
+
+/**
+ * Igual que `validateStep` (mismos errores marcados en los campos), pero
+ * devuelve además la regla y el mensaje del primer error, para el evento
+ * `form_step_validation_error` (BAL-5254).
+ */
+export function validateStepDetallado(
+  step: WizardStep,
+  formValues: Record<string, string | string[]>,
+  setFieldError: (fieldCode: string, error: string | null) => void,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>,
+  opciones: OpcionesDeValidacion = {}
+): PrimerErrorDelPaso | null {
+  let primerError: PrimerErrorDelPaso | null = null;
 
   // Map prefill target fields to their trigger field code (the field that runs the lookup).
   // Works for both legacy (prefill_fields Record) and new (fields_to_fill array) shapes.
@@ -1343,12 +1378,12 @@ export function validateStep(
     // Siempre actualizar el error (limpiar si es válido, setear si hay error)
     setFieldError(field.code, result.error);
 
-    if (!result.isValid && !firstErrorField) {
-      firstErrorField = field.code;
+    if (!result.isValid && !primerError) {
+      primerError = { field: field.code, rule: result.rule ?? null, message: result.error };
     }
   }
 
-  return firstErrorField;
+  return primerError;
 }
 
 // ============================================================================

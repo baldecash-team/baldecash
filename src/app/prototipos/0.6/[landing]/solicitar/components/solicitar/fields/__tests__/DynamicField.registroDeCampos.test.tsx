@@ -73,12 +73,28 @@ describe('DynamicField — entrada y salida de DNI y dirección (BAL-5210)', () 
     p.onFocus!();
     expect(mockOnFieldFocus).toHaveBeenCalledWith(code);
 
+    // El documento (de la persona y del familiar) suma el largo (BAL-5254);
+    // la dirección no.
+    const conLargo = code !== 'address';
     p.onBlur!();
-    expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, false);
+    if (conLargo) expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, false, 0);
+    else expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, false);
 
-    // Solo dice si había algo escrito, nunca qué.
+    // Solo dice si había algo escrito y cuánto, nunca qué.
     mockValores[code] = '70020010';
     p.onBlur!();
-    expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, true);
+    if (conLargo) expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, true, 8);
+    else expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, true);
+  });
+
+  it.each(['phone', 'supporter_phone'])('%s suma el largo al salir (BAL-5254)', (code) => {
+    render(<DynamicField field={campo(code, 'phone')} stepOrder={1} />);
+    mockValores[code] = '98765';
+    // El celular es un input normal: busca el input y dispara blur.
+    const input = document.querySelector('input');
+    expect(input).not.toBeNull();
+    input!.focus();
+    input!.blur();
+    expect(mockOnFieldBlur).toHaveBeenLastCalledWith(code, true, 5);
   });
 });

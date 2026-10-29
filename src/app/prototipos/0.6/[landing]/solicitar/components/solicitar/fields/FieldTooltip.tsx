@@ -14,10 +14,11 @@
  * - FieldTooltipInfo: Structured { title, description, recommendation? }
  */
 
-import React, { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useContext, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
+import { CampoDelRegistroContext, useRegistroDeOpciones } from '../../../hooks/useRegistroDeOpciones';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -120,6 +121,16 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
     });
     setAlignment(newAlignment);
   }, []);
+
+  // BAL-5254: abrir la ayuda de un campo del formulario registra `help_open`
+  // (una vez por apertura). Fuera del formulario no hay campo y no registra.
+  const campoDelRegistro = useContext(CampoDelRegistroContext);
+  const { onHelpOpen } = useRegistroDeOpciones();
+  useEffect(() => {
+    if (isOpen && campoDelRegistro) onHelpOpen(campoDelRegistro);
+    // Solo al abrir: un cambio de campo o de tracker no es otra apertura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Recalculate position when opening
   useEffect(() => {
