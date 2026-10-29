@@ -76,7 +76,7 @@ describe('comboIncluidos', () => {
   it('separarIncluidos', () => {
     const a = { id: '16', includedInCombo: true };
     const b = { id: '23', includedInCombo: false };
-    const c = { id: '24' };
+    const c: { id: string; includedInCombo?: boolean } = { id: '24' };
     expect(separarIncluidos([a, b, c])).toEqual({ incluidos: [a], ofrecidos: [b, c] });
   });
 
