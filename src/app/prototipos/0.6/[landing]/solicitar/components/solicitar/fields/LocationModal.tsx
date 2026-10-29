@@ -16,6 +16,11 @@ import { MapPin, Loader2, AlertCircle, Check, Navigation } from 'lucide-react';
 import { ModalV2 } from '@/app/prototipos/0.6/components/diseno-2/ModalV2';
 import { ParsedAddress } from '../../../../../types/googleMaps.d';
 import { parseGooglePlace } from '../../../utils/parseGooglePlace';
+import {
+  resultadoDeErrorGeo,
+  type ResultadoGeolocalizacion,
+  type MotivoErrorGeolocalizacion,
+} from '../../../hooks/useAddressTracking';
 
 type ModalState = 'permission' | 'loading' | 'map' | 'error';
 
@@ -30,6 +35,10 @@ interface LocationModalProps {
    * the first tap, not on the second one inside the modal).
    */
   initialCoords?: { latitude: number; longitude: number } | null;
+  /** BAL-5277: la persona arrastró el pin (el campo lo cuenta una vez por apertura). */
+  onPinMovido?: () => void;
+  /** BAL-5277: resultado de «Permitir ubicación» / «Intentar de nuevo» (sin coordenadas). */
+  onGeolocalizado?: (resultado: ResultadoGeolocalizacion, motivo?: MotivoErrorGeolocalizacion) => void;
 }
 
 /**
@@ -76,7 +85,9 @@ const LocationModalContent: React.FC<{
   onClose: () => void;
   onConfirm: (place: ParsedAddress) => void;
   initialCoords?: { latitude: number; longitude: number } | null;
-}> = ({ onClose, onConfirm, initialCoords }) => {
+  onPinMovido?: () => void;
+  onGeolocalizado?: LocationModalProps['onGeolocalizado'];
+}> = ({ onClose, onConfirm, initialCoords, onPinMovido, onGeolocalizado }) => {
   const [state, setState] = useState<ModalState>(
     initialCoords ? 'map' : 'permission'
   );
@@ -90,6 +101,9 @@ const LocationModalContent: React.FC<{
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  // El listener del pin se arma una vez con el mapa: lee el aviso por ref.
+  const onPinMovidoRef = useRef(onPinMovido);
+  onPinMovidoRef.current = onPinMovido;
 
   // Reset state when modal opens. If initialCoords were provided by the caller,
   // start directly on 'map' so we skip the in-modal permission screen entirely
@@ -208,6 +222,7 @@ const LocationModalContent: React.FC<{
         const newLng = typeof pos.lng === 'function' ? pos.lng() : pos.lng;
         map.panTo({ lat: newLat, lng: newLng });
         debouncedReverseGeocode(newLat, newLng);
+        onPinMovidoRef.current?.();
       }
     });
 
@@ -251,6 +266,7 @@ const LocationModalContent: React.FC<{
     if (typeof window === 'undefined' || !navigator.geolocation) {
       setErrorMessage('Tu navegador no soporta geolocalización');
       setState('error');
+      onGeolocalizado?.('no_soportado');
       return;
     }
 
@@ -260,6 +276,7 @@ const LocationModalContent: React.FC<{
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          onGeolocalizado?.('concedido');
           setState('map');
           // Delay map init slightly to ensure container is rendered
           setTimeout(() => initializeMap(latitude, longitude), 100);
@@ -287,6 +304,8 @@ const LocationModalContent: React.FC<{
             default:
               setErrorMessage('Error al obtener la ubicación.');
           }
+          const geo = resultadoDeErrorGeo(geoError);
+          onGeolocalizado?.(geo.resultado, geo.motivo);
           setState('error');
         },
         {
@@ -301,6 +320,7 @@ const LocationModalContent: React.FC<{
       }
       setErrorMessage('No se pudo iniciar la geolocalización.');
       setState('error');
+      onGeolocalizado?.('error', 'otro');
       return;
     }
 
@@ -476,7 +496,14 @@ const LocationModalContent: React.FC<{
  *
  * Solo la manija y la franja arrastran: el mapa sigue moviéndose con el dedo.
  */
-export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm, initialCoords }) => (
+export const LocationModal: React.FC<LocationModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  initialCoords,
+  onPinMovido,
+  onGeolocalizado,
+}) => (
   <ModalV2
     abierto={isOpen}
     onCerrar={() => onClose()}
@@ -487,7 +514,13 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose, o
     claseCuerpo="min-h-0 flex-1 overflow-y-auto overscroll-contain"
     capa={10000}
   >
-    <LocationModalContent onClose={onClose} onConfirm={onConfirm} initialCoords={initialCoords} />
+    <LocationModalContent
+      onClose={onClose}
+      onConfirm={onConfirm}
+      initialCoords={initialCoords}
+      onPinMovido={onPinMovido}
+      onGeolocalizado={onGeolocalizado}
+    />
   </ModalV2>
 );
 
