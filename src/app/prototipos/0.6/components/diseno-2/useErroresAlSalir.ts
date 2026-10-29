@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWizard } from '@/app/prototipos/0.6/[landing]/solicitar/context/WizardContext';
 import { validateField, type WizardField, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { estaVacio, seValidaAlSalir } from '@/app/prototipos/0.6/[landing]/solicitar/utils/validarAlSalir';
 
 /**
  * Lugares fuera del campo a donde se va el foco SIN haberlo dejado: la lista
@@ -90,12 +91,25 @@ export function useErroresAlSalir(step: WizardStep | null) {
     return m;
   }, [step]);
 
+  // BAL-5255: los datos del familiar (los que se comparan contra el
+  // solicitante, `not_equals_field`) vacíos no avisan al salir: su
+  // «obligatorio» espera al «Continuar». Con algo escrito, como cualquier campo.
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
+  const vacioQueEspera = useCallback((codigo: string, valor: unknown) => {
+    const field = camposPorCodigo.get(codigo);
+    return !!field && seValidaAlSalir(field) && estaVacio(valor as string | string[] | undefined);
+  }, [camposPorCodigo]);
+
   const onBlur = useCallback((e: React.FocusEvent<HTMLElement>) => {
     const contenedor = (e.target as HTMLElement).closest<HTMLElement>('[data-campo]');
     const codigo = contenedor?.dataset.campo;
     if (!contenedor || !codigo) return;
     const siguiente = e.relatedTarget as HTMLElement | null;
     if (siguiente && (contenedor.contains(siguiente) || siguiente.closest(DENTRO_DE_UN_DESPLEGABLE))) return;
+    if (vacioQueEspera(codigo, formDataRef.current[codigo]?.value)) return;
     porReportarRef.current.add(codigo);
     // Un campo ya tocado no cambia `tocados`: esto fuerza la revalidación.
     setSalidas((n) => n + 1);
@@ -104,7 +118,7 @@ export function useErroresAlSalir(step: WizardStep | null) {
       if (prev.campos.has(codigo)) return prev;
       return { paso: codigoPaso, campos: new Set(prev.campos).add(codigo) };
     });
-  }, [codigoPaso]);
+  }, [codigoPaso, vacioQueEspera]);
 
   // Un campo vaciado por el formulario deja de contar como tocado.
   useEffect(() => {
@@ -139,14 +153,21 @@ export function useErroresAlSalir(step: WizardStep | null) {
       if (!document.querySelector(`[data-campo="${CSS.escape(codigo)}"]`)) continue;
       // El campo se tocó, así que estaba en pantalla: no se repite la regla de
       // visibilidad (que con el prellenado no es la simple).
-      const { error } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
       const actual = formData[codigo]?.error ?? null;
+      // Familiar tocado y luego vaciado: no se le pone «obligatorio» (escribir
+      // ya borró su error); el que ponga «Continuar» se deja tal cual.
+      if (vacioQueEspera(codigo, valores[codigo])) {
+        if (actual) reportar(codigo, actual);
+        porReportarRef.current.delete(codigo);
+        continue;
+      }
+      const { error } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
       if ((error ?? null) !== actual) setFieldError(codigo, error);
       if (!error) reportadosRef.current.delete(codigo);
       else if (porReportarRef.current.has(codigo)) reportar(codigo, error);
       porReportarRef.current.delete(codigo);
     }
-  }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError, reportar, salidas]);
+  }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError, reportar, salidas, vacioQueEspera]);
 
   // Errores que pone la validación de "Continuar"/"Enviar" en campos que la
   // persona no llegó a tocar: se reportan una vez (mismo registro de arriba).

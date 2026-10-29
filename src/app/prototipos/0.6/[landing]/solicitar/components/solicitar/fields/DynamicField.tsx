@@ -5,7 +5,7 @@
  * Maps WizardField type to the appropriate UI component
  */
 
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
 import { sanitizeEmailInput } from '../../../../../services/emailValidation';
 import { isPersonNameField, sanitizeNameInput } from '../../../../../services/nameValidation';
@@ -16,6 +16,7 @@ import { largoAlSalir } from '../../../utils/largoAlSalir';
 import { CampoDelRegistroContext, useRegistroDeOpciones } from '../../../hooks/useRegistroDeOpciones';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
+import { errorAlSalir, estaVacio, seValidaAlSalir } from '../../../utils/validarAlSalir';
 import { resolverForma } from './formaDeLista';
 import { TextInput, contadorVisible } from './TextInput';
 import { CurrencyInput } from './CurrencyInput';
@@ -78,16 +79,22 @@ export const DynamicField: React.FC<DynamicFieldProps> = (props) => (
 );
 
 const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder, onLocalErrorChange, pista }) => {
-  const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+  const { getFieldValue, getFieldError, updateField, setFieldError, getAllDynamicOptions, formData } = useWizard();
   const { agreementData, landing } = useLayout();
   const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
   const { onOptionSelected } = useRegistroDeOpciones();
 
-  // Get current value and error
-  const value = getFieldValue(field.code) as string;
-  const error = showError ? getFieldError(field.code) : undefined;
   // Diseño 2 (BAL-4963): los textos de Brenda para el celular.
   const v2 = useCamposV2();
+  // Diseño 1 (BAL-5255): los datos del familiar se validan al salir del campo.
+  // Diseño 2 ya valida al salir con `useErroresAlSalir`.
+  const validaAlSalir = !v2 && seValidaAlSalir(field);
+  const [validadoAlSalir, setValidadoAlSalir] = useState(false);
+  const mostrarError = showError || validadoAlSalir;
+
+  // Get current value and error
+  const value = getFieldValue(field.code) as string;
+  const error = mostrarError ? getFieldError(field.code) : undefined;
 
   // Build form values object for visibility evaluation
   const formValues = useMemo(() => {
@@ -256,7 +263,15 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
     const largo = largoAlSalir(field.code, currentValue);
     if (largo === undefined) onFieldBlur(field.code, hasValue);
     else onFieldBlur(field.code, hasValue, largo);
-  }, [field.code, getFieldValue, onFieldBlur]);
+    // BAL-5255: con algo escrito, el mismo error que daría «Continuar»; vacío
+    // no avisa (el «obligatorio» espera al «Continuar»). Al escribir,
+    // `updateField` borra el error, así que al corregir se va solo.
+    if (validaAlSalir && !estaVacio(currentValue as string | string[])) {
+      const valor = currentValue as string | string[];
+      setFieldError(field.code, errorAlSalir(field, valor, { ...formValues, [field.code]: valor }, getAllDynamicOptions()));
+      setValidadoAlSalir(true);
+    }
+  }, [field, getFieldValue, onFieldBlur, validaAlSalir, setFieldError, formValues, getAllDynamicOptions]);
 
   // Diseño 2: reenvía el error local del campo (DateInput, AddressAutocompleteField)
   // con su código, para que `DynamicWizardStep` oculte la pista.
@@ -304,7 +319,7 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <DocumentNumberField
           field={field}
-          showError={showError}
+          showError={mostrarError}
           // BAL-5210: entrada y salida como los demás campos (titular y familiar).
           onFocus={handleFocus}
           onBlur={handleBlur}
