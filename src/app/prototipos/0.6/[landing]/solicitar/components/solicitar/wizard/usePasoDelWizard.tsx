@@ -54,6 +54,7 @@ import { adaptarPasoDiseno2, CODIGO_CELULAR_TITULAR, saludoBloqueado } from '@/a
 import { AvisoUnidadTomadaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoUnidadTomadaV2';
 import { irAlPrimerErrorV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
+import { celularDelPaso, patchTrackingSession } from '@/app/prototipos/0.6/services/sessionApi';
 
 export interface PasoDelWizardControles {
   /** El paso que se está mostrando. `null` mientras la config no resolvió. */
@@ -499,6 +500,10 @@ export function usePasoDelWizard(opciones: {
     if (step) {
       markStepCompleted(step.url_slug || step.code);
     }
+    // BAL-5253: el celular queda en la sesión aunque la persona no termine,
+    // para poder contactar a quien abandona. En segundo plano, sin frenar.
+    const celular = celularDelPaso(step?.fields, formValues);
+    if (celular) void patchTrackingSession(sessionUuid, { phone: celular });
 
     // El paso que ENVÍA no celebra: la celebración dice "paso 1 de 2" y felicita
     // por avanzar, y lo que está pasando es que se está creando la solicitud.

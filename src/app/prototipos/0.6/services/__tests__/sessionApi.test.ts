@@ -1,4 +1,4 @@
-import { patchTrackingSession, __resetPatchDedupe } from '../sessionApi';
+import { patchTrackingSession, __resetPatchDedupe, celularDelPaso } from '../sessionApi';
 
 describe('patchTrackingSession', () => {
   beforeEach(() => {
@@ -63,5 +63,35 @@ describe('patchTrackingSession', () => {
     await patchTrackingSession('uuid-6', { dni: '12345678' });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('celularDelPaso (BAL-5253)', () => {
+  const datosPersonales = [{ code: 'document_number' }, { code: 'phone' }, { code: 'email' }];
+
+  it('devuelve el celular de la persona si el paso tiene ese campo', () => {
+    expect(celularDelPaso(datosPersonales, { phone: '987 654 321' })).toBe('987654321');
+  });
+
+  it('null si el paso no tiene el campo del celular, aunque el valor exista', () => {
+    expect(celularDelPaso([{ code: 'income_source' }], { phone: '987654321' })).toBeNull();
+  });
+
+  it('no toma el celular del familiar ni el secundario', () => {
+    const paso = [{ code: 'supporter_phone' }, { code: 'phone_secondary' }];
+    expect(celularDelPaso(paso, { supporter_phone: '987654321', phone_secondary: '912345678' })).toBeNull();
+  });
+
+  it('null si quedó vacío o el paso no tiene campos', () => {
+    expect(celularDelPaso(datosPersonales, { phone: '' })).toBeNull();
+    expect(celularDelPaso(undefined, { phone: '987654321' })).toBeNull();
+  });
+
+  it('el PATCH lleva el celular en `phone`', async () => {
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true })) as unknown as typeof fetch;
+    __resetPatchDedupe();
+    await patchTrackingSession('uuid-cel', { phone: '987654321' });
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({ phone: '987654321' });
   });
 });
