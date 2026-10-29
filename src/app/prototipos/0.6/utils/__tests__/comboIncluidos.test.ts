@@ -73,6 +73,14 @@ describe('comboIncluidos', () => {
     expect(segurosIncluidosDelProducto(null)).toEqual([]);
   });
 
+  it('segurosIncluidosDelProducto: copia-home quincenal/semanal guarda cuotas en months; el plazo sale en meses como en el submit', () => {
+    const comboItems = { insurances: [SR12, SR24, GE24] };
+    expect(segurosIncluidosDelProducto({ comboItems, months: 24, term: 24, paymentFrequency: 'quincenal' }))
+      .toEqual([SR12, GE24]);
+    expect(segurosIncluidosDelProducto({ comboItems, months: 48, term: 48, paymentFrequency: 'semanal' }))
+      .toEqual([SR12, GE24]);
+  });
+
   it('separarIncluidos', () => {
     const a = { id: '16', includedInCombo: true };
     const b = { id: '23', includedInCombo: false };

@@ -27,6 +27,7 @@ import { useSessionOptional } from '../../../context/SessionContext';
 import type { InsurancePlan } from '../../../types/upsell';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { idsQueNoSeVendenConElCombo, separarIncluidos } from '@/app/prototipos/0.6/utils/comboIncluidos';
+import { mesesDelProducto } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 
 export interface PlanesDeSeguro {
   /** Los planes que se pueden COMPRAR (sin los que trae el combo). */
@@ -82,7 +83,8 @@ export function usePlanesDeSeguro(activo = true): PlanesDeSeguro {
   const activeProduct = cartProducts?.[0] || selectedProduct;
   const deviceType = activeProduct?.type || 'Laptop';
   const productPrice = activeProduct?.price || 0;
-  const termMonths = activeProduct?.months;
+  // En meses, con la fórmula del submit: copia-home guarda cuotas en `months`.
+  const termMonths = mesesDelProducto(activeProduct);
   // S3/R7: el combo del equipo elegido. El backend decide qué viene incluido.
   const comboId = activeProduct?.comboId ?? null;
 

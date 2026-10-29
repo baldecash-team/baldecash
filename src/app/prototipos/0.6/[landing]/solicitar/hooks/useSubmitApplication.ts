@@ -42,6 +42,7 @@ import {
   DEMO_SUBMIT_DELAY_MS,
 } from '../utils/demoApplication';
 import { normalizeEmail } from '../../../services/emailValidation';
+import { termToMonths } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 import { datosDelFormulario, guardarDatosDelEnvio } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/datosDelEnvioV2';
 
 /**
@@ -53,16 +54,6 @@ const EMAIL_FIELD_CODES = ['email', 'email_universitario', 'institutional_email'
 
 function isEmailFieldCode(code: string): boolean {
   return EMAIL_FIELD_CODES.includes(code) || /(^|_)(email|correo)(_|$)/.test(code);
-}
-
-/**
- * Convert raw term (in payment_frequency units) to calendar months.
- * 4 weeks ≈ 1 month, 2 fortnights = 1 month.
- */
-function termToMonths(term: number, frequency?: string): number {
-  if (frequency === 'semanal') return Math.round(term / 4);
-  if (frequency === 'quincenal') return Math.round(term / 2);
-  return term; // mensual or unknown → assume already in months
 }
 
 /**

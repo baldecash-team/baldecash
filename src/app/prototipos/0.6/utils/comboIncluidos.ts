@@ -9,6 +9,7 @@
  * categoría del plan; van 1 a 1). El plazo es en MESES (`SelectedProduct.months`).
  */
 import type { ComboInfo } from '@/app/prototipos/0.6/[landing]/producto/types/detail';
+import { mesesDelProducto } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 
 export const TEXTO_INCLUIDO_EN_COMBO = 'Incluido en tu combo';
 
@@ -101,13 +102,17 @@ export function comboItemsDesdeCatalogo(p: { comboInsurances?: SeguroDelCombo[] 
   return p.comboInsurances && p.comboInsurances.length > 0 ? { insurances: p.comboInsurances } : undefined;
 }
 
-/** Los seguros del combo del producto elegido que aplican a SU plazo. */
+/**
+ * Los seguros del combo del producto elegido que aplican a SU plazo, en meses
+ * con la fórmula del submit (`mesesDelProducto`): copia-home guarda cuotas en
+ * `months`, y así lo que se muestra es lo que se emite.
+ */
 export function segurosIncluidosDelProducto(
-  p?: { comboItems?: ComboItemsSeleccionados; months?: number } | null,
+  p?: { comboItems?: ComboItemsSeleccionados; months?: number; term?: number; paymentFrequency?: string } | null,
 ): SeguroDelCombo[] {
   const seguros = p?.comboItems?.insurances;
   if (!seguros || seguros.length === 0) return [];
-  return segurosParaElPlazo(seguros, p?.months ?? null);
+  return segurosParaElPlazo(seguros, mesesDelProducto(p) ?? null);
 }
 
 /** Parte la respuesta de `/insurances?combo_id=` en incluidos y los que se venden. */

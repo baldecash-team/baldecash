@@ -99,3 +99,14 @@ it('D7: en quincenal igual pide con combo_id y separa los incluidos (plazo en me
   expect(result.current.incluidos.map((p) => p.id)).toEqual(['15']);
   expect(result.current.planes).toEqual([]);
 });
+
+it.each([
+  ['quincenal', 24],
+  ['semanal', 48],
+])('I-1: producto copia-home %s (months = term en cuotas) pide con el plazo en meses', async (frecuencia, cuotas) => {
+  mockEstado.producto = { ...PRODUCTO, months: cuotas, term: cuotas, paymentFrequency: frecuencia };
+  mockObtener.mockResolvedValue([plan('15', 'seguro_robo', true, 0)]);
+  const { result } = renderHook(() => usePlanesDeSeguro(true));
+  await waitFor(() => expect(result.current.cargado).toBe(true));
+  expect(mockObtener).toHaveBeenCalledWith('home', 'Laptop', 2202, 12, null, null, 52);
+});

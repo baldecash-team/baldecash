@@ -27,6 +27,7 @@ import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 import { descuentoPorCuota } from '@/app/prototipos/0.6/utils/couponPricing';
 import type { ComboItemsSeleccionados } from '@/app/prototipos/0.6/utils/comboIncluidos';
 import { alternarSeguro, quitarSeguros } from './segurosElegidos';
+import { mesesDelProducto } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 
 // Dynamic storage keys based on landing slug
 //
@@ -924,7 +925,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       const activeProduct = updatedProducts[0];
       const deviceType = (activeProduct?.type || 'laptop').charAt(0).toUpperCase() + (activeProduct?.type || 'laptop').slice(1).toLowerCase();
       const productPrice = activeProduct?.price || 0;
-      const termMonthsForInsurance = activeProduct?.months ?? term;
+      // En meses, con la fórmula del submit (copia-home guarda cuotas en `months`).
+      const termMonthsForInsurance = mesesDelProducto(activeProduct) ?? term;
       if (productPrice > 0) {
         getLandingInsurances(landingSlug, deviceType, productPrice, termMonthsForInsurance, previewKey, sessionUuid, activeProduct?.comboId ?? null)
           .then((apiPlans) => {
