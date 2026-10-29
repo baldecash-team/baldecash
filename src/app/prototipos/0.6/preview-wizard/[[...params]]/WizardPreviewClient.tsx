@@ -33,6 +33,7 @@ import { Footer } from '../../components/hero/Footer';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { campoSegunVinculo } from '@/app/prototipos/0.6/utils/textoSegunVinculo';
 
 // Types
 import type { PromoBannerData, FooterData, CompanyData } from '../../types/hero';
@@ -429,7 +430,9 @@ function StepCard({
 }
 
 // Field Preview Component
-function FieldPreview({ field }: { field: WizardStep['fields'][0] }) {
+function FieldPreview({ field: crudo }: { field: WizardStep['fields'][0] }) {
+  // BAL-5285: sin vínculo elegido, las marcas se leen «de tu familiar».
+  const field = campoSegunVinculo(crudo, '');
   const typeLabels: Record<string, string> = {
     text: 'Texto',
     email: 'Email',

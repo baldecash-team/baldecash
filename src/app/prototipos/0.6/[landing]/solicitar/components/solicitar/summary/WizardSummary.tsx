@@ -16,6 +16,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useWizard } from '../../../context/WizardContext';
+import { campoSegunVinculo, vinculoDe } from '@/app/prototipos/0.6/utils/textoSegunVinculo';
 import { FieldState } from '../../../types/solicitar';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
@@ -224,7 +225,7 @@ const SummaryStepSection: React.FC<{
           return (
             <SummaryFieldRow
               key={field.code}
-              field={field}
+              field={campoSegunVinculo(field, vinculoDe(formValues))}
               value={formValues[field.code]}
               resolvedLabel={resolvedLabel}
             />

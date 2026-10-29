@@ -23,6 +23,7 @@ import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/u
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 import { useErroresDeCampoD1 } from '../../../hooks/useErroresDeCampoD1';
+import { CAMPO_VINCULO, pasoSegunVinculo, vinculoDe } from '@/app/prototipos/0.6/utils/textoSegunVinculo';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -178,12 +179,16 @@ export function destaparPorLeadSinBuro(
 }
 
 export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
-  step,
+  step: pasoDelApi,
   showErrors = false,
   stepOrder,
   camposTocados,
 }) => {
-  const { getFieldValue, getFieldLabel, updateField, formData, getAllDynamicOptions } = useWizard();
+  const { getFieldValue, getFieldLabel, updateField, formData, getAllDynamicOptions, setFieldError } = useWizard();
+  // BAL-5285: los textos del paso nombran al familiar según el vínculo elegido
+  // (`{de_tu_familiar}` → «de tu mamá»…). Sin marcas, el mismo paso.
+  const vinculo = vinculoDe({ [CAMPO_VINCULO]: formData[CAMPO_VINCULO]?.value });
+  const step = useMemo(() => pasoSegunVinculo(pasoDelApi, vinculo), [pasoDelApi, vinculo]);
   const { deferredPayment, landing } = useLayout();
   // El «¿Cuál…?» escrito en el mismo campo (BAL-5205) no pasa por DynamicField:
   // su foco y salida se registran acá, igual que los de cualquier campo.
@@ -213,6 +218,24 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     }
     return values;
   }, [formData]);
+
+  // BAL-5285: al cambiar el vínculo, el error ya visible de un campo con
+  // marcas se vuelve a escribir con el nombre nuevo («de tu papá»).
+  const vinculoAnteriorRef = useRef(vinculo);
+  useEffect(() => {
+    if (vinculoAnteriorRef.current === vinculo) return;
+    vinculoAnteriorRef.current = vinculo;
+    const opciones = getAllDynamicOptions?.();
+    pasoDelApi.fields.forEach((crudo, i) => {
+      const actual = formData[crudo.code]?.error;
+      const field = step.fields[i];
+      if (!actual || field === crudo) return;
+      const { error } = validateField(field, formValues[field.code], formValues, opciones, true);
+      if (error && error !== actual) setFieldError(field.code, error);
+    });
+  // Solo al cambiar el vínculo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vinculo]);
 
   // Map each prefill target field to the code of the field that triggers the lookup.
   // Works for both legacy (prefill_fields Record) and new (fields_to_fill array) shapes.
