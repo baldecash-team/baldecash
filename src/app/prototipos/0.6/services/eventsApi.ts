@@ -211,6 +211,9 @@ export type EventType =
   | 'lo_quiero_modal_continue_blocked'
   | 'lo_quiero_modal_accessories_expand'
   | 'lo_quiero_modal_accessories_collapse'
+  // BAL-5296: diseño resuelto al apretar «Lo quiero» en landings con diseño
+  // por formulario. `origen`: 'formulario' (lo dijo ws2) o 'landing' (falló).
+  | 'lo_quiero_diseno_resuelto'
   // BAL-5276: comparar Diseño 1 y Diseño 2. Resultado del documento
   // (DocumentNumberField, sin el número), «¿No eres tú?» (D2) y la decisión
   // del aviso «¿Enviar sin tus protecciones?» (D2). Mismos nombres que

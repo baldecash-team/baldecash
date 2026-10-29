@@ -16,8 +16,8 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Search, ArrowUpDown, ChevronDown, Eye, Check,
-  Cpu, HardDrive, Monitor, Laptop, Tablet, Smartphone,
-} from 'lucide-react';
+  Cpu, HardDrive, Monitor, Laptop, Tablet, Smartphone, Loader2 } from 'lucide-react';
+import { useLoQuieroSegunFormulario, alApretarLoQuiero } from '@/app/prototipos/0.6/components/lo-quiero/useLoQuieroSegunFormulario';
 import { useIsMobile, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -182,17 +182,24 @@ export function CopiaHomeDesktopCatalog() {
     [setSelectedProduct, clearCartProducts, clearAccessories, router, landing],
   );
 
+  // BAL-5296: con diseño por formulario, «Lo quiero» pregunta antes a ws2
+  // qué diseño le toca (lo guarda en la sesión y `/solicitar` lo usa).
+  const loQuiero = useLoQuieroSegunFormulario();
+  const [loQuieroSlug, setLoQuieroSlug] = useState<string | null>(null);
   const onLoQuiero = useCallback(
     (p: CatalogProduct) => {
-      // Diseño 2: el aviso de reacondicionado va dentro del modal "Lo quiero"
-      // (que abre `/solicitar`); el modal viejo no sale (BAL-4969).
-      if (!loQuieroModal && isRefurbishedCondition(p.conditionCode || p.condition)) {
-        setPendingRefurb(p);
-        return;
-      }
-      selectAndSolicitar(p);
+      if (loQuiero.porFormulario) setLoQuieroSlug(p.slug);
+      alApretarLoQuiero(loQuiero, !!loQuieroModal, p.id, (abreModal) => {
+        // Diseño 2: el aviso de reacondicionado va dentro del modal "Lo quiero"
+        // (que abre `/solicitar`); el modal viejo no sale (BAL-4969).
+        if (!abreModal && isRefurbishedCondition(p.conditionCode || p.condition)) {
+          setPendingRefurb(p);
+          return;
+        }
+        selectAndSolicitar(p);
+      });
     },
-    [selectAndSolicitar, loQuieroModal],
+    [selectAndSolicitar, loQuieroModal, loQuiero],
   );
 
   const toggleCondition = (v: string) =>
@@ -419,8 +426,8 @@ export function CopiaHomeDesktopCatalog() {
                             <button type="button" className={`${styles.btn} ${styles.btnOutline}`} onClick={() => goDetalle(p)}>
                               <Eye size={17} /> Detalle
                             </button>
-                            <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={() => onLoQuiero(p)}>
-                              Lo quiero
+                            <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={() => onLoQuiero(p)} disabled={loQuiero.resolviendo || undefined} aria-busy={loQuiero.resolviendo && loQuieroSlug === p.slug ? true : undefined}>
+                              {loQuiero.resolviendo && loQuieroSlug === p.slug ? <Loader2 className="w-5 h-5 animate-spin" aria-label="Lo quiero" /> : 'Lo quiero'}
                             </button>
                           </div>
                         </div>

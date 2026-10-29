@@ -9,11 +9,12 @@
  * uses getLandingLayoutById with preview_key instead of slug-based API.
  */
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { leerDisenoDeLaSesion, guardarDisenoDeLaSesion } from './disenoDeLaSesion';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
 import { OVERLAY_VARIANT_LOGOS, getDeferredPayment, getCalculadora, campanaAbierta as campanaRecibe, type DeferredPaymentConfig, type CalculadoraConfig } from '@/app/prototipos/0.6/types/landingConfig';
@@ -168,6 +169,20 @@ interface LayoutContextValue {
    */
   disenoResuelto?: boolean;
   /**
+   * La landing tiene algún formulario con diseño propio
+   * (`features.diseno_por_formulario`, BAL-5296). Con `true`, «Lo quiero»
+   * pregunta a ws2 el diseño del formulario de la sesión antes de abrir, y
+   * `disenoSolicitud` pasa a ser el de la sesión cuando ya se sabe. Ausente o
+   * `false`: todo como antes. Opcional por los contextos armados a mano.
+   */
+  disenoPorFormulario?: boolean;
+  /**
+   * Fija el diseño de la sesión (lo que dijo ws2 para su formulario) y lo
+   * guarda en sessionStorage por landing. Solo cambia `disenoSolicitud` cuando
+   * `disenoPorFormulario` es `true`. Opcional por los contextos a mano.
+   */
+  fijarDisenoDeLaSesion?: (d: 1 | 2) => void;
+  /**
    * La campaña sigue recibiendo solicitudes (`application_cap.abierto` de
    * `/config`). Diseño 2 no tiene la intro que lo avisaba en Diseño 1, así
    * que lo avisa en el paso (BAL-4969, casuísticas). Sin el dato: abierta.
@@ -244,11 +259,26 @@ export function LayoutProvider({
   const [chipsDeUso, setChipsDeUso] = useState(false);
   const [filtroPorUso, setFiltroPorUso] = useState(true);
   const [barraDeOrden, setBarraDeOrden] = useState(true);
-  const [disenoSolicitud, setDisenoSolicitud] = useState<1 | 2>(1);
+  // Diseño de la LANDING (preset o modo global, de `/config`).
+  const [disenoDeLaLanding, setDisenoDeLaLanding] = useState<1 | 2>(1);
+  // BAL-5296: diseño del formulario de la sesión, con la landing a la que
+  // pertenece (si cambia la landing, el viejo no vale).
+  const [disenoPorFormulario, setDisenoPorFormulario] = useState(false);
+  const [disenoDeSesion, setDisenoDeSesion] = useState<{ landing: string; d: 1 | 2 } | null>(null);
   // De qué landing es el diseño que hay: si cambia la landing, el viejo no vale.
   const [disenoPara, setDisenoPara] = useState<string | null>(null);
   const disenoResuelto = disenoPara === landing;
   const [campanaAbierta, setCampanaAbierta] = useState(true);
+
+  // Diseño efectivo: el de la sesión solo con diseño por formulario; si no, el
+  // de la landing (lo de siempre).
+  const disenoSolicitud: 1 | 2 =
+    disenoPorFormulario && disenoDeSesion?.landing === landing ? disenoDeSesion.d : disenoDeLaLanding;
+
+  const fijarDisenoDeLaSesion = useCallback((d: 1 | 2) => {
+    guardarDisenoDeLaSesion(landing, d);
+    setDisenoDeSesion({ landing, d });
+  }, [landing]);
 
   // Fetch landing config for overlay variant (logo override) + pago diferido
   // + visibilidad del logo de convenio
@@ -294,7 +324,12 @@ export function LayoutProvider({
       setBarraDeOrden(cfg.features?.has_catalog_sort_bar !== false);
       // BAL-4958: reemplaza al ingrediente `lo-quiero-modal-on`. Cualquier
       // valor que no sea 2 (número o string) cae en el diseño actual.
-      setDisenoSolicitud(resolveDisenoSolicitud(cfg.features?.solicitud_design));
+      setDisenoDeLaLanding(resolveDisenoSolicitud(cfg.features?.solicitud_design));
+      // BAL-5296: opt-in, ausencia = apagado (todo como antes). Se lee aquí y
+      // no al montar para no leer sessionStorage en el render del servidor.
+      setDisenoPorFormulario(cfg.features?.diseno_por_formulario === true);
+      const guardado = leerDisenoDeLaSesion(landing);
+      setDisenoDeSesion(guardado ? { landing, d: guardado } : null);
       setDisenoPara(landing);
       setCampanaAbierta(campanaRecibe(cfg));
     });
@@ -578,8 +613,10 @@ export function LayoutProvider({
     // Las landings sin Diseño 2 (zona gamer: BAL-4969 I-2) no abren el modal.
     loQuieroModal: disenoSolicitud === 2 && admiteDiseno2(landing),
     disenoResuelto,
+    disenoPorFormulario,
+    fijarDisenoDeLaSesion,
     campanaAbierta,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud, disenoResuelto, campanaAbierta]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, catalogBannerId, newsletterData, overlayVariant, deferredPayment, calculadora, puedeCambiarPlazo, mostrarImagenProducto, mostrarResumen, mostrarProductoSeleccionado, mostrarDatosRapidos, mostrarRequisitos, chipsDeUso, filtroPorUso, barraDeOrden, disenoSolicitud, disenoResuelto, disenoPorFormulario, fijarDisenoDeLaSesion, campanaAbierta]);
 
   return (
     <LayoutContext.Provider value={value}>
@@ -594,6 +631,14 @@ export function useLayout() {
     throw new Error('useLayout must be used within a LayoutProvider');
   }
   return context;
+}
+
+/**
+ * Igual que `useLayout` pero sin lanzar fuera del provider (la ficha también se
+ * pinta en `/oferta/[token]`, que no tiene `LayoutProvider`). BAL-5296.
+ */
+export function useLayoutOptional(): LayoutContextValue | null {
+  return useContext(LayoutContext);
 }
 
 /**

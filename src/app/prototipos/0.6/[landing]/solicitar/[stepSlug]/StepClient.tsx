@@ -151,6 +151,12 @@ interface StepContentProps {
   pantalla?: 'seguros';
 }
 
+
+/** `solicitud_design` del wizard (BAL-5296): 1, 2 o nada si viene raro. */
+function disenoValido(valor: unknown): 1 | 2 | null {
+  return valor === 1 || valor === 2 ? valor : null;
+}
+
 function StepContent({ pantalla }: StepContentProps = {}) {
   const router = useRouter();
   const params = useParams();
@@ -181,7 +187,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud, disenoResuelto = true, campanaAbierta = true } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData, mostrarResumen, disenoSolicitud: disenoDelLayout, disenoResuelto = true, campanaAbierta = true, disenoPorFormulario, fijarDisenoDeLaSesion } = useLayout();
 
   /**
    * Diseño 2 (`features.solicitud_design === 2`): el paso se pinta dentro de
@@ -190,16 +196,25 @@ function StepContent({ pantalla }: StepContentProps = {}) {
    * queda en Diseño 1 (decisión D6 del planning), y las landings de tema oscuro
    * también (BAL-4969, I-2: el kit es de fondo claro).
    */
-  const usarDiseno2 = disenoSolicitud === 2 && admiteDiseno2(landing);
-
   // Get wizard config from API
   const {
+    config: wizardConfig,
     getStepByUrlSlug,
     getNavigation,
     steps,
     isLoading: isConfigLoading,
     error: configError
   } = useWizardConfig();
+
+  // BAL-5296: con diseño por formulario el wizard trae el diseño del
+  // formulario que le tocó a la sesión y manda sobre el del layout. Sin el
+  // flag, el de la landing como siempre.
+  const disenoDelWizard = disenoPorFormulario ? disenoValido(wizardConfig?.solicitud_design) : null;
+  const disenoSolicitud = disenoDelWizard ?? disenoDelLayout;
+  useEffect(() => {
+    if (disenoDelWizard && disenoDelWizard !== disenoDelLayout) fijarDisenoDeLaSesion?.(disenoDelWizard);
+  }, [disenoDelWizard, disenoDelLayout, fijarDisenoDeLaSesion]);
+  const usarDiseno2 = disenoSolicitud === 2 && admiteDiseno2(landing);
 
   // En la página de seguros el paso es el resumen que envía (la ruta no trae
   // `stepSlug`); en el resto, el de la URL.

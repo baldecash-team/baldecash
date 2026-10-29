@@ -518,6 +518,8 @@ export interface ApplicationStatusResponse {
    * sin nombre, equipo ni cuota. Ver `ApplicationStatusData.limited`.
    */
   limited?: boolean;
+  /** Diseño del formulario de la solicitud (BAL-5296). Ver `ApplicationStatusData.solicitud_design`. */
+  solicitud_design?: 1 | 2;
   /** Slug de la landing dueña de la solicitud. Ver `ApplicationStatusData.landing_slug`. */
   landing_slug?: string | null;
 }

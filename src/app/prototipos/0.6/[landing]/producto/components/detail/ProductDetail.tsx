@@ -11,7 +11,8 @@
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { ShoppingCart, Check, Heart, Package, Gift, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, Check, Heart, Package, Gift, ShieldCheck, Loader2 } from 'lucide-react';
+import { useLoQuieroSegunFormulario, alApretarLoQuiero } from '@/app/prototipos/0.6/components/lo-quiero/useLoQuieroSegunFormulario';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
   DeviceType,
@@ -293,6 +294,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const isDeferred = product.deferredDelivery?.isDeferred ?? false;
   const [showDeferredModal, setShowDeferredModal] = useState(false);
   const [isLoQuieroOpen, setIsLoQuieroOpen] = useState(false);
+  // BAL-5296: con diseño por formulario, «Lo quiero» pregunta antes a ws2.
+  const loQuiero = useLoQuieroSegunFormulario();
   // El detalle vive dentro del `ProductProvider` de la página, que hidrató el
   // producto al cargar. El modal lee de ese contexto, así que hay que pasarle
   // el plazo/inicial recién elegidos además de guardarlos en storage.
@@ -593,10 +596,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Gate: en reacondicionados, primero confirmar el aviso; luego (si aplica) el
   // aviso de entrega diferida; luego proceder.
   const handleSolicitar = () => {
+    // BAL-5296: sin diseño por formulario sigue en el acto, como siempre.
+    alApretarLoQuiero(loQuiero, loQuieroModal, product.id, seguirConElDiseno);
+  };
+
+  const seguirConElDiseno = (abreModal: boolean) => {
     // Diseño 2 (modal "Lo quiero"): sin los avisos aparte de reacondicionado y
     // entrega; van dentro del modal (prototipo de Brenda, BAL-4958).
-    if (loQuieroModal) {
-      proceedToSolicitar();
+    if (abreModal) {
+      proceedToSolicitar(true);
       return;
     }
     if (confirmaSemiNuevo) {
@@ -619,7 +627,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     proceedToSolicitar();
   };
 
-  const proceedToSolicitar = () => {
+  // `abreModal`: lo que decidió el formulario de la sesión (BAL-5296); por
+  // defecto el diseño que ya se conoce, como antes.
+  const proceedToSolicitar = (abreModal: boolean = loQuieroModal) => {
     analytics.track('product_cta_click', {
       product_id: product.id,
       product_name: product.name,
@@ -687,7 +697,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     // Con el modal (BAL-4852) el producto ya quedó guardado con el plazo,
     // la inicial, la frecuencia y el combo elegidos: el modal lo lee de ahí.
-    if (loQuieroModal) {
+    if (abreModal) {
       productoCtx?.setSelectedProduct(selectedProduct);
       productoCtx?.clearCartProducts();
       setIsLoQuieroOpen(true);
@@ -876,8 +886,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 <button
                   onClick={onClickCTA ?? handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
+                  {...(!onClickCTA && loQuiero.resolviendo
+                    ? { disabled: true, 'aria-busy': true, 'aria-label': '¡Lo quiero!' }
+                    : {})}
                 >
-                  {onClickCTA ? (ctaText ?? 'Elegir este equipo') : '¡Lo quiero!'}
+                  {!onClickCTA && loQuiero.resolviendo
+                    ? <Loader2 className="w-5 h-5 animate-spin mx-auto" aria-hidden="true" />
+                    : onClickCTA ? (ctaText ?? 'Elegir este equipo') : '¡Lo quiero!'}
                 </button>
                 )}
                 {!onClickCTA && onAddToCart && (() => {
@@ -1098,7 +1113,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       <DeferredDeliveryModal
         isOpen={showDeferredModal}
         onClose={() => setShowDeferredModal(false)}
-        onConfirm={proceedToSolicitar}
+        onConfirm={() => proceedToSolicitar()}
         deferredDelivery={product.deferredDelivery}
         productName={product.displayName}
       />

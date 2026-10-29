@@ -161,6 +161,12 @@ export interface LandingConfigFeatures {
    * valor es `2`; si no, la clave no viene y el default de abajo manda.
    */
   solicitud_design?: 1 | 2;
+  /**
+   * BAL-5296: algún formulario de la landing fija su propio diseño de
+   * solicitud. Con `true`, «Lo quiero» pregunta a `/public/landing/{slug}/diseno`
+   * el diseño del formulario de la sesión. Ausente = `false` (todo como antes).
+   */
+  diseno_por_formulario?: boolean;
 }
 
 /**
