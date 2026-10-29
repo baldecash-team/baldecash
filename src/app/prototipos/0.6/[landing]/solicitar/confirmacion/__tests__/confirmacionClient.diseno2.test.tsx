@@ -92,10 +92,13 @@ describe('confirmacionClient — F8, Diseño 2 (BAL-4967)', () => {
       expect(document.querySelector('[data-confirmacion-v2]')).toBeInTheDocument();
     });
     expect(screen.getByText(/Solicitud N\.° APP-2026-00123/)).toBeInTheDocument();
-    expect(screen.queryByText('¿Tienes alguna duda?')).toBeInTheDocument(); // ContactInfo, reusado tal cual
+    // BAL-5274: botón a Zona Estudiantes e «Ir al inicio»; sin el bloque de WhatsApp de antes.
+    expect(screen.getByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ir al inicio' })).toBeInTheDocument();
+    expect(screen.queryByText('¿Tienes alguna duda?')).not.toBeInTheDocument();
   });
 
-  it('con el celular enmascarado de /status, el subtítulo dice "al +51 9XX XXX 321" (BAL-4969)', async () => {
+  it('con el celular enmascarado de /status, «Paso 2 de 4: … al +51 9XX XXX 321» (BAL-4969, BAL-5274)', async () => {
     mockGetApplicationStatus.mockResolvedValue({
       code: 'APP-2026-00123',
       reference: 'APP-2026-00123',
@@ -111,7 +114,39 @@ describe('confirmacionClient — F8, Diseño 2 (BAL-4967)', () => {
       status_history: [],
     } as never);
     render(<ConfirmacionPage />);
-    expect(await screen.findByText(/al \+51 9XX XXX 321/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.querySelector('[data-linea-del-paso]')?.textContent).toBe(
+        'Paso 2 de 4: una asesora te escribirá por WhatsApp al +51 9XX XXX 321.',
+      );
+    });
+  });
+
+  it('día de pago y entrega: los que dejó el envío de ESTA solicitud (por su `code`, aunque la URL traiga el token)', async () => {
+    global.mockSearchParamsGet.mockImplementation((p: string) => (p === 'code' ? 'token-publico-123' : null));
+    sessionStorage.setItem(
+      'baldecash-test-landing-datos-del-envio-v2',
+      JSON.stringify({ code: 'APP-2026-00123', paymentDay: 18, distrito: 'Victor Larco Herrera' }),
+    );
+    mockGetApplicationStatus.mockResolvedValue({
+      code: 'APP-2026-00123',
+      reference: 'APP-2026-00123',
+      status: 'received',
+      submitted_at: '2026-10-22T08:38:00-05:00',
+      applicant_name: 'Brenda',
+      products: [{ name: 'Laptop Lenovo V15', image: null, quantity: 1, unit_price: 1, final_price: 1, monthly_quota: 159 }],
+      term: 24,
+      term_months: 24,
+      payment_frequency: 'mensual',
+      initial_payment: 280,
+      total_monthly_payment: 179,
+      status_history: [],
+    } as never);
+    render(<ConfirmacionPage />);
+    expect(await screen.findByText('Día 18 de cada mes')).toBeInTheDocument();
+    expect(screen.getByText('En tu casa · Victor Larco Herrera')).toBeInTheDocument();
+    expect(screen.getByText(/Paso 2 de 5:/)).toBeInTheDocument();
+    expect(screen.getByText('S/179/mes')).toBeInTheDocument();
+    sessionStorage.clear();
   });
 
   it('respuesta limitada (sin token, BAL-4188): pinta la vista limitada de Diseño 2', async () => {
@@ -152,8 +187,9 @@ describe('confirmacionClient — F8, Diseño 2 (BAL-4967)', () => {
     await waitFor(() => {
       expect(document.querySelector('[data-confirmacion-v2]')).toBeInTheDocument();
     });
-    // Sin romper: sigue ofreciendo el contacto.
-    expect(screen.getByText(/¿Tienes alguna duda\?/)).toBeInTheDocument();
+    // Sin romper: sigue ofreciendo Zona Estudiantes y volver al inicio.
+    expect(screen.getByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ir al inicio' })).toBeInTheDocument();
   });
 
   it('Diseño 1 (disenoSolicitud=1): NO usa `ConfirmacionV2`', async () => {
@@ -180,5 +216,9 @@ describe('confirmacionClient — F8, Diseño 2 (BAL-4967)', () => {
     expect(document.querySelector('[data-confirmacion-v2]')).not.toBeInTheDocument();
     // Diseño 1 saluda distinto ("Hemos recibido", no "Recibimos").
     expect(screen.getByText(/Hemos recibido tu solicitud, Brenda!/)).toBeInTheDocument();
+    // BAL-5274 es solo Diseño 2: D1 conserva su contacto y no trae el botón nuevo.
+    expect(screen.getByText('¿Tienes alguna duda?')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Pasos de tu solicitud' })).not.toBeInTheDocument();
   });
 });

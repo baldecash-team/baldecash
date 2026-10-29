@@ -8,7 +8,6 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { hayEnvioADomicilio, subtituloDelPaso4, pidenDiaDePago, SUBTITULO_PASO4_COMPLETO } from '../textosQueAplicanV2';
 import { PanelSolicitudV2 } from '../PanelSolicitudV2';
-import { LineaDeTiempoV2 } from '../confirmacion/LineaDeTiempoV2';
 
 // El cupón del panel (BAL-5203) vive en su propio módulo; acá no hay ProductProvider.
 jest.mock('@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/coupon', () => ({
@@ -91,17 +90,5 @@ describe('panel "Tu solicitud"', () => {
   it('con el campo, la fila sigue', () => {
     render(<PanelSolicitudV2 datos={datos} envio={{ ...envio, conDiaDePago: pidenDiaDePago([{ fields: [{ code: 'payment_day' }] }]) }} />);
     expect(screen.getByText('Por elegir')).toBeInTheDocument();
-  });
-});
-
-describe('línea de tiempo de la confirmación', () => {
-  it('sin envío: el último hito no promete enviar la laptop', () => {
-    render(<LineaDeTiempoV2 horaDeEnvio="Hoy" plazoWhatsApp="Máx. 24 h" conEnvio={false} />);
-    expect(screen.queryByText(/te enviamos tu/)).not.toBeInTheDocument();
-    expect(screen.getByText('Firmas tu contrato')).toBeInTheDocument();
-  });
-  it('con envío y celular: dice "tu celular"', () => {
-    render(<LineaDeTiempoV2 horaDeEnvio="Hoy" plazoWhatsApp="Máx. 24 h" conEnvio equipo="celular" />);
-    expect(screen.getByText('Firmas y te enviamos tu celular')).toBeInTheDocument();
   });
 });

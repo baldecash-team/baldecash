@@ -38,7 +38,8 @@ import { separarRegaloBaldecash } from './regaloBaldecash';
 import { ConfirmacionV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/ConfirmacionV2';
 import { ConfirmacionLimitadaV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/ConfirmacionLimitadaV2';
 import { LoadingFallbackV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/LoadingFallbackV2';
-import { pidenDireccion } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
+import { hayEnvioADomicilio, pidenDireccion } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
+import { textoDeEntrega, useDatosDelEnvioV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/datosDelEnvioV2';
 import { useWizardConfigOptional } from '../context/WizardConfigContext';
 
 /**
@@ -382,6 +383,14 @@ function RealConfirmationContent({
   const pasosDelFormulario = useWizardConfigOptional()?.steps ?? [];
   const conDireccion = pasosDelFormulario.length === 0 || pidenDireccion(pasosDelFormulario);
 
+  // Día de pago y distrito que dejó el envío en esta pestaña (BAL-5274,
+  // Diseño 2). Atados al `code` real de la solicitud (`APP-…`), que trae
+  // `/status`: el `?code=` de la URL suele ser el token público, no el código.
+  // `sessionStorage` no existe en el servidor: se lee con
+  // `useSyncExternalStore` (en el servidor, nada) para no romper la hidratación.
+  const codigoReal = applicationData?.code ?? null;
+  const datosDelEnvio = useDatosDelEnvioV2(diseno2 ? landing : null, codigoReal);
+
   if (isLoading) {
     return diseno2 ? <LoadingFallbackV2 /> : <LoadingFallback />;
   }
@@ -405,10 +414,14 @@ function RealConfirmationContent({
   const modoCierreKyc = modoCierreDelKyc(searchParams, landing);
 
   if (diseno2) {
+    // Entrega solo si el formulario pide dirección y hay envío a domicilio
+    // (no Locker Truck ni préstamo) — mismo criterio del panel (BAL-4969).
+    const conEnvio =
+      conDireccion &&
+      hayEnvioADomicilio({ pasos: [], overlayVariant, tipoDeProducto: receivedData.products?.[0]?.type ?? null });
     return (
       <ConfirmacionV2
         data={receivedData}
-        submittedAt={applicationData?.submitted_at ?? null}
         onGoToHome={onGoHome}
         otpCta={otpCta}
         modoCierreKyc={modoCierreKyc}
@@ -417,7 +430,22 @@ function RealConfirmationContent({
         landing={landing}
         applicationCode={applicationCode}
         telefono={applicationData?.applicant_phone_masked ?? null}
-        conDireccion={conDireccion}
+        tarjeta={{
+          paymentDay: datosDelEnvio?.paymentDay ?? null,
+          entrega: conEnvio ? textoDeEntrega(datosDelEnvio?.distrito) : null,
+        }}
+        onZonaEstudiantes={() => {
+          const sessionId = getStoredSessionUuid(landing);
+          if (!sessionId) return;
+          sendEventsBatch(sessionId, [
+            {
+              event_type: 'confirmation_cta_click',
+              client_ts: Date.now(),
+              page_url: window.location.pathname,
+              properties: { cta_type: 'zona_estudiantes', application_code: codigoReal ?? applicationCode },
+            },
+          ]);
+        }}
         onDescargarConstancia={() => {
           const sessionId = getStoredSessionUuid(landing);
           if (!sessionId || !applicationCode) return;

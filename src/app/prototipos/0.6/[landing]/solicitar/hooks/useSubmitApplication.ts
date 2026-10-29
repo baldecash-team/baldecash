@@ -42,6 +42,7 @@ import {
   DEMO_SUBMIT_DELAY_MS,
 } from '../utils/demoApplication';
 import { normalizeEmail } from '../../../services/emailValidation';
+import { datosDelFormulario, guardarDatosDelEnvio } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/datosDelEnvioV2';
 
 /**
  * Los codigos de campo que llevan un correo. Se mantiene alineado con
@@ -671,6 +672,11 @@ export function useSubmitApplication(
 
           // Capturar el DNI ANTES de limpiar el form, para prellenar el gate de OTP.
           const capturedDocumentNumber = extractDocumentNumber(mappedFormData);
+
+          // Día de pago y distrito para la tarjeta de la confirmación de
+          // Diseño 2 (BAL-5274): `/status` no los trae y el form se limpia
+          // abajo. Solo se guardan en esta pestaña; el envío no cambia.
+          guardarDatosDelEnvio(landing, result.application_code, datosDelFormulario(formData));
 
           // La sesión de tracking NO se suelta acá: la confirmación es la que
           // emite `application_submitted` con el `application_code`, y tiene

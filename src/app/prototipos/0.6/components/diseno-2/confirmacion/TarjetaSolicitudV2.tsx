@@ -1,19 +1,20 @@
 'use client';
 
 /**
- * "TU SOLICITUD" de `ConfirmacionV2` (F8, BAL-4967). Datos puros en
- * `resumenDeTarjetaV2`; esta pieza solo pinta, y omite cada línea cuyo dato
- * no esté disponible (sin dejar una fila vacía).
+ * "TU SOLICITUD" de `ConfirmacionV2` (F8, BAL-4967; rediseño BAL-5274 según
+ * el prototipo v53 de Brenda). Datos puros en `resumenDeTarjetaV2`; esta
+ * pieza solo pinta, y omite cada fila cuyo dato no esté disponible (sin
+ * dejar una fila vacía).
+ *
+ * Prototipo: cabecera con degradado (160°) y el equipo, y debajo una lista
+ * de filas «rótulo · valor» separadas por una línea: cuota mensual total
+ * (20 px, color de marca), día de pago, entrega y regalo (cápsula verde).
  */
 
 import React from 'react';
-import { Gift, Laptop, Package, ShieldCheck } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import type { ReceivedData } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/types/received';
-import { resumenDeTarjetaV2, type LineaConCuota, type OpcionesTarjetaV2 } from './resumenTarjetaV2';
-import { REGALO_BALDECASH_TEXTOS } from '@/app/prototipos/0.6/[landing]/solicitar/confirmacion/regaloBaldecash';
-
-/** «BaldeCash te regala» sin el emoji del título de Diseño 1 (acá va el ícono). */
-const ETIQUETA_REGALO_BALDECASH = REGALO_BALDECASH_TEXTOS.titulo.replace(/^\P{L}+/u, '');
+import { resumenDeTarjetaV2, type OpcionesTarjetaV2 } from './resumenTarjetaV2';
 
 export interface TarjetaSolicitudV2Props {
   data: ReceivedData;
@@ -21,47 +22,38 @@ export interface TarjetaSolicitudV2Props {
   opciones?: OpcionesTarjetaV2;
 }
 
-function Fila({ etiqueta, valor }: { etiqueta: string; valor: React.ReactNode }) {
+function Fila({ etiqueta, children, ultima }: { etiqueta: string; children: React.ReactNode; ultima?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-[var(--d2-chip-numero)] py-3 first:border-t-0">
-      <span className="text-sm text-[var(--d2-texto-suave)]">{etiqueta}</span>
-      <span className="text-right text-sm font-semibold text-[var(--d2-texto)]">{valor}</span>
+    <div
+      className={`flex items-baseline justify-between gap-3 py-[11px] ${
+        ultima ? '' : 'border-b border-[var(--d2-chip)]'
+      }`}
+    >
+      <dt className="m-0 text-sm text-[var(--d2-texto-suave)]">{etiqueta}</dt>
+      <dd className="m-0 text-right text-sm font-semibold text-[var(--d2-texto)]">{children}</dd>
     </div>
   );
 }
 
-/** Accesorios o seguros: un título y una línea por cada uno con su cuota. */
-function GrupoConCuota({ titulo, icono: Icono, items, sufijo }: { titulo: string; icono: React.ElementType; items: LineaConCuota[]; sufijo: string }) {
-  if (!items.length) return null;
+/** Laptop dibujada del prototipo: va cuando el equipo no trae foto. */
+function LaptopDibujada() {
   return (
-    <div className="border-t border-[var(--d2-chip-numero)] py-3">
-      <p className="mb-1.5 flex items-center gap-1.5 text-sm text-[var(--d2-texto-suave)]">
-        <Icono className="h-4 w-4" aria-hidden />
-        {titulo}
-      </p>
-      <ul className="space-y-1">
-        {items.map((it) => (
-          <li key={it.nombre} className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="min-w-0 text-[var(--d2-texto)]">{it.nombre}</span>
-            <span className="shrink-0 font-semibold text-[var(--d2-texto)]">+{it.cuota}{sufijo}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <svg width="74" height="46" viewBox="0 0 200 122" aria-hidden className="flex-shrink-0">
+      <rect x="34" y="4" width="132" height="90" rx="8" fill="#252A3D" />
+      <rect x="41" y="11" width="118" height="76" rx="3" fill="#5A68E0" />
+      <rect x="52" y="24" width="50" height="8" rx="4" fill="rgba(255, 255, 255, 0.7)" />
+      <rect x="52" y="40" width="80" height="6" rx="3" fill="rgba(255, 255, 255, 0.4)" />
+      <path d="M12 96 H188 L181 110 A7 7 0 0 1 175 114 H25 A7 7 0 0 1 19 110 Z" fill="#CDD2DE" />
+    </svg>
   );
 }
 
+/** La foto real del equipo en la caja de 74 × 46 px del dibujo; si falla, el dibujo. */
 function ImagenDelEquipo({ src, nombre }: { src: string | null; nombre: string }) {
   const [rota, setRota] = React.useState(false);
-  if (!src || rota) {
-    return (
-      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--d2-tarjeta)] text-[var(--color-primary-text)] shadow-sm">
-        <Laptop className="h-5 w-5" aria-hidden />
-      </span>
-    );
-  }
+  if (!src || rota) return <LaptopDibujada />;
   return (
-    <span className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--d2-tarjeta)] p-1 shadow-sm">
+    <span className="flex h-[46px] w-[74px] flex-shrink-0 items-center justify-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt={nombre} className="h-full w-full object-contain" onError={() => setRota(true)} />
     </span>
@@ -72,60 +64,57 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
   const resumen = resumenDeTarjetaV2(data, landingSlug, opciones);
   if (!resumen) return null;
 
-  return (
-    <aside aria-label="Tu solicitud" className="overflow-hidden rounded-[20px] border border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] shadow-[0_14px_36px_rgba(30,34,48,0.08)]">
-      <div className="flex items-start gap-3 bg-gradient-to-r from-[var(--d2-ok-suave-5)] to-[var(--d2-marca-suave)] px-5 py-4">
-        <ImagenDelEquipo src={resumen.imagen} nombre={resumen.nombreEquipo} />
-        <div className="min-w-0 self-center">
-          <p className="text-xs font-bold uppercase tracking-wide text-[var(--d2-texto-2)]">Tu solicitud</p>
-          <p className="line-clamp-2 text-[15px] font-bold leading-snug text-[var(--d2-texto)]">{resumen.nombreEquipo}</p>
-          <p className="text-xs text-[var(--d2-texto-suave)]">{resumen.leyenda}</p>
-        </div>
-      </div>
-      <div className="px-5 pb-2">
-        <Fila
-          etiqueta={resumen.rotuloCuota}
-          valor={
-            <span className="text-base font-bold text-[var(--color-primary-text)]">
-              {resumen.cuota}
-              <span className="text-xs font-semibold">{resumen.sufijoCuota}</span>
+  const filas: Array<{ etiqueta: string; valor: React.ReactNode }> = [];
+  if (resumen.diaDePago) filas.push({ etiqueta: 'Día de pago', valor: resumen.diaDePago });
+  if (resumen.entrega) filas.push({ etiqueta: 'Entrega', valor: resumen.entrega });
+  if (resumen.regalos.length > 0) {
+    filas.push({
+      etiqueta: resumen.regalos.length === 1 ? 'Regalo' : 'Regalos',
+      valor: (
+        <span className="inline-flex flex-col items-end gap-1.5">
+          {resumen.regalos.map((nombre) => (
+            <span
+              key={nombre}
+              data-regalo
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave)] px-2.5 py-[3px] text-[13px] font-bold text-[var(--d2-ok-texto)]"
+            >
+              <Gift width={14} height={14} strokeWidth={2} aria-hidden />
+              {nombre}
             </span>
-          }
-        />
-        <GrupoConCuota titulo="Accesorios" icono={Package} items={resumen.accesorios} sufijo={resumen.sufijoCuota} />
-        <GrupoConCuota titulo="Protecciones" icono={ShieldCheck} items={resumen.seguros} sufijo={resumen.sufijoCuota} />
-        {resumen.diaDePago && <Fila etiqueta="Día de pago" valor={resumen.diaDePago} />}
-        {resumen.entrega && <Fila etiqueta="Entrega" valor={resumen.entrega} />}
-        {resumen.regalos.length > 0 && (
-          // Igual que Accesorios y Protecciones: título y una línea por regalo
-          // (Emilio, 28-oct: la cápsula con todos juntos se partía en celular).
-          <div className="border-t border-[var(--d2-chip-numero)] py-3">
-            <p className="mb-1.5 flex items-center gap-1.5 text-sm text-[var(--d2-texto-suave)]">
-              <Gift className="h-4 w-4" aria-hidden />
-              {resumen.regalos.length === 1 ? 'Regalo' : 'Regalos'}
-            </p>
-            <ul className="space-y-1">
-              {resumen.regalos.map((nombre) => (
-                <li key={nombre} className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="min-w-0 text-[var(--d2-texto)]">{nombre}</span>
-                  <span className="shrink-0 text-xs font-bold text-[var(--d2-ok-texto)]">Gratis</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {resumen.regaloBaldecash && (
-          <Fila
-            etiqueta={ETIQUETA_REGALO_BALDECASH}
-            valor={
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave-2)] px-2.5 py-1 text-xs font-bold text-[var(--d2-ok-texto)]">
-                <Gift className="h-3.5 w-3.5" aria-hidden />
-                {resumen.regaloBaldecash} · {REGALO_BALDECASH_TEXTOS.etiquetaPrecio}
-              </span>
-            }
-          />
-        )}
+          ))}
+        </span>
+      ),
+    });
+  }
+
+  return (
+    <aside
+      aria-labelledby="tarjeta-solicitud-v2"
+      className="overflow-hidden rounded-[20px] border border-[var(--d2-borde)] bg-[var(--d2-tarjeta)] shadow-[0_14px_36px_rgba(30,34,48,0.08)]"
+    >
+      <div className="flex items-center gap-3.5 bg-[linear-gradient(160deg,var(--d2-resumen-inicio)_0%,var(--d2-resumen-fin)_100%)] px-5 py-[18px]">
+        <ImagenDelEquipo src={resumen.imagen} nombre={resumen.nombreEquipo} />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span id="tarjeta-solicitud-v2" className="text-xs font-bold uppercase tracking-[0.05em] text-[var(--d2-texto-suave)]">
+            Tu solicitud
+          </span>
+          <span className="line-clamp-2 text-base font-bold text-[var(--d2-texto)]">{resumen.nombreEquipo}</span>
+          <span className="text-[13.5px] text-[var(--d2-texto-2)]">{resumen.leyenda}</span>
+        </span>
       </div>
+      <dl className="m-0 flex flex-col px-5 pb-2.5 pt-1">
+        <Fila etiqueta={resumen.rotuloCuota} ultima={filas.length === 0}>
+          <span className="text-xl font-bold tabular-nums text-[var(--color-primary-text)]">
+            {resumen.cuota}
+            {resumen.sufijoCuota}
+          </span>
+        </Fila>
+        {filas.map((f, i) => (
+          <Fila key={f.etiqueta} etiqueta={f.etiqueta} ultima={i === filas.length - 1}>
+            {f.valor}
+          </Fila>
+        ))}
+      </dl>
     </aside>
   );
 }

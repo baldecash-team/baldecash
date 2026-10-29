@@ -68,6 +68,10 @@ const VALORES_DE_HOY: Record<string, string> = {
   'cabecera-texto': 'var(--color-on-primary)',
   'cabecera-medio': 'color-mix(in srgb, var(--color-primary) 85%, black)',
   'cabecera-fin': 'color-mix(in srgb, var(--color-primary) 70%, black)',
+  // BAL-5274 (confirmación con Zona Estudiantes): colores nuevos del prototipo.
+  'boton-cabecera-texto': 'color-mix(in srgb, var(--color-primary) 80%, black)',
+  'resumen-inicio': '#EEF0FD',
+  'resumen-fin': '#E5F6F1',
 };
 
 describe('tokens de Diseño 2 — claro igual que hoy', () => {
@@ -134,6 +138,12 @@ const PARES_OSCUROS: Par[] = [
   // Cabecera de la confirmación: texto blanco sobre el punto MÁS CLARO del
   // degradado (verde NVIDIA al 60 %, = #476F00).
   ['cabecera-texto', '#476F00', TEXTO],
+  // «Tu solicitud» (BAL-5274): nombre del equipo y plazo sobre su degradado.
+  ['texto', 'resumen-inicio', TEXTO], ['texto', 'resumen-fin', TEXTO],
+  ['texto-2', 'resumen-inicio', TEXTO], ['texto-2', 'resumen-fin', TEXTO],
+  ['texto-suave', 'resumen-inicio', TEXTO], ['texto-suave', 'resumen-fin', TEXTO],
+  // Texto del botón blanco de la cabecera (verde NVIDIA al 40 % = #2F4A00).
+  ['#2F4A00', '#FFFFFF', TEXTO],
 ];
 
 function color(v: string): string {
