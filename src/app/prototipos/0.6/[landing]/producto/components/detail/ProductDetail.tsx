@@ -672,6 +672,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       paymentFrequency: pricingSelection?.paymentFrequency ?? 'mensual',
       // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
       comboId: combo?.id,
+      comboItems: comboItemsDesdeDetalle(combo),
       specialLinkToken: specialLinkTokenFor(landing, specialLinkProductId, product.id),
     };
 

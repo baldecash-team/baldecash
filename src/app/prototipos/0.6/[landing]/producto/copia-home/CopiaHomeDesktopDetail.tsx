@@ -298,6 +298,7 @@ export function CopiaHomeDesktopDetail({
       // no ve que esta eligiendo pagar la inicial en dos partes.
       paymentPlans,
       comboId: apiData.combo?.id,
+      comboItems: comboItemsDesdeDetalle(apiData.combo),
       // Link especial (BAL-5191): solo si el pase abrió este producto.
       specialLinkToken: specialLinkTokenFor(landing, apiData.specialLinkProductId, product.id),
     };

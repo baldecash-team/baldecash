@@ -25,6 +25,7 @@ import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
 import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 import { descuentoPorCuota } from '@/app/prototipos/0.6/utils/couponPricing';
+import type { ComboItemsSeleccionados } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 // Dynamic storage keys based on landing slug
 //
@@ -174,6 +175,13 @@ export interface SelectedProduct {
   paymentFrequency?: string;
   // Combo del que nace la solicitud (el BE lo necesita para resolver el combo correcto)
   comboId?: number;
+  /**
+   * Lo que trae el combo elegido (S3): sus seguros, con las versiones por
+   * plazo. Solo para MOSTRAR «Incluido en tu combo» en la barra y el resumen:
+   * no suma a la cuota ni viaja en `insurance_ids`. El paso de seguros no lo
+   * usa para decidir: pregunta al backend con `combo_id`.
+   */
+  comboItems?: ComboItemsSeleccionados;
   /**
    * Regalos del combo elegido, tal como los resolvió el modal "Lo quiero"
    * (Diseño 2). Solo para mostrarlos en el panel "Tu solicitud": no viajan al

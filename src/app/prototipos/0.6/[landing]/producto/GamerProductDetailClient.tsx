@@ -766,6 +766,9 @@ function DetailContent() {
         storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size'),
       } : undefined,
       paymentPlans: cartPaymentPlans.length > 0 ? cartPaymentPlans : undefined,
+      // Combo de la página (S3): el paso de seguros y el submit lo necesitan.
+      comboId: data?.combo?.id,
+      comboItems: comboItemsDesdeDetalle(data?.combo),
       // Link especial (BAL-5191): solo si el pase abrió este producto.
       specialLinkToken: specialLinkTokenFor(landing, data?.specialLinkProductId, product.id),
     };
