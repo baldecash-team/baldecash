@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCircle, Star, Heart, Zap, Headphones, Award } from 'lucide-react';
@@ -16,6 +15,7 @@ import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicita
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { HeroOverlay } from './common/HeroOverlay';
 import { HeroImageCta } from './common/HeroImageCta';
+import { HeroBackgroundImage } from './common/HeroBackgroundImage';
 import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 
@@ -187,42 +187,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           onActivate={handleCtaClick}
           className="absolute inset-0"
         >
-          {mobileImageSrc ? (
-            // Two distinct URLs: use <picture> so the browser picks the right source per viewport
-            <picture>
-              <source media="(max-width: 639px)" srcSet={mobileImageSrc} />
-              <source media="(min-width: 640px)" srcSet={imageSrc} />
-              <img
-                src={imageSrc}
-                alt="Estudiantes trabajando"
-                className="absolute inset-0 w-full h-full object-cover"
-                style={{
-                  objectPosition: `${posX}% ${posY}%`,
-                  transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-                }}
-                fetchPriority="high"
-                onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
-              />
-            </picture>
-          ) : (
-            // Single URL: keep next/image for LCP optimization
-            <Image
-              src={imageSrc}
-              alt="Estudiantes trabajando"
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-              style={{
-                objectPosition: `${posX}% ${posY}%`,
-                transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-              }}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.opacity = '0';
-              }}
-            />
-          )}
+          <HeroBackgroundImage
+            src={imageSrc}
+            mobileSrc={mobileImageSrc}
+            alt="Estudiantes trabajando"
+            posX={posX}
+            posY={posY}
+            zoom={zoomVal}
+          />
         </HeroImageCta>
       )}
 
