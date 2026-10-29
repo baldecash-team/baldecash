@@ -22,3 +22,9 @@ test('MA aceptada en el upsell (extraIds) también se manda, deduplicada', () =>
 test('sin seguros seleccionados → lista vacía', () => {
   expect(buildSubmitInsuranceIds([])).toEqual([]);
 });
+
+test('S3/R7: nunca manda un seguro incluido en el combo', () => {
+  const roboDelCombo = { id: '16' };
+  expect(buildSubmitInsuranceIds([roboDelCombo, ma], [], ['16'])).toEqual(['24']);
+  expect(buildSubmitInsuranceIds([robo], ['16'], ['16'])).toEqual(['10']);
+});

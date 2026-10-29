@@ -124,6 +124,8 @@ export function usePaso4V2({ activo, conSeguros, creadaAntes = false }: Opciones
     protecciones,
     textoEnviar: textoDelEnvio(protecciones),
     /** Los ids que viajan en el submit (vacío si este paso no lleva seguros). */
-    insuranceIds: conPlanes ? buildSubmitInsuranceIds(selectedInsurances) : [],
+    insuranceIds: conPlanes
+      ? buildSubmitInsuranceIds(selectedInsurances, [], (seguros.incluidos ?? []).map((p) => p.id))
+      : [],
   };
 }

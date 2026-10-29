@@ -50,6 +50,7 @@ import { PlegableV2 } from './PlegableV2';
 import { PRESION_V2 } from './campos/estilosV2';
 import { EVENTO_ABRIR_PLAZO_V2 } from './guardasV2';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { segurosIncluidosDelProducto } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 /** Escritorio (`lg`): ahí manda el panel; abajo de eso, la cabecera. */
 function esEscritorio(): boolean {
@@ -135,6 +136,8 @@ export function useDatosDelPanel(condicionesFijas: boolean) {
     cuotaAccesorios: product.selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0),
     extras: extrasDeLaCuota(product.selectedAccessories, product.selectedInsurances),
     regalos: principal?.regalos ?? [],
+    // S3/R7: los seguros del combo para su plazo. Solo se muestran; no suman.
+    segurosIncluidos: segurosIncluidosDelProducto(principal).map((s) => ({ id: s.planId, name: s.name })),
     mesPrimeraCuota,
     mostrarImagen: layout.mostrarImagenProducto,
     opcionesInicial,
@@ -205,13 +208,20 @@ function ImagenEquipo({ datos, tam }: { datos: DatosDelPanel; tam: number }) {
 
 function ChipsDelPanel({ datos }: { datos: DatosDelPanel }) {
   const { regalos, mesPrimeraCuota } = datos;
-  if (regalos.length === 0 && !mesPrimeraCuota) return null;
+  const segurosIncluidos = datos.segurosIncluidos ?? [];
+  if (regalos.length === 0 && segurosIncluidos.length === 0 && !mesPrimeraCuota) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1.5">
       {regalos.map((r) => (
         <span key={r.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave-2)] px-2.5 py-1 text-xs font-semibold text-[var(--d2-ok-texto)]">
           <Gift className="h-3.5 w-3.5" aria-hidden />
           {r.name} de regalo
+        </span>
+      ))}
+      {segurosIncluidos.map((s) => (
+        <span key={`seguro-${s.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave-2)] px-2.5 py-1 text-xs font-semibold text-[var(--d2-ok-texto)]">
+          <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+          {`${s.name} incluido en tu combo`}
         </span>
       ))}
       {mesPrimeraCuota && (
@@ -703,7 +713,7 @@ export function CabeceraSolicitudV2({
               // DOM, así que el id nunca es una referencia rota (BAL-4959).
               aria-controls={idSelector}
               onClick={() => cambiarPorGesto(!abierto)}
-              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !datos.extras?.length && !detalleEquipo}
+              disabled={!datos.hayQueElegir && datos.regalos.length === 0 && !(datos.segurosIncluidos ?? []).length && !datos.extras?.length && !detalleEquipo}
               className="flex min-h-[58px] min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-1.5 text-left cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-primary)]"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-[var(--color-on-primary)]">
@@ -746,6 +756,9 @@ export function CabeceraSolicitudV2({
                 {detalleEquipo && <p className="text-xs text-[var(--d2-texto-suave)]">{detalleEquipo}</p>}
                 {datos.regalos.map((r) => (
                   <p key={r.id} className="text-xs font-semibold text-[var(--d2-ok-texto)]">+ {r.name} de regalo</p>
+                ))}
+                {(datos.segurosIncluidos ?? []).map((s) => (
+                  <p key={`seguro-${s.id}`} className="text-xs font-semibold text-[var(--d2-ok-texto)]">+ {s.name} incluido en tu combo</p>
                 ))}
                 {datos.mesPrimeraCuota && (
                   <p className="text-xs font-semibold text-[var(--d2-ok-texto)]">1.ª cuota en {datos.mesPrimeraCuota}</p>

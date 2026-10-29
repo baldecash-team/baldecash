@@ -39,6 +39,8 @@ import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { AvisoLinkEspecialRechazado } from '../components/solicitar/submit/AvisoLinkEspecialRechazado';
 import { buildSubmitInsuranceIds } from '../utils/submitInsuranceIds';
+import { segurosIncluidosDelProducto } from '@/app/prototipos/0.6/utils/comboIncluidos';
+import { FilasIncluidasEnCombo } from '../components/upsell/SegurosIncluidosEnCombo';
 import { seccionesDeComplementos } from '@/app/prototipos/0.6/components/diseno-2/paso4/paso4';
 import StepClient from '../[stepSlug]/StepClient';
 
@@ -60,6 +62,8 @@ function ComplementosContent() {
 
   // Frecuencia del producto principal (para sufijo de cuotas en resumen)
   const primaryFrequency = getAllProducts()[0]?.paymentFrequency;
+  // S3/R7: lo que trae el combo, para el resumen. No suma a la cuota.
+  const segurosIncluidos = segurosIncluidosDelProducto(getAllProducts()[0]);
   const freqSuffix =
     primaryFrequency === 'semanal' ? '/sem'
     : primaryFrequency === 'quincenal' ? '/qcn'
@@ -276,7 +280,7 @@ function ComplementosContent() {
 
     // Ids de seguros a enviar: TODOS los seleccionados (equipo Insurama y A365
     // Multiasistencia por igual), deduplicados. Ver buildSubmitInsuranceIds + tests.
-    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances);
+    const insuranceIds = buildSubmitInsuranceIds(selectedInsurances, [], segurosIncluidos.map((s) => s.planId));
     if (!tomarCandado()) return;
     await submitApplication({
       insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null,
@@ -350,8 +354,9 @@ function ComplementosContent() {
           className="mt-6 bg-white rounded-xl border border-neutral-200 overflow-hidden"
         >
           {/* Breakdown items */}
-          {(selectedInsurances.length > 0 || selectedAccessories.length > 0) && (
+          {(selectedInsurances.length > 0 || selectedAccessories.length > 0 || segurosIncluidos.length > 0) && (
             <div className="px-4 pt-4 pb-3 space-y-2">
+              <FilasIncluidasEnCombo seguros={segurosIncluidos} />
               {selectedInsurances.map((ins) => (
                 <div key={ins.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
@@ -379,7 +384,7 @@ function ComplementosContent() {
 
           {/* Total row */}
           <div className={`px-4 py-4 flex items-center justify-between gap-3 ${
-            selectedInsurances.length > 0 || selectedAccessories.length > 0
+            selectedInsurances.length > 0 || selectedAccessories.length > 0 || segurosIncluidos.length > 0
               ? 'bg-[rgba(var(--color-primary-rgb),0.04)] border-t border-neutral-100'
               : ''
           }`}>
