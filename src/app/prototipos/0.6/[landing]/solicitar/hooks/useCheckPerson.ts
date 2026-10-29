@@ -17,6 +17,26 @@ import {
 } from '../../../services/applicationApi';
 import { patchTrackingSession } from '../../../services/sessionApi';
 
+/**
+ * Resultado del check-person para el evento `document_check_result`
+ * (BAL-5276, punto 3). Nunca lleva el documento.
+ */
+export type ResultadoDelDocumento = 'encontrado' | 'no_encontrado' | 'bloqueado_lista' | 'error';
+
+export interface ResultadoDelCheck {
+  resultado: ResultadoDelDocumento;
+  /** ¿Llegaron datos para prellenar el formulario? */
+  prellenado: boolean;
+}
+
+/** Traduce la respuesta (o el fallo) del check-person a `ResultadoDelCheck`. */
+export function resultadoDelCheck(result: CheckPersonResponse | null): ResultadoDelCheck {
+  if (!result) return { resultado: 'error', prellenado: false };
+  const prellenado = !!result.prefill_data;
+  if (result.whitelist?.allowed === false) return { resultado: 'bloqueado_lista', prellenado };
+  return { resultado: prellenado ? 'encontrado' : 'no_encontrado', prellenado };
+}
+
 interface UseCheckPersonOptions {
   /** Callback when prefill data is available */
   onPrefillReady?: (data: PrefillData) => void;
@@ -35,6 +55,8 @@ interface UseCheckPersonOptions {
    * sesiones distintas.
    */
   sessionUuid?: string | null;
+  /** Cada vez que termina un check (BAL-5276): qué pasó, sin el documento. */
+  onResultado?: (r: ResultadoDelCheck) => void;
 }
 
 interface UseCheckPersonResult {
@@ -80,6 +102,7 @@ export function useCheckPerson(
     debounceMs = 300,
     landingSlug,
     sessionUuid,
+    onResultado,
   } = options;
 
   const [isChecking, setIsChecking] = useState(false);
@@ -138,16 +161,18 @@ export function useCheckPerson(
             // No prefill data available - clear the fields
             onNoPrefillData();
           }
+          onResultado?.(resultadoDelCheck(result));
         } catch (err) {
           const errorMsg = 'Error al verificar datos';
           setError(errorMsg);
           onError?.(errorMsg);
+          onResultado?.(resultadoDelCheck(null));
         } finally {
           setIsChecking(false);
         }
       }, debounceMs);
     },
-    [onPrefillReady, onNoPrefillData, onError, debounceMs, landingSlug, sessionUuid]
+    [onPrefillReady, onNoPrefillData, onError, debounceMs, landingSlug, sessionUuid, onResultado]
   );
 
   const reset = useCallback(() => {

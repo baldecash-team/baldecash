@@ -45,7 +45,22 @@ export function errorAlSalir(
   dynamicOptionsCache?: Record<string, CascadingOption[]>,
   opciones: OpcionesDeValidacion = {},
 ): string | null {
-  if (estaVacio(value)) return null;
+  return errorAlSalirConRegla(field, value, formValues, dynamicOptionsCache, opciones).error;
+}
+
+/**
+ * Igual que `errorAlSalir`, más la regla que falló (`rule` de
+ * `validateField`), para `form_field_error` (BAL-5276).
+ */
+export function errorAlSalirConRegla(
+  field: WizardField,
+  value: string | string[] | undefined,
+  formValues: Record<string, string | string[]>,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>,
+  opciones: OpcionesDeValidacion = {},
+): { error: string | null; rule: string | null } {
+  if (estaVacio(value)) return { error: null, rule: null };
   // El campo estaba en pantalla (la persona acaba de salir de él).
-  return validateField(field, value, formValues, dynamicOptionsCache, true, opciones).error;
+  const r = validateField(field, value, formValues, dynamicOptionsCache, true, opciones);
+  return { error: r.error, rule: r.rule ?? null };
 }

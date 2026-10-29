@@ -8,12 +8,19 @@
  * - "Reintentar": vuelve a pedir los planes (la selección sigue guardada).
  * - "Enviar sin protecciones": recién ahí se suelta la selección y se envía.
  * - Cerrar: no pasa nada; la selección sigue y no se envía.
+ *
+ * BAL-5276 (punto 5): cada decisión queda en `insurance_skip_confirm`
+ * (`decision`: `enviar_sin` | `reintentar` | `cerrar`). Diseño 1 no tiene este
+ * aviso: su página de seguros envía sin preguntar.
  */
 
 import React from 'react';
 import { AlertTriangle, RotateCw } from 'lucide-react';
 import { textoDeElegidas } from './ProteccionesV2';
-import { BOTON_PRIMARIO_V2, BOTON_SECUNDARIO_V2, ModalV2 } from '../ModalV2';
+import { BOTON_PRIMARIO_V2, BOTON_SECUNDARIO_V2, ModalV2, type MotivoCierreV2 } from '../ModalV2';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+
+export type DecisionSinProtecciones = 'enviar_sin' | 'reintentar' | 'cerrar';
 
 export interface ConfirmarSinProteccionesV2Props {
   isOpen: boolean;
@@ -32,10 +39,21 @@ export function ConfirmarSinProteccionesV2({
   onReintentar,
   onEnviarSinProtecciones,
 }: ConfirmarSinProteccionesV2Props) {
+  const tracker = useEventTrackerOptional();
+  const registrar = (decision: DecisionSinProtecciones, motivo?: MotivoCierreV2) =>
+    tracker?.track('insurance_skip_confirm', {
+      decision,
+      ...(motivo ? { motivo_cierre: motivo } : {}),
+      elegidas,
+      diseno: 2,
+    });
   return (
     <ModalV2
       abierto={isOpen}
-      onCerrar={onClose}
+      onCerrar={(motivo) => {
+        registrar('cerrar', motivo);
+        onClose();
+      }}
       icono={AlertTriangle}
       titulo="¿Enviar sin tus protecciones?"
       subtitulo="Revisa antes de enviar tu solicitud"
@@ -43,11 +61,11 @@ export function ConfirmarSinProteccionesV2({
       ancho="chico"
       pie={
         <div className="flex w-full flex-col gap-2 sm:flex-row-reverse md:w-auto">
-          <button type="button" onClick={onReintentar} className={`${BOTON_PRIMARIO_V2} sm:flex-1 md:flex-none`}>
+          <button type="button" onClick={() => { registrar('reintentar'); onReintentar(); }} className={`${BOTON_PRIMARIO_V2} sm:flex-1 md:flex-none`}>
             <RotateCw className="h-4 w-4" aria-hidden />
             Reintentar
           </button>
-          <button type="button" onClick={onEnviarSinProtecciones} className={`${BOTON_SECUNDARIO_V2} sm:flex-1 md:flex-none`}>
+          <button type="button" onClick={() => { registrar('enviar_sin'); onEnviarSinProtecciones(); }} className={`${BOTON_SECUNDARIO_V2} sm:flex-1 md:flex-none`}>
             Enviar sin protecciones
           </button>
         </div>

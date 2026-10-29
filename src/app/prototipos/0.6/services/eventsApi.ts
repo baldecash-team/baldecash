@@ -118,7 +118,8 @@ export type EventType =
   | 'form_step_complete'
   | 'form_step_back'
   | 'form_step_validation_error'
-  // Error de un campo al salir de él (Diseño 2, `useErroresAlSalir`, BAL-4969).
+  // Error de un campo (Diseño 2, `useErroresAlSalir`, BAL-4969; Diseño 1,
+  // `useErroresDeCampoD1`, BAL-5276).
   | 'form_field_error'
   // «Otro» escrito en el mismo campo (Diseño 2, BAL-5205/BAL-5207): la lista
   // se vuelve caja y «Ver opciones» la devuelve. Ver `DynamicWizardStep.tsx`.
@@ -210,6 +211,14 @@ export type EventType =
   | 'lo_quiero_modal_continue_blocked'
   | 'lo_quiero_modal_accessories_expand'
   | 'lo_quiero_modal_accessories_collapse'
+  // BAL-5276: comparar Diseño 1 y Diseño 2. Resultado del documento
+  // (DocumentNumberField, sin el número), «¿No eres tú?» (D2) y la decisión
+  // del aviso «¿Enviar sin tus protecciones?» (D2). Mismos nombres que
+  // ALL_EVENT_TYPES de ws2.
+  | 'document_check_result'
+  | 'document_not_me_click'
+  | 'insurance_skip_confirm'
+  // Fin BAL-5276.
   | 'plan_change_panel_toggle'
   | 'plan_term_change_panel'
   | 'plan_initial_change_panel'

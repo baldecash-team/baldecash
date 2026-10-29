@@ -60,3 +60,18 @@ it('sin salir del campo no emite nada', () => {
   expect(mockTrack).not.toHaveBeenCalled();
   void act;
 });
+
+it('BAL-5276: al salir lleva momento al_salir, field_name y error_rule (como Diseño 1)', () => {
+  const { getByLabelText } = render(<Prueba />);
+  fireEvent.blur(getByLabelText('numero'));
+  expect(mockTrack).toHaveBeenCalledWith('form_field_error', {
+    step_code: 'personal_data',
+    field_code: 'document_number',
+    field_name: 'document_number',
+    error_field: 'document_number',
+    error_rule: 'required',
+    error_message: 'Este campo es requerido',
+    momento: 'al_salir',
+    diseno: 2,
+  });
+});

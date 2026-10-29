@@ -22,6 +22,7 @@ import { OtraEnElCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/campos
 import { reiniciarCampoTocado } from '@/app/prototipos/0.6/components/diseno-2/useErroresAlSalir';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
+import { useErroresDeCampoD1 } from '../../../hooks/useErroresDeCampoD1';
 
 /** Lo primero que se puede enfocar dentro de un campo (al abrir un plegado). */
 const ENFOCABLE_DEL_CAMPO =
@@ -307,6 +308,9 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   // Diseño 2: opcionales plegados que la persona abrió con "+ Agregar …". Un
   // plegado con valor (borrador) sale abierto sin pasar por acá.
   const esV2 = camposTocados !== undefined;
+  // BAL-5276: Diseño 1 también registra `form_field_error` (Diseño 2 lo hace
+  // en `useErroresAlSalir`), con las mismas propiedades.
+  useErroresDeCampoD1(step, !esV2);
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(() => new Set());
 
   // Diseño 2: errores LOCALES que un campo (DateInput, AddressAutocompleteField)
