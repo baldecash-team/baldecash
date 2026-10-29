@@ -19,6 +19,7 @@ import { useWizard } from '@/app/prototipos/0.6/[landing]/solicitar/context/Wiza
 import { validateField, type WizardField, type WizardStep } from '@/app/prototipos/0.6/services/wizardApi';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { estaVacio, seValidaAlSalir } from '@/app/prototipos/0.6/[landing]/solicitar/utils/validarAlSalir';
+import { origenDelError, type OrigenDelError } from '@/app/prototipos/0.6/services/origenDeErrores';
 
 /**
  * Lugares fuera del campo a donde se va el foco SIN haberlo dejado: la lista
@@ -73,14 +74,22 @@ export function useErroresAlSalir(step: WizardStep | null) {
     reportadosRef.current = new Map();
   }, [codigoPaso]);
 
-  const reportar = useCallback((codigo: string, error: string) => {
+  // BAL-5276: además `momento` (`al_salir` | `continuar`), `field_name` y
+  // `error_rule` (la regla que falló), igual que Diseño 1
+  // (`useErroresDeCampoD1`). Sin origen conocido, el error lo puso
+  // «Continuar»/«Enviar» (`validateStepDetallado` lo anota con su regla).
+  const reportar = useCallback((codigo: string, error: string, origen?: OrigenDelError) => {
     if (reportadosRef.current.get(codigo) === error) return;
     reportadosRef.current.set(codigo, error);
+    const o = origen ?? origenDelError(codigo, error);
     tracker?.track('form_field_error', {
       step_code: codigoPaso,
       field_code: codigo,
+      field_name: codigo,
       error_field: codigo,
+      error_rule: o?.regla ?? null,
       error_message: error,
+      momento: o?.momento ?? 'continuar',
       diseno: 2,
     });
   }, [tracker, codigoPaso]);
@@ -161,10 +170,10 @@ export function useErroresAlSalir(step: WizardStep | null) {
         porReportarRef.current.delete(codigo);
         continue;
       }
-      const { error } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
+      const { error, rule } = validateField(field, valores[codigo], valores, opciones, true, { diseno2: true });
       if ((error ?? null) !== actual) setFieldError(codigo, error);
       if (!error) reportadosRef.current.delete(codigo);
-      else if (porReportarRef.current.has(codigo)) reportar(codigo, error);
+      else if (porReportarRef.current.has(codigo)) reportar(codigo, error, { momento: 'al_salir', regla: rule ?? null });
       porReportarRef.current.delete(codigo);
     }
   }, [camposTocados, formData, camposPorCodigo, getAllDynamicOptions, setFieldError, reportar, salidas, vacioQueEspera]);

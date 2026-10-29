@@ -16,7 +16,8 @@ import { largoAlSalir } from '../../../utils/largoAlSalir';
 import { CampoDelRegistroContext, useRegistroDeOpciones } from '../../../hooks/useRegistroDeOpciones';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
-import { errorAlSalir, estaVacio, seValidaAlSalir } from '../../../utils/validarAlSalir';
+import { errorAlSalirConRegla, estaVacio, seValidaAlSalir } from '../../../utils/validarAlSalir';
+import { anotarOrigenDelError } from '../../../../../services/origenDeErrores';
 import { resolverForma } from './formaDeLista';
 import { TextInput, contadorVisible } from './TextInput';
 import { CurrencyInput } from './CurrencyInput';
@@ -271,7 +272,11 @@ const DynamicFieldInterno: React.FC<DynamicFieldProps> = ({ field, showError = f
     // `updateField` borra el error, así que al corregir se va solo.
     if (validaAlSalir && !estaVacio(currentValue as string | string[])) {
       const valor = currentValue as string | string[];
-      setFieldError(field.code, errorAlSalir(field, valor, { ...formValues, [field.code]: valor }, getAllDynamicOptions()));
+      const { error: errorNuevo, rule } = errorAlSalirConRegla(field, valor, { ...formValues, [field.code]: valor }, getAllDynamicOptions());
+      // BAL-5276: `form_field_error` (useErroresDeCampoD1) lo registra como
+      // error al salir del campo, con la regla que falló.
+      if (errorNuevo) anotarOrigenDelError(field.code, errorNuevo, rule, 'al_salir');
+      setFieldError(field.code, errorNuevo);
       setValidadoAlSalir(true);
     }
   }, [field, getFieldValue, onFieldBlur, validaAlSalir, setFieldError, formValues, getAllDynamicOptions]);

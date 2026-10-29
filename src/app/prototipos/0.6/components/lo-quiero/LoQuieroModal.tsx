@@ -372,6 +372,29 @@ function LoQuieroModalContent({
   const accesoriosVisibles = verTodos ? ofrecibles : ofrecibles.slice(0, enLaGrilla);
   const escondidos = ofrecibles.slice(enLaGrilla);
   const seccionAccesoriosRef = useRef<HTMLElement>(null);
+
+  // BAL-5276 (punto 2): qué accesorios VIO la persona, no solo cuál agregó.
+  // Mismo evento que Diseño 1 (`accessory_impression` de AccessoriesSection,
+  // mismas propiedades) más `origen: 'lo_quiero'`, para que los reportes los
+  // junten o los separen. `accessory_ids` va en el orden de la grilla (la
+  // posición es el lugar en la lista). Una vez por apertura para la grilla y,
+  // si toca «Ver todos», una vez más con la lista completa (`vista: 'todos'`).
+  const impresionesRef = useRef<Set<'grilla' | 'todos'>>(new Set());
+  useEffect(() => {
+    if (estadoAcc !== 'listo' || !accesoriosHabilitados || accesoriosVisibles.length === 0) return;
+    const vista = verTodos ? 'todos' : 'grilla';
+    if (impresionesRef.current.has(vista)) return;
+    impresionesRef.current.add(vista);
+    analytics.track('accessory_impression', {
+      accessory_ids: accesoriosVisibles.map((a) => String(a.id)).join(','),
+      count: accesoriosVisibles.length,
+      page: 1,
+      origen: 'lo_quiero',
+      vista,
+      product_id: productoId,
+      diseno: 2,
+    });
+  }, [estadoAcc, accesoriosHabilitados, accesoriosVisibles, verTodos, analytics, productoId]);
   // «+N más» / «Ver menos»: cuánta gente quiere ver más accesorios que los
   // de la grilla (BAL-5207).
   const abrirTodos = () => {

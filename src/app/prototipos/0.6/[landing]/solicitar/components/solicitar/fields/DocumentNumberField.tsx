@@ -12,7 +12,8 @@
 import React, { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { WizardField, getDocumentTypeRules, checkDocumentAgainstRules } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
-import { useCheckPerson } from '../../../hooks/useCheckPerson';
+import { useCheckPerson, type ResultadoDelCheck } from '../../../hooks/useCheckPerson';
+import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 import { useCouponDocumentCheck } from '../../../hooks/useCouponDocumentCheck';
 import { useSpecialLinkDocumentCheck } from '../../../hooks/useSpecialLinkDocumentCheck';
 import { useSessionOptional } from '../../../context/SessionContext';
@@ -378,10 +379,27 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     limpiarCamposDelPrellenado();
   }, [field.code, updateField, limpiarCamposDelPrellenado, limpiarMarcasDelPrellenado]);
 
+  // BAL-5276 (punto 3): qué pasó con el documento —encontrado y prellenado,
+  // no encontrado, bloqueado por la lista blanca o error—, en los dos diseños.
+  // Nunca el número: solo el campo y el tipo de documento.
+  const tracker = useEventTrackerOptional();
+  const tipoDocumentoRef = useRef(documentType);
+  tipoDocumentoRef.current = documentType;
+  const registrarResultado = useCallback((r: ResultadoDelCheck) => {
+    tracker?.track('document_check_result', {
+      resultado: r.resultado,
+      prellenado: r.prellenado,
+      field_code: field.code,
+      tipo_documento: tipoDocumentoRef.current || null,
+      diseno: v2 ? 2 : 1,
+    });
+  }, [tracker, field.code, v2]);
+
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
     onPrefillReady: handlePrefillReady,
     onNoPrefillData: handleNoPrefillData,
+    onResultado: registrarResultado,
     debounceMs: 500,
     landingSlug: landing,
     // Este es el momento en que el visitante se identifica: el documento pasa
@@ -618,13 +636,19 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // "Corrige tu DNI": lo mismo que pasa hoy al cambiar el documento (número,
   // prefill y campos que llenó, en blanco) y el foco vuelve al campo.
   const corregirDocumento = useCallback(() => {
+    // BAL-5276 (punto 3): tocó «¿No eres tú?» (solo existe en Diseño 2).
+    tracker?.track('document_not_me_click', {
+      field_code: field.code,
+      tipo_documento: documentType || null,
+      diseno: 2,
+    });
     updateField(field.code, '');
     setFieldError?.(field.code, null);
     updateField(`_prefill_status_${field.code}`, '');
     limpiarCamposDelPrellenado();
     resetCheck();
     inputRef.current?.focus();
-  }, [field.code, updateField, setFieldError, limpiarCamposDelPrellenado, resetCheck]);
+  }, [field.code, updateField, setFieldError, limpiarCamposDelPrellenado, resetCheck, tracker, documentType]);
 
   // Determine success state
   const hasValue = !!value;

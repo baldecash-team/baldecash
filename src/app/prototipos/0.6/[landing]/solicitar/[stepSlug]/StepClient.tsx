@@ -621,7 +621,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
   const pasoListoParaSeguros = enSeguros && step ? isStepCompleted(step.url_slug || step.code) : false;
   const resumenValido = useMemo(
     // Solo en la página de seguros: el Resumen valida al tocar sus botones.
-    () => (enSeguros && step ? validateStepFields(step, formValues, sinMarcarErrores, getAllDynamicOptions(), { diseno2: usarDiseno2 }) === null : false),
+    () => (enSeguros && step ? validateStepFields(step, formValues, sinMarcarErrores, getAllDynamicOptions(), { diseno2: usarDiseno2, soloRevisar: true }) === null : false),
     [enSeguros, step, formValues, getAllDynamicOptions, usarDiseno2],
   );
   const sinNadaQueMostrar = !paso4.cargandoPlanes && !paso4.conPantallaDeSeguros && otrasSecciones.length === 0;

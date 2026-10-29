@@ -599,3 +599,47 @@ describe('LoQuieroModal · eventos que faltaban (BAL-5207)', () => {
     expect(llamadas('lo_quiero_modal_accessories_collapse')).toEqual([{ product_id: '1528' }]);
   });
 });
+
+describe('LoQuieroModal · accesorios vistos (BAL-5276, punto 2)', () => {
+  const ACC = (id: string) => ({
+    id, name: `Accesorio ${id}`, description: '', price: 60, monthlyQuota: 5, image: '', category: null,
+    isRecommended: true, compatibleWith: [], term: 24,
+  });
+  const impresiones = () => mockTrackModal.mock.calls.filter((c) => c[0] === 'accessory_impression').map((c) => c[1]);
+
+  it('al abrir registra una vez los accesorios de la grilla, en orden, con origen lo_quiero', async () => {
+    mockAccesorios = ['a1', 'a2', 'a3'].map(ACC);
+    pintar();
+    await screen.findByText('Accesorio a3');
+    await waitFor(() => expect(impresiones()).toHaveLength(1));
+    expect(impresiones()[0]).toEqual({
+      accessory_ids: 'a1,a2,a3',
+      count: 3,
+      page: 1,
+      origen: 'lo_quiero',
+      vista: 'grilla',
+      product_id: '1528',
+      diseno: 2,
+    });
+  });
+
+  it('«Ver todos» registra una vez más la lista completa; volver a abrir y cerrar no repite', async () => {
+    mockAccesorios = Array.from({ length: 12 }, (_, i) => ACC(`a${i}`));
+    pintar();
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver 5 accesorios más' }));
+    await screen.findByText('Accesorio a11');
+    fireEvent.click(screen.getByRole('button', { name: /Ver menos/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver 5 accesorios más' }));
+    const lista = impresiones();
+    expect(lista).toHaveLength(2);
+    expect(lista[0]).toMatchObject({ vista: 'grilla', count: 7 });
+    expect(lista[1]).toMatchObject({ vista: 'todos', count: 12 });
+  });
+
+  it('sin accesorios no registra impresión', async () => {
+    mockAccesorios = [];
+    pintar();
+    await screen.findByRole('button', { name: /Continuar a mis datos/ });
+    expect(impresiones()).toHaveLength(0);
+  });
+});

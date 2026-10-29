@@ -7,6 +7,7 @@ import { getVipToken, clearVipData } from '../components/hero/DniModal';
 import { hasLockertruckEvalCache } from '../utils/lockertruckGate';
 import { isValidEmail } from './emailValidation';
 import { errorDeFecha } from './fechaLimites';
+import { anotarOrigenDelError } from './origenDeErrores';
 import type { FiltroDeOpciones } from './filtroDeOpciones';
 
 // API Base URL
@@ -986,6 +987,12 @@ export interface OpcionesDeValidacion {
    * BAL-4969 · I1).
    */
   diseno2?: boolean;
+  /**
+   * Solo revisar (BAL-5276): la validación no es un «Continuar» de la
+   * persona (p. ej. el chequeo silencioso del botón de enviar), así que sus
+   * errores no se anotan como `continuar` para `form_field_error`.
+   */
+  soloRevisar?: boolean;
 }
 
 /**
@@ -1377,6 +1384,11 @@ export function validateStepDetallado(
 
     // Siempre actualizar el error (limpiar si es válido, setear si hay error)
     setFieldError(field.code, result.error);
+
+    // BAL-5276: el error salió al «Continuar», con esta regla.
+    if (!result.isValid && result.error && !opciones.soloRevisar) {
+      anotarOrigenDelError(field.code, result.error, result.rule, 'continuar');
+    }
 
     if (!result.isValid && !primerError) {
       primerError = { field: field.code, rule: result.rule ?? null, message: result.error };
