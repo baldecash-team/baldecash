@@ -24,8 +24,8 @@ import { useRouter, useParams } from 'next/navigation';
 import {
   ChevronLeft, ShieldCheck, BadgeCheck, Package, Check, Battery, Monitor,
   Star, RefreshCw, Heart, Cpu, Calendar, Store, CalendarDays, Rotate3d,
-  FileText, Download, Truck, ArrowRight,
-} from 'lucide-react';
+  FileText, Download, Truck, ArrowRight, Loader2 } from 'lucide-react';
+import { useLoQuieroSegunFormulario, alApretarLoQuiero } from '@/app/prototipos/0.6/components/lo-quiero/useLoQuieroSegunFormulario';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { irALaSolicitud } from '@/app/prototipos/0.6/utils/entradaSolicitud';
 import { specialLinkTokenFor } from '@/app/prototipos/0.6/utils/specialLink';
@@ -310,12 +310,17 @@ export function CopiaHomeDesktopDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canBuy, apiData, product, monthlyQuota, term, initialPercent, initialAmount, paymentFrequency, colorId, selectedColor, landing, router, galleryImages]);
 
+  // BAL-5296: con diseño por formulario, «Lo quiero» pregunta antes a ws2
+  // qué diseño le toca (lo guarda en la sesión y `/solicitar` lo usa).
+  const loQuiero = useLoQuieroSegunFormulario();
   const onLoQuiero = () => {
     if (!canBuy) return;
     // Diseño 2: el aviso va dentro del modal "Lo quiero" de `/solicitar`
     // (BAL-4969); el modal viejo de semi nuevo no sale.
-    if (isRefurbished && !loQuieroModal) { setShowRefurb(true); return; }
-    proceedToSolicitar();
+    alApretarLoQuiero(loQuiero, !!loQuieroModal, product.id, (abreModal) => {
+      if (isRefurbished && !abreModal) { setShowRefurb(true); return; }
+      proceedToSolicitar();
+    });
   };
 
   const handleToggleWishlist = () => {
@@ -536,8 +541,8 @@ export function CopiaHomeDesktopDetail({
                         <Heart size={20} fill={isInWishlist ? 'currentColor' : 'none'} />
                       </button>
                     )}
-                    <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={onLoQuiero}>
-                      Lo quiero
+                    <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={onLoQuiero} disabled={loQuiero.resolviendo || undefined} aria-busy={loQuiero.resolviendo || undefined}>
+                      {loQuiero.resolviendo ? <Loader2 className="w-5 h-5 animate-spin" aria-label="Lo quiero" /> : 'Lo quiero'}
                     </button>
                   </div>
 

@@ -16,7 +16,7 @@ import { textoIncluyeDelCombo } from '@/app/prototipos/0.6/utils/comboIncluidos'
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, CheckCircle2, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, CheckCircle2, Loader2, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -161,6 +161,11 @@ interface ProductCardProps {
   /** Deshabilita el botón "Lo quiero" (ej. mientras el contexto se hidrata o un modal está abierto). */
   addToCartDisabled?: boolean;
   /**
+   * «Lo quiero» esperando a ws2 el diseño del formulario de la sesión
+   * (BAL-5296). Solo en landings con diseño por formulario; sin el prop, nada.
+   */
+  addToCartLoading?: boolean;
+  /**
    * Oculta los badges de estado del equipo (condición y grado) sobre la foto.
    * Para campañas que ya nombran el estado en su propio diseño — ver
    * `hidesEquipmentStateBadges` en utils/condition. No afecta a los tags del
@@ -207,6 +212,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   campaignCoupon = null,
   labels = null,
   addToCartDisabled = false,
+  addToCartLoading = false,
   hideStateBadges = false,
   compact = false,
 }) => {
@@ -1250,6 +1256,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                       : undefined
                 }
                 isDisabled={onCtaClick ? false : resolvedIsInCart || addToCartDisabled}
+                {...(addToCartLoading && !onCtaClick
+                  ? { isLoading: true, spinner: <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> }
+                  : {})}
               >
                 {onCtaClick ? (ctaLabel ?? 'Elegir este equipo') : resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>

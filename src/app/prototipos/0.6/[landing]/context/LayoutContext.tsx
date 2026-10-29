@@ -634,6 +634,14 @@ export function useLayout() {
 }
 
 /**
+ * Igual que `useLayout` pero sin lanzar fuera del provider (la ficha también se
+ * pinta en `/oferta/[token]`, que no tiene `LayoutProvider`). BAL-5296.
+ */
+export function useLayoutOptional(): LayoutContextValue | null {
+  return useContext(LayoutContext);
+}
+
+/**
  * Selector para el diseño de la solicitud (BAL-4958): `1` (actual) o `2`
  * (modal "Lo quiero"). Vive junto a `useLayout` porque es el mismo contexto;
  * existe como selector propio para que los consumidores que solo necesitan

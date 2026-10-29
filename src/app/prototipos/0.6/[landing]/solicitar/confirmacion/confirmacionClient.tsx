@@ -584,7 +584,13 @@ function ConfirmacionContent() {
   // dentro de la vista de confirmación (ver <OtpValidationCta/>), no se fuerza.
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData, disenoSolicitud } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData, disenoSolicitud: disenoDeLaLanding, disenoPorFormulario } = useLayout();
+
+  // BAL-5296: con diseño por formulario manda el del formulario de ESTA
+  // solicitud (`solicitud_design` de `/status`); si no viene, el de siempre.
+  const disenoDelStatus = applicationData?.solicitud_design;
+  const disenoSolicitud =
+    disenoPorFormulario && (disenoDelStatus === 1 || disenoDelStatus === 2) ? disenoDelStatus : disenoDeLaLanding;
 
   // F8 (BAL-4967): mismo criterio que `StepClient` — Diseño 2 solo fuera de
   // zona gamer, que se queda en Diseño 1 (decisión D6 del planning de Diseño 2).

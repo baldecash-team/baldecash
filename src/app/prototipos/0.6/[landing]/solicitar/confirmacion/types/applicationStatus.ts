@@ -126,6 +126,11 @@ export interface ApplicationStatusData {
    */
   limited?: boolean;
   /**
+   * Diseño de la solicitud del formulario de ESTA solicitud (BAL-5296). La
+   * confirmación lo usa solo en landings con diseño por formulario.
+   */
+  solicitud_design?: 1 | 2;
+  /**
    * Slug de la landing DUEÑA de la solicitud. Cuando difiere del `landing`
    * de la ruta actual (el link funciona con cualquier landing, D3), la
    * pantalla redirige a esta.

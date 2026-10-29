@@ -144,6 +144,7 @@ import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { cuponConBanner, landingMuestraBannerDeCupon } from '@/app/prototipos/0.6/utils/couponBanner';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { LoQuieroModal, type RegaloDelCombo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
+import { useLoQuieroSegunFormulario, alApretarLoQuiero } from '@/app/prototipos/0.6/components/lo-quiero/useLoQuieroSegunFormulario';
 import { avisosDelEquipo, type AvisoDelEquipo } from '@/app/prototipos/0.6/components/lo-quiero/avisoDelEquipo';
 
 // URLs - now with landing context
@@ -1045,6 +1046,10 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
   // Regalos del combo de la card elegida: el modal no los ofrece para agregar.
   const [loQuieroRegalos, setLoQuieroRegalos] = useState<RegaloDelCombo[]>([]);
   const [loQuieroAvisos, setLoQuieroAvisos] = useState<AvisoDelEquipo[]>([]);
+  // BAL-5296: con diseño por formulario, «Lo quiero» espera a ws2. La card
+  // apretada muestra la carga (por slug: el suelto y sus combos comparten id).
+  const loQuiero = useLoQuieroSegunFormulario();
+  const [loQuieroSlug, setLoQuieroSlug] = useState<string | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1676,7 +1681,9 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
 
   // "Lo quiero" del card: dispara analítica y navega/abre el modal de carrito.
   // Extraído del handler inline para poder diferirlo tras el aviso de reacondicionado.
-  const proceedAddToCart = useCallback((cartItem: CartItem, product: CatalogProduct) => {
+  // `abreModal`: lo que decidió el formulario de la sesión (BAL-5296); por
+  // defecto el diseño que ya se conoce, como antes.
+  const proceedAddToCart = useCallback((cartItem: CartItem, product: CatalogProduct, abreModal: boolean = !!loQuieroModal) => {
     // Fire filter snapshot before the user leaves or opens the modal
     const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
     analytics.trackFilterSnapshot({
@@ -1706,7 +1713,7 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
       // Con la landing en Diseño 2 (`features.solicitud_design === 2`) el
       // producto queda guardado igual y se abre el modal; desde ahí se pasa
       // directo al primer paso.
-      if (loQuieroModal) {
+      if (abreModal) {
         setLoQuieroRegalos(
           (target.comboAccessories ?? []).map((a) => ({ id: String(a.productId), name: a.name, gratis: a.price === 0 })),
         );
@@ -2054,7 +2061,8 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
                 labels={apiFilters?.labels}
                 hideStateBadges={hidesEquipmentStateBadges(overlayVariant)}
                 compact={isReacondicionadosLanding(landing)}
-                addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering}
+                addToCartDisabled={!isProductContextHydrated || isWelcomeModalCovering || loQuiero.resolviendo}
+                addToCartLoading={loQuiero.resolviendo && loQuieroSlug === product.slug}
                 avisoDeEntregaEnElModal={!!loQuieroModal}
                 onAddToCart={(cartItem: CartItem) => {
                   // Reacondicionado: confirmar aviso antes de continuar.
@@ -2064,12 +2072,17 @@ function CatalogoContent({ landingConfig, leadModalSettled }: CatalogoContentPro
                   // ya trae el id resuelto, asi que resolver aca da el mismo target
                   // que usara `proceedAddToCart` despues de confirmar.
                   const elegido = resolveWizardTarget(product, cartItem.productId);
-                  // Diseño 2 (modal "Lo quiero"): sin el aviso aparte; va dentro del modal.
-                  if (!loQuieroModal && pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
-                    setPendingRefurb({ cartItem, product: elegido });
-                    return;
-                  }
-                  proceedAddToCart(cartItem, elegido);
+                  // BAL-5296: con diseño por formulario se pregunta antes a ws2
+                  // qué diseño le toca; sin él sigue en el acto, como siempre.
+                  if (loQuiero.porFormulario) setLoQuieroSlug(product.slug);
+                  alApretarLoQuiero(loQuiero, !!loQuieroModal, cartItem.productId, (abreModal) => {
+                    // Diseño 2 (modal "Lo quiero"): sin el aviso aparte; va dentro del modal.
+                    if (!abreModal && pideConfirmacionSemiNuevo(landing, product.conditionCode || product.condition)) {
+                      setPendingRefurb({ cartItem, product: elegido });
+                      return;
+                    }
+                    proceedAddToCart(cartItem, elegido, abreModal);
+                  });
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info

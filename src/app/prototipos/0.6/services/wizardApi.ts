@@ -333,6 +333,9 @@ export interface WizardConfig {
   // Versión de ESE formulario (misma respuesta que form_id, para que viajen juntos)
   form_version_id?: number | null;
   form_version?: number | null;
+  // Diseño de la solicitud del formulario servido (BAL-5296). Lo usa la web
+  // solo en landings con `features.diseno_por_formulario`.
+  solicitud_design?: 1 | 2;
   // Vista previa del BORRADOR (taller sin publicar, BAL-4484). Solo llega en
   // modo publicar; ausente = false.
   es_borrador?: boolean;
