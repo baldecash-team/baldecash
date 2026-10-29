@@ -9,6 +9,7 @@ import { isValidEmail } from './emailValidation';
 import { errorDeFecha } from './fechaLimites';
 import { anotarOrigenDelError } from './origenDeErrores';
 import type { FiltroDeOpciones } from './filtroDeOpciones';
+import { textoSegunVinculo, vinculoDe } from '../utils/textoSegunVinculo';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -1011,6 +1012,20 @@ export function validateField(
   skipVisibilityCheck?: boolean,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- firma estable para quien llama (BAL-5261)
   _opciones: OpcionesDeValidacion = {}
+): FieldValidationResult {
+  // BAL-5285: el mensaje nombra al familiar según el vínculo elegido
+  // (`{de_tu_familiar}` / `{tu_familiar}`). Sin marcas, el mismo texto.
+  const resultado = validarCampo(field, value, formValues, dynamicOptionsCache, skipVisibilityCheck);
+  if (!resultado.error) return resultado;
+  return { ...resultado, error: textoSegunVinculo(resultado.error, vinculoDe(formValues)) };
+}
+
+function validarCampo(
+  field: WizardField,
+  value: string | string[] | undefined,
+  formValues: Record<string, string | string[]>,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>,
+  skipVisibilityCheck?: boolean,
 ): FieldValidationResult {
   // Si el campo no es visible, es válido (no validar campos ocultos)
   // Skip when caller already handled visibility (e.g., validateStep with prefill logic)

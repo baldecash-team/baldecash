@@ -96,6 +96,7 @@ import { AvisoGuardaV2 } from '@/app/prototipos/0.6/components/diseno-2/AvisoGua
 import { leerOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
 import { subtituloDelPaso4 } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
 import { enfocarCampoV2 } from '@/app/prototipos/0.6/components/diseno-2/useGuiaDeCampos';
+import { CAMPO_VINCULO, textoSegunVinculo } from '@/app/prototipos/0.6/utils/textoSegunVinculo';
 import { nombreDelTipo } from '@/app/prototipos/0.6/components/lo-quiero/LoQuieroModal';
 
 /**
@@ -1290,7 +1291,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
                   return (
                     <SummaryItem
                       key={field.id}
-                      label={field.label}
+                      label={textoSegunVinculo(field.label, String(getFieldValue(CAMPO_VINCULO) ?? ''))}
                       value={fileContent}
                     />
                   );
@@ -1301,7 +1302,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
                 return (
                   <SummaryItem
                     key={field.id}
-                    label={field.label}
+                    label={textoSegunVinculo(field.label, String(getFieldValue(CAMPO_VINCULO) ?? ''))}
                     value={displayValue}
                   />
                 );
