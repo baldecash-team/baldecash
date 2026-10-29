@@ -31,6 +31,7 @@ import { useWizard } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useInstitutionSearchTracking } from '../../../hooks/useInstitutionSearchTracking';
+import { useRegistroDeOpciones } from '../../../hooks/useRegistroDeOpciones';
 import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { SelectInput } from './SelectInput';
 import { SegmentedControl } from './SegmentedControl';
@@ -81,6 +82,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   onBlur,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
+  const { onOptionSelected } = useRegistroDeOpciones();
   const { agreementData, landing } = useLayout();
   // El convenio de la landing manda; si no tiene, cae al mapa de arriba. Solo
   // se usa para resolver sedes: `agreementData` sigue en null, así que la
@@ -480,7 +482,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
         label={field.label}
         value={value}
         // Con el texto, como el desplegable: la etiqueta viaja al resumen y al submit.
-        onChange={(nuevo: string) => updateField(field.code, nuevo, options.find((o) => o.value === nuevo)?.label)}
+        onChange={(nuevo: string) => {
+          onOptionSelected(field.code, nuevo, value);
+          updateField(field.code, nuevo, options.find((o) => o.value === nuevo)?.label);
+        }}
         onFocus={onFocus}
         onBlur={onBlur}
         options={options}
@@ -499,6 +504,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       label={field.label}
       value={value}
       onChange={(newValue: string, selectedLabel?: string) => {
+        // BAL-5254: `value` aún es la opción anterior.
+        onOptionSelected(field.code, newValue, value);
         updateField(field.code, newValue, selectedLabel);
         if (newValue) registroBusqueda.alElegir(newValue, selectedLabel);
       }}

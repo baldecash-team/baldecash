@@ -127,6 +127,11 @@ export type EventType =
   // Buscador de institución y carrera (BAL-5210): qué busca, cuántos
   // resultados y si eligió. Ver `useInstitutionSearchTracking.ts`.
   | 'institution_search'
+  // Pedidos de Data para la prueba A/B Home vs Express 2 (BAL-5254), los dos
+  // diseños: elige una opción de lista/radio/botones y abre la ayuda de un
+  // campo. Ver `useRegistroDeOpciones.ts`.
+  | 'option_selected'
+  | 'help_open'
   | 'form_submit_success'
   | 'form_submit_error'
   | 'coupon_applied'
