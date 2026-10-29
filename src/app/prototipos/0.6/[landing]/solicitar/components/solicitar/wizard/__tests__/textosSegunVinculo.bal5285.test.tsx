@@ -117,6 +117,11 @@ const disenos: Array<[string, ReadonlySet<string> | undefined]> = [
   ['Diseño 2', new Set<string>()],
 ];
 
+
+/** Etiqueta con el nombre en negrita: el texto queda partido en un <span> con <strong>. */
+const etiqueta = (texto: string) => (_: string, el: Element | null) =>
+  el?.tagName === 'SPAN' && el.textContent === texto && el.querySelector('strong') !== null;
+
 describe.each(disenos)('BAL-5285 textos según el vínculo — %s', (_n, camposTocados) => {
   beforeEach(() => {
     formData = {};
@@ -134,8 +139,10 @@ describe.each(disenos)('BAL-5285 textos según el vínculo — %s', (_n, camposT
   ])('vínculo %p', (vinculo, de, tu) => {
     formData = { supporter_relationship: { value: vinculo } };
     const { container } = render(pintar());
-    expect(screen.getAllByText(`Celular ${de}`).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(`Nombres y apellidos ${de}`).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(etiqueta(`Celular ${de}`)).length).toBeGreaterThan(0);
+    // El nombre del familiar va en negrita (pedido de Brenda).
+    expect([...container.querySelectorAll('strong')].some((b) => b.textContent === tu)).toBe(true);
+    expect(screen.getAllByText(etiqueta(`Nombres y apellidos ${de}`)).length).toBeGreaterThan(0);
     expect(container.querySelector(`input[placeholder="Nombre completo ${de}"]`)).not.toBeNull();
     expect(screen.getByText(`Lo usamos para contactar a ${tu}.`)).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/\{(de_)?tu_familiar\}/);
@@ -151,12 +158,12 @@ describe.each(disenos)('BAL-5285 textos según el vínculo — %s', (_n, camposT
       supporter_phone: { value: '987654321', error: 'Ese es tu celular. Escribe el celular de tu mamá.' },
     };
     const { rerender } = render(pintar());
-    expect(screen.getAllByText('Celular de tu mamá').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(etiqueta('Celular de tu mamá')).length).toBeGreaterThan(0);
 
     formData = { ...formData, supporter_relationship: { value: 'padre' } };
     rerender(pintar());
-    expect(screen.getAllByText('Celular de tu papá').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Celular de tu mamá')).toBeNull();
+    expect(screen.getAllByText(etiqueta('Celular de tu papá')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(etiqueta('Celular de tu mamá'))).toBeNull();
     expect(setFieldError).toHaveBeenCalledWith('supporter_phone', 'Ese es tu celular. Escribe el celular de tu papá.');
   });
 });

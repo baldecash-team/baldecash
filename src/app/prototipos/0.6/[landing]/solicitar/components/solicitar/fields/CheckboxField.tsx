@@ -7,6 +7,7 @@
  * 2. Múltiple (con opciones): Varias casillas donde se pueden seleccionar múltiples
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React from 'react';
 import { AlertCircle, CheckCircle2, Check } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -179,14 +180,14 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       {/* Label (solo para modo múltiple o como título) */}
       {!isSimpleMode && v2 && (
         <label className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
       )}
       {!isSimpleMode && !v2 && (
         <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
@@ -235,7 +236,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
               alignTop ? 'items-start leading-relaxed' : 'items-center'
             }`}
           >
-            {label}
+            {conNombreEnNegrita(label)}
             {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
             {tooltip && <span onClick={(e) => e.stopPropagation()}><FieldTooltip tooltip={tooltip} /></span>}
           </span>

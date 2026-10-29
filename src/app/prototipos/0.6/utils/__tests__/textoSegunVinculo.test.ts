@@ -9,6 +9,9 @@ import {
   pasoSegunVinculo,
   textoSegunVinculo,
   vinculoDe,
+  sinNegrita,
+  etiquetaSegunVinculo,
+  NEGRITA,
 } from '../textoSegunVinculo';
 import { validateField, type WizardField } from '../../services/wizardApi';
 
@@ -86,7 +89,7 @@ describe('campoSegunVinculo / pasoSegunVinculo', () => {
 
   it('resuelve etiqueta, placeholder, ayuda, pista, obligatorio y errores', () => {
     const r = campoSegunVinculo(conMarcas, 'madre');
-    expect(r.label).toBe('Celular de tu mamá');
+    expect(sinNegrita(r.label)).toBe('Celular de tu mamá');
     expect(r.placeholder).toBe('Celular de tu mamá');
     expect(r.help_text).toEqual({ title: '¿Para qué de tu mamá?', description: 'Contactamos a tu mamá.', recommendation: 'Avisa a tu mamá.' });
     expect(r.hint).toBe('El de tu mamá');
@@ -116,7 +119,7 @@ describe('campoSegunVinculo / pasoSegunVinculo', () => {
     const r = pasoSegunVinculo(paso, 'abuelo');
     expect(r).not.toBe(paso);
     expect(r.fields[0]).toBe(otro);
-    expect(r.fields[1].label).toBe('Celular de tu abuelo(a)');
+    expect(sinNegrita(r.fields[1].label)).toBe('Celular de tu abuelo(a)');
   });
 });
 
@@ -212,7 +215,7 @@ describe('nombre de la opción (text_reference)', () => {
 
   it('campoSegunVinculo y validateField usan el nombre de la opción', () => {
     recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre', text_reference: 'tu mami' }])]);
-    expect(campoSegunVinculo(campo({ label: 'Celular {de_tu_familiar}' }), 'madre').label).toBe('Celular de tu mami');
+    expect(sinNegrita(campoSegunVinculo(campo({ label: 'Celular {de_tu_familiar}' }), 'madre').label)).toBe('Celular de tu mami');
     const f = campo({
       code: 'supporter_phone', type: 'phone',
       validations: [{ type: 'not_equals_field', value: 'phone', message: 'Ese es tu celular. Escribe el celular {de_tu_familiar}.' }],
@@ -244,6 +247,28 @@ describe('marcas con mayúscula inicial (BAL-5288)', () => {
   });
 
   it('un campo con solo la marca en mayúscula también se resuelve', () => {
-    expect(campoSegunVinculo(campo({ label: '{Tu_familiar} trabaja?' }), 'abuelo').label).toBe('Tu abuelo(a) trabaja?');
+    expect(sinNegrita(campoSegunVinculo(campo({ label: '{Tu_familiar} trabaja?' }), 'abuelo').label)).toBe('Tu abuelo(a) trabaja?');
+  });
+});
+
+
+describe('nombre del familiar en negrita en la etiqueta', () => {
+  it('la etiqueta marca solo el nombre; el resto de textos sale sin marca', () => {
+    const r = campoSegunVinculo(
+      campo({ label: 'Celular {de_tu_familiar}', placeholder: 'Celular {de_tu_familiar}' }),
+      'madre',
+    );
+    expect(r.label).toBe(`Celular de ${NEGRITA}tu mamá${NEGRITA}`);
+    expect(r.placeholder).toBe('Celular de tu mamá');
+  });
+
+  it('con mayúscula inicial también marca el nombre', () => {
+    expect(etiquetaSegunVinculo('{Tu_familiar} trabaja?', 'padre')).toBe(`${NEGRITA}Tu papá${NEGRITA} trabaja?`);
+    expect(etiquetaSegunVinculo('{De_tu_familiar} celular', 'padre')).toBe(`De ${NEGRITA}tu papá${NEGRITA} celular`);
+  });
+
+  it('sin marcas la etiqueta queda igual', () => {
+    expect(etiquetaSegunVinculo('Vínculo con tu familiar', 'madre')).toBe('Vínculo con tu familiar');
+    expect(sinNegrita('Hola')).toBe('Hola');
   });
 });

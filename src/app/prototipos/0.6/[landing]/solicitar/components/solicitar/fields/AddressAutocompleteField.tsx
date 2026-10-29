@@ -5,6 +5,7 @@
  * Integrates with wizard form to provide address autocomplete
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import * as Sentry from '@sentry/nextjs';
 import { Check, AlertCircle, Loader2, LocateFixed, MapPin, Navigation } from 'lucide-react';
@@ -443,13 +444,13 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
       {/* Label */}
       {v2 ? (
         <label htmlFor={`input_${field.code}`} className={ETIQUETA_V2}>
-          {field.label}
+          {conNombreEnNegrita(field.label)}
           {!field.required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
       ) : (
         <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-          {field.label}
+          {conNombreEnNegrita(field.label)}
           {!field.required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>

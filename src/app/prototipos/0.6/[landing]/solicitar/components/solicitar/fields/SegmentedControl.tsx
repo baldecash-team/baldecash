@@ -6,6 +6,7 @@
  * Botones con fondo deslizante animado
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -111,7 +112,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         className="flex flex-col gap-2.5"
       >
         <span id={`${id}-label`} className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </span>
@@ -156,7 +157,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
     <div id={id} className="space-y-3">
       {/* Label */}
       <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
+        {conNombreEnNegrita(label)}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>

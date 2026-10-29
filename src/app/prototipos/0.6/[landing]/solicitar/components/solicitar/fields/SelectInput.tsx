@@ -5,6 +5,8 @@
  * Dropdown con bordes redondeados y búsqueda
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
+import { sinNegrita } from '@/app/prototipos/0.6/utils/textoSegunVinculo';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Check, AlertCircle, ChevronDown, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -287,13 +289,13 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       {/* Label */}
       {v2 ? (
         <label htmlFor={`${id}-trigger`} className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
       ) : (
         <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
@@ -412,7 +414,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   e.stopPropagation();
                   handleClear();
                 }}
-                aria-label={v2 ? `Limpiar ${label}` : undefined}
+                aria-label={v2 ? `Limpiar ${sinNegrita(label)}` : undefined}
                 className={`${v2 ? ZONA_TACTIL_44 : ''} w-5 h-5 rounded-full hover:bg-neutral-200 flex items-center justify-center cursor-pointer`}
               >
                 <X className="w-3 h-3 text-neutral-500" />

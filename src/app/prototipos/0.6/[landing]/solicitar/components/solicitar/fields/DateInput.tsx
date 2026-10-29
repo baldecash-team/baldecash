@@ -6,6 +6,7 @@
  * Click en mes/año abre selector para navegación rápida
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -542,13 +543,13 @@ export const DateInput: React.FC<DateInputProps> = ({
       {/* Label */}
       {v2 ? (
         <label className={ETIQUETA_V2}>
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <MarcaOpcionalV2 />}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>
       ) : (
         <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-          {label}
+          {conNombreEnNegrita(label)}
           {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
           {tooltip && <FieldTooltip tooltip={tooltip} />}
         </label>

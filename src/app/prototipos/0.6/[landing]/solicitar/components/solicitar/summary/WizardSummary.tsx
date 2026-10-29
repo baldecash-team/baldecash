@@ -12,6 +12,7 @@
  * - Auto-resolves labels for dynamic fields from API
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useMemo, useState, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
@@ -143,7 +144,7 @@ const SummaryFieldRow: React.FC<{
   return (
     <div className="flex justify-between items-start py-2 border-b border-neutral-100 last:border-b-0">
       <span className="text-sm text-neutral-600 flex-shrink-0 pr-4">
-        {field.label}
+        {conNombreEnNegrita(field.label)}
       </span>
       <span className="text-sm font-medium text-neutral-800 text-right">
         {displayValue}

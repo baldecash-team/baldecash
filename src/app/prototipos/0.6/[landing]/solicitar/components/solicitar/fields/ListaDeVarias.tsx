@@ -14,6 +14,7 @@
  * El valor es siempre `string[]` (así se guarda en `form_data`).
  */
 
+import { conNombreEnNegrita } from '@/app/prototipos/0.6/utils/conNombreEnNegrita';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check, CheckCircle2, ChevronDown, Search, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -126,7 +127,7 @@ export const ListaDeVarias: React.FC<ListaDeVariasProps> = ({
   const encabezado = (
     <div className="space-y-0.5">
       <label id={labelId} className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        {label}
+        {conNombreEnNegrita(label)}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
