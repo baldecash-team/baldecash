@@ -68,7 +68,11 @@ export function nombreDelVinculo(vinculo?: string | null): string {
   return nombresDelFormulario[clave] ?? NOMBRE_POR_VINCULO[clave] ?? NOMBRE_SIN_VINCULO;
 }
 
-const MARCAS = /\{(de_tu_familiar|tu_familiar)\}/g;
+// BAL-5288: con mayúscula inicial (`{Tu_familiar}`) el texto empieza con el
+// nombre («Tu mamá…»); admin2 la guarda así si la frase empezaba con mayúscula.
+const MARCAS = /\{(de_tu_familiar|De_tu_familiar|tu_familiar|Tu_familiar)\}/g;
+
+const conMayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** El vínculo elegido en los valores del formulario ('' si no hay). */
 export function vinculoDe(formValues: Record<string, unknown> | null | undefined): string {
@@ -80,7 +84,10 @@ export function vinculoDe(formValues: Record<string, unknown> | null | undefined
 export function textoSegunVinculo<T extends string | null | undefined>(texto: T, vinculo?: string | null): T {
   if (!texto || !texto.includes('{')) return texto;
   const nombre = nombreDelVinculo(vinculo);
-  return texto.replace(MARCAS, (_m, marca: string) => (marca === 'de_tu_familiar' ? `de ${nombre}` : nombre)) as T;
+  return texto.replace(MARCAS, (_m, marca: string) => {
+    const base = marca.toLowerCase() === 'de_tu_familiar' ? `de ${nombre}` : nombre;
+    return marca.charAt(0) === 'T' || marca.charAt(0) === 'D' ? conMayuscula(base) : base;
+  }) as T;
 }
 
 /** ¿El texto trae alguna marca? */

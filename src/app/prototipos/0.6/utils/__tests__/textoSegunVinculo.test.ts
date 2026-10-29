@@ -233,3 +233,17 @@ describe('nombre de la opción (text_reference)', () => {
     }
   });
 });
+
+describe('marcas con mayúscula inicial (BAL-5288)', () => {
+  afterEach(() => recordarNombresDelVinculo([]));
+
+  it('{Tu_familiar} y {De_tu_familiar} empiezan con mayúscula', () => {
+    expect(textoSegunVinculo('{Tu_familiar} debe firmar', 'madre')).toBe('Tu mamá debe firmar');
+    expect(textoSegunVinculo('{De_tu_familiar}: celular', 'padre')).toBe('De tu papá: celular');
+    expect(textoSegunVinculo('{Tu_familiar} debe firmar', '')).toBe('Tu familiar debe firmar');
+  });
+
+  it('un campo con solo la marca en mayúscula también se resuelve', () => {
+    expect(campoSegunVinculo(campo({ label: '{Tu_familiar} trabaja?' }), 'abuelo').label).toBe('Tu abuelo(a) trabaja?');
+  });
+});
