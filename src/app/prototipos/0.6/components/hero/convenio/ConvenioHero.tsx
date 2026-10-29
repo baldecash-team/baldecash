@@ -9,7 +9,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { ArrowRight, CheckCircle, Shield, Users, Building, Clock, CreditCard, Truck, Star, Heart, Zap, Headphones, Award, Percent } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Chip } from '@nextui-org/react';
@@ -20,6 +19,7 @@ import { getContrastTextColor, getColorForDarkBg } from '@/app/prototipos/0.6/ut
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { HeroOverlay } from '../common/HeroOverlay';
 import { HeroImageCta } from '../common/HeroImageCta';
+import { HeroBackgroundImage } from '../common/HeroBackgroundImage';
 import { CompuertaLegal, useCompuertaLegal } from '@/app/prototipos/0.6/components/legal/CompuertaLegal';
 import { AvisoLegal } from '@/app/prototipos/0.6/components/legal/AvisoLegal';
 
@@ -131,7 +131,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
         height: 'max(520px, calc(100svh - var(--header-total-height, 6.5rem)))',
       }}
     >
-      {/* Background image - next/image with priority for LCP optimization */}
+      {/* Background image - con imagen de celular usa <picture>; si no, next/image (LCP) */}
       {heroContent.backgroundImage && (
         <HeroImageCta
           enabled={imagenClickeable}
@@ -139,21 +139,13 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           onActivate={handleCtaClick}
           className="absolute inset-0"
         >
-          <Image
+          <HeroBackgroundImage
             src={heroContent.backgroundImage}
+            mobileSrc={heroContent.backgroundMobileImage}
             alt="Campus universitario"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-            style={{
-              objectPosition: `${posX}% ${posY}%`,
-              transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-            }}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.opacity = '0';
-            }}
+            posX={posX}
+            posY={posY}
+            zoom={zoomVal}
           />
         </HeroImageCta>
       )}
