@@ -206,7 +206,8 @@ describe('Pista (hint)', () => {
 });
 
 describe('Mensaje de obligatorio (required_message)', () => {
-  // I1 (BAL-4969, decisión de Emilio): el mensaje propio aplica SOLO en Diseño 2.
+  // BAL-5261 (OK de Emilio): el mensaje propio aplica en los dos diseños
+  // (antes, BAL-4969 · I1, solo en Diseño 2).
   const D2 = { diseno2: true };
 
   it('Diseño 2: reemplaza al genérico cuando el obligatorio está vacío', () => {
@@ -214,10 +215,10 @@ describe('Mensaje de obligatorio (required_message)', () => {
     expect(validateField(conMensaje, '', {}, undefined, true, D2).error).toBe('Ingresa tu correo para enviarte el contrato.');
   });
 
-  it('Diseño 1: aunque el campo tenga mensaje propio, sale el genérico de siempre', () => {
+  it('Diseño 1: con mensaje propio, sale el mensaje propio (BAL-5261)', () => {
     const conMensaje = { ...CORREO, required_message: 'Ingresa tu correo para enviarte el contrato.' } as WizardField;
-    expect(validateField(conMensaje, '', {}, undefined, true).error).toBe('Este campo es requerido');
-    expect(validateField(conMensaje, '', {}, undefined, true, { diseno2: false }).error).toBe('Este campo es requerido');
+    expect(validateField(conMensaje, '', {}, undefined, true).error).toBe('Ingresa tu correo para enviarte el contrato.');
+    expect(validateField(conMensaje, '', {}, undefined, true, { diseno2: false }).error).toBe('Ingresa tu correo para enviarte el contrato.');
   });
 
   it('sin mensaje propio sigue el genérico de siempre (los dos diseños)', () => {
@@ -225,23 +226,29 @@ describe('Mensaje de obligatorio (required_message)', () => {
     expect(validateField(CORREO, '', {}, undefined, true, D2).error).toBe('Este campo es requerido');
   });
 
-  it('también en la casilla obligatoria: Diseño 2 con mensaje, Diseño 1 genérico', () => {
+  it('también en la casilla obligatoria: con mensaje propio en los dos diseños', () => {
     const casilla = campo({ code: 'consent', type: 'checkbox', required: true });
     expect(validateField(casilla, 'false', {}, undefined, true, D2).error).toBe('Debes marcar esta casilla para continuar');
+    expect(validateField(casilla, 'false', {}, undefined, true).error).toBe('Debes marcar esta casilla para continuar');
     const conMensaje = { ...casilla, required_message: 'Marca la casilla para continuar.' } as WizardField;
     expect(validateField(conMensaje, 'false', {}, undefined, true, D2).error).toBe('Marca la casilla para continuar.');
-    expect(validateField(conMensaje, 'false', {}, undefined, true).error).toBe('Debes marcar esta casilla para continuar');
+    expect(validateField(conMensaje, 'false', {}, undefined, true).error).toBe('Marca la casilla para continuar.');
   });
 
-  it('validateStep pasa el diseño: Diseño 1 genérico, Diseño 2 el mensaje propio', () => {
+  it('validateStep («Continuar») da el mensaje propio en los dos diseños', () => {
     const conMensaje = { ...CORREO, required_message: 'Ingresa tu correo.' } as WizardField;
     const step = paso([conMensaje]);
     const errores: Record<string, string | null> = {};
     const set = (c: string, e: string | null) => { errores[c] = e; };
     validateStep(step, {}, set);
-    expect(errores[conMensaje.code]).toBe('Este campo es requerido');
+    expect(errores[conMensaje.code]).toBe('Ingresa tu correo.');
+    validateStep(step, {}, set, undefined, { diseno2: false });
+    expect(errores[conMensaje.code]).toBe('Ingresa tu correo.');
     validateStep(step, {}, set, undefined, D2);
     expect(errores[conMensaje.code]).toBe('Ingresa tu correo.');
+    // Sin mensaje propio, el genérico de siempre.
+    validateStep(paso([CORREO]), {}, set);
+    expect(errores[CORREO.code]).toBe('Este campo es requerido');
   });
 
   it('no toca otros errores (formato) aunque el campo tenga mensaje propio', () => {
@@ -467,10 +474,79 @@ describe('Casilla obligatoria en Diseño 2', () => {
   });
 });
 
+describe('Pista en Diseño 1 (BAL-5261)', () => {
+  const PISTA = 'Te enviaremos ahí el contrato.';
+  const conPista = (f: WizardField) => ({ ...f, hint: PISTA }) as WizardField;
+
+  it('sale bajo el campo, texto chico gris, en la línea del error', () => {
+    const { container } = pintarV1(paso([CORREO_CON_PISTA]));
+    const pista = container.querySelector('[data-pista="email"]');
+    expect(pista).toHaveTextContent(PISTA);
+    expect(pista?.className).toBe('text-xs text-neutral-500');
+    // Dentro del campo, después de la caja (no arriba como el helpText).
+    const caja = container.querySelector('#email > div.h-11');
+    expect(caja && pista && caja.compareDocumentPosition(pista) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Sin el vestido de Diseño 2.
+    expect(container.querySelector('[data-campo]')).toBeNull();
+  });
+
+  it('si hay error, el error la reemplaza (no salen los dos)', () => {
+    formData = { email: { value: '', error: 'Ingresa tu correo.' } };
+    const { container } = pintarV1(paso([CORREO_CON_PISTA]), true);
+    expect(screen.getByText('Ingresa tu correo.')).toBeInTheDocument();
+    expect(screen.queryByText(PISTA)).not.toBeInTheDocument();
+    expect(container.querySelector('[data-pista]')).toBeNull();
+  });
+
+  it.each([
+    ['celular', CELULAR_2],
+    ['lista de botones', TIPO_DOC],
+    ['tarjetas (radio 4-5)', SITUACION],
+    ['desplegable (radio 6+)', LISTA_LARGA],
+    ['dirección', DIRECCION],
+    ['casilla simple', CONSENTIMIENTO_SIMPLE],
+    ['área de texto', campo({ id: 9, code: 'comentario', label: 'Comentario', type: 'textarea' })],
+    ['número', campo({ id: 10, code: 'hijos', label: 'Hijos', type: 'number' })],
+    ['monto', campo({ id: 11, code: 'ingreso', label: 'Ingreso', type: 'currency' })],
+    ['fecha', campo({ id: 12, code: 'inicio', label: 'Inicio', type: 'date' })],
+  ])('%s: la pinta una sola vez y el error la reemplaza', (_n, f) => {
+    const { unmount } = pintarV1(paso([conPista(f)]));
+    expect(screen.getAllByText(PISTA)).toHaveLength(1);
+    expect(screen.getByText(PISTA).className).toContain('text-xs text-neutral-500');
+    unmount();
+
+    formData = { [f.code]: { value: '', error: 'Falta este dato.' } };
+    pintarV1(paso([conPista(f)]), true);
+    expect(screen.getByText('Falta este dato.')).toBeInTheDocument();
+    expect(screen.queryByText(PISTA)).not.toBeInTheDocument();
+  });
+
+  it('convive con el globo de ayuda: el globo sigue en la etiqueta, la pista bajo el campo', () => {
+    const conAyuda = {
+      ...CORREO_CON_PISTA,
+      help_text: { title: 'Correo', description: 'Para el contrato.' },
+    } as unknown as WizardField;
+    const { container } = pintarV1(paso([conAyuda]));
+    const etiqueta = container.querySelector('#email label');
+    expect(etiqueta?.querySelector('button, [role="button"], svg')).not.toBeNull();
+    expect(etiqueta).not.toHaveTextContent(PISTA);
+    expect(container.querySelector('[data-pista="email"]')).toHaveTextContent(PISTA);
+  });
+
+  it('Diseño 2 sigue igual: la pista con su estilo de Diseño 2, no el de Diseño 1', () => {
+    const { container } = pintarV2(paso([CORREO_CON_PISTA]));
+    const pistas = container.querySelectorAll('[data-pista="email"]');
+    expect(pistas).toHaveLength(1);
+    expect(pistas[0].className).not.toContain('text-neutral-500');
+    expect(pistas[0].className).toContain('text-[13px]');
+  });
+});
+
 describe('Diseño 1 no cambia', () => {
-  it('el mismo campo con hint / collapsed_optional / groups da el mismo DOM que sin ellos', () => {
+  // La pista (`hint`) sí sale en Diseño 1 desde BAL-5261: ver «Pista en Diseño 1».
+  it('el mismo campo con collapsed_optional / groups da el mismo DOM que sin ellos', () => {
     const base = paso([TIPO_DOC, CORREO, CELULAR_2]);
-    const conDatosNuevos = paso([TIPO_DOC, CORREO_CON_PISTA, CELULAR_2_PLEGADO], {
+    const conDatosNuevos = paso([TIPO_DOC, CORREO, CELULAR_2_PLEGADO], {
       groups: [{ code: 'contacto', name: 'Contacto', order: 0, is_collapsible: true, field_codes: ['email'] }],
     });
 
@@ -479,9 +555,9 @@ describe('Diseño 1 no cambia', () => {
     expect(despues).toBe(antes);
   });
 
-  it('sin variante: columnas de la BD, sin pista, sin enlace, sin data-campo', () => {
-    const { container } = pintarV1(paso([CORREO_CON_PISTA, CELULAR_2_PLEGADO]));
-    expect(screen.queryByText('Te enviaremos ahí el contrato.')).not.toBeInTheDocument();
+  it('sin variante: columnas de la BD, sin pista si no hay hint, sin enlace, sin data-campo', () => {
+    const { container } = pintarV1(paso([CORREO, CELULAR_2_PLEGADO]));
+    expect(container.querySelector('[data-pista]')).toBeNull();
     expect(screen.queryByRole('button', { name: /Agregar/ })).not.toBeInTheDocument();
     expect(container.querySelector('input[name="phone_secondary"]')).not.toBeNull();
     expect(container.querySelector('[data-campo]')).toBeNull();

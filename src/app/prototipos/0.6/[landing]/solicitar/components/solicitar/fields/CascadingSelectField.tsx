@@ -36,6 +36,7 @@ import { useCamposV2 } from '@/app/prototipos/0.6/components/diseno-2/campos/est
 import { SelectInput } from './SelectInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
+import { PistaD1 } from './PistaD1';
 import { formaElegibleDelSistema, resolverForma } from './formaDeLista';
 
 /**
@@ -70,6 +71,8 @@ interface CascadingSelectFieldProps {
   /** Rastreo de foco (`input_focus`/`input_blur`); lo pasa DynamicField. */
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Diseño 1 (BAL-5261): pista bajo el campo, en la línea del error; el error la reemplaza. */
+  pista?: string | null;
 }
 
 export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
@@ -80,6 +83,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   disabled = false,
   onFocus,
   onBlur,
+  pista,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
   const { onOptionSelected } = useRegistroDeOpciones();
@@ -476,25 +480,31 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // ve el desplegable con «Cargando...», no una fila vacía.
   if ((formaPropia === 'buttons' || formaPropia === 'cards') && options.length > 0) {
     const Forma = formaPropia === 'buttons' ? SegmentedControl : RadioGroup;
+    // Diseño 1 (BAL-5261): botones y tarjetas no reservan línea para el
+    // error; la pista va debajo y el error la reemplaza.
+    const pistaD1 = disenoDelCampo === 1 && pista && !error ? pista : null;
     return (
-      <Forma
-        id={field.code}
-        label={field.label}
-        value={value}
-        // Con el texto, como el desplegable: la etiqueta viaja al resumen y al submit.
-        onChange={(nuevo: string) => {
-          onOptionSelected(field.code, nuevo, value);
-          updateField(field.code, nuevo, options.find((o) => o.value === nuevo)?.label);
-        }}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        options={options}
-        error={error}
-        success={!error && !!value}
-        required={field.required}
-        disabled={isDisabled}
-        tooltip={tooltip}
-      />
+      <>
+        <Forma
+          id={field.code}
+          label={field.label}
+          value={value}
+          // Con el texto, como el desplegable: la etiqueta viaja al resumen y al submit.
+          onChange={(nuevo: string) => {
+            onOptionSelected(field.code, nuevo, value);
+            updateField(field.code, nuevo, options.find((o) => o.value === nuevo)?.label);
+          }}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          options={options}
+          error={error}
+          success={!error && !!value}
+          required={field.required}
+          disabled={isDisabled}
+          tooltip={tooltip}
+        />
+        {pistaD1 && <PistaD1 id={field.code} className="mt-1">{pistaD1}</PistaD1>}
+      </>
     );
   }
 
@@ -517,6 +527,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       disabled={isDisabled}
       searchable={formaPropia ? formaPropia === 'search' : searchable}
       tooltip={tooltip}
+      // Diseño 1 (BAL-5261): la pista, en la línea del error del desplegable.
+      pista={disenoDelCampo === 1 ? pista : null}
       // Lazy search props
       onSearch={isLazySearch ? handleSearch : undefined}
       isSearching={isSearching}

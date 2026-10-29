@@ -186,14 +186,14 @@ export interface WizardField {
   allowed_email_domains?: string[] | null;
   allowed_email_domains_message?: string | null;
   /**
-   * Diseño 2 (BAL-4961/4960): pista corta bajo el campo. Solo viene si tiene
-   * valor (paso > banco). Diseño 1 no la pinta.
+   * Pista corta bajo el campo (BAL-4961/4960). Solo viene si tiene valor
+   * (paso > banco). Los dos diseños la pintan (Diseño 1 desde BAL-5261).
    */
   hint?: string;
   /**
-   * Diseño 2: texto propio cuando el campo obligatorio queda vacío; reemplaza
-   * al genérico «Este campo es requerido». Solo viene si tiene valor. Diseño 1
-   * lo ignora (decisión de Emilio, BAL-4969): ver `OpcionesDeValidacion`.
+   * Texto propio cuando el campo obligatorio queda vacío; reemplaza al
+   * genérico «Este campo es requerido». Solo viene si tiene valor. Aplica en
+   * los dos diseños (BAL-5261; antes solo Diseño 2, BAL-4969).
    */
   required_message?: string;
   /**
@@ -981,9 +981,9 @@ export interface FieldValidationResult {
 /** Cómo valida quien llama, según el diseño de la solicitud. */
 export interface OpcionesDeValidacion {
   /**
-   * Diseño 2: el campo vacío dice su `required_message` (si la BD lo trae).
-   * Sin esto —Diseño 1— sale siempre el texto genérico de siempre, aunque el
-   * campo tenga mensaje configurado (decisión de Emilio, BAL-4969 · I1).
+   * Quién llama es Diseño 2. Hoy no cambia la validación: desde BAL-5261 el
+   * `required_message` aplica en los dos diseños (antes solo en Diseño 2,
+   * BAL-4969 · I1).
    */
   diseno2?: boolean;
 }
@@ -994,7 +994,7 @@ export interface OpcionesDeValidacion {
  * @param value - Valor actual del campo
  * @param formValues - Valores de todos los campos del formulario
  * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación por opción
- * @param opciones - `diseno2` prende `required_message`; ver `OpcionesDeValidacion`
+ * @param _opciones - ver `OpcionesDeValidacion` (hoy no cambia nada)
  */
 export function validateField(
   field: WizardField,
@@ -1002,7 +1002,8 @@ export function validateField(
   formValues: Record<string, string | string[]>,
   dynamicOptionsCache?: Record<string, CascadingOption[]>,
   skipVisibilityCheck?: boolean,
-  opciones: OpcionesDeValidacion = {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- firma estable para quien llama (BAL-5261)
+  _opciones: OpcionesDeValidacion = {}
 ): FieldValidationResult {
   // Si el campo no es visible, es válido (no validar campos ocultos)
   // Skip when caller already handled visibility (e.g., validateStep with prefill logic)
@@ -1016,10 +1017,9 @@ export function validateField(
   const isEmpty = !trimmedValue || (Array.isArray(value) && value.length === 0);
 
   // 1. Validación de requerido
-  // `required_message` (BAL-4960) aplica SOLO en Diseño 2 (decisión de Emilio,
-  // BAL-4969): el mensaje vive en el banco y se hereda a todos los formularios,
-  // así que en Diseño 1 se ignora y sale el genérico de siempre.
-  const mensajeRequerido = opciones.diseno2 ? field.required_message : undefined;
+  // `required_message` (BAL-4960): el texto configurado para el campo vacío.
+  // Aplica en los dos diseños (BAL-5261); sin mensaje, el genérico de siempre.
+  const mensajeRequerido = field.required_message;
   // Para checkbox simple, "false" cuenta como no marcado → requerido debe fallar
   if (field.required && field.type === 'checkbox' && !Array.isArray(value) && trimmedValue === 'false') {
     return { isValid: false, error: mensajeRequerido || 'Debes marcar esta casilla para continuar', rule: 'required' };
@@ -1309,7 +1309,7 @@ export function validateField(
  * @param formValues - Valores de todos los campos
  * @param setFieldError - Función para setear error en un campo
  * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación
- * @param opciones - se pasan tal cual a `validateField` (Diseño 2: `required_message`)
+ * @param opciones - se pasan tal cual a `validateField`
  */
 export function validateStep(
   step: WizardStep,

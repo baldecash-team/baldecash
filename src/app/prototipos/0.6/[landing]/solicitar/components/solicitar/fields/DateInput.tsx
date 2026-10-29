@@ -10,6 +10,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import { PistaD1 } from './PistaD1';
 import {
   useCamposV2,
   ETIQUETA_V2,
@@ -60,6 +61,8 @@ interface DateInputProps {
    * error nunca haya pasado por el validador del campo.
    */
   onLocalErrorChange?: (hasError: boolean) => void;
+  /** Diseño 1 (BAL-5261): pista bajo el campo, en la línea del error; el error la reemplaza. */
+  pista?: string | null;
 }
 
 const MONTHS = [
@@ -146,6 +149,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   maxDate = null,
   limitMessage = null,
   onLocalErrorChange,
+  pista,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   // Diseño 2 (BAL-4960): mismo calendario, otro vestido.
@@ -623,12 +627,15 @@ export const DateInput: React.FC<DateInputProps> = ({
         effectiveError && <ErrorCampoV2 id={`${id}-error`}>{effectiveError}</ErrorCampoV2>
       ) : (
         <div className="min-h-[20px]">
-          {effectiveError && (
+          {effectiveError ? (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {effectiveError}
             </p>
-          )}
+          ) : pista ? (
+            // Diseño 1 (BAL-5261): la pista, en la línea del error.
+            <PistaD1 id={id}>{pista}</PistaD1>
+          ) : null}
         </div>
       )}
     </div>

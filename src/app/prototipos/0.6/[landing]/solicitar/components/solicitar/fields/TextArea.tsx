@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { Check, AlertCircle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import { PistaD1 } from './PistaD1';
 import {
   useCamposV2,
   ETIQUETA_V2,
@@ -43,6 +44,8 @@ interface TextAreaProps {
    * siempre: el área de texto lo muestra en los dos diseños.
    */
   showCounter?: boolean | null;
+  /** Diseño 1 (BAL-5261): pista bajo el campo, en la línea del error; el error la reemplaza. */
+  pista?: string | null;
 }
 
 export const TextArea: React.FC<TextAreaProps> = ({
@@ -62,6 +65,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
   required = true,
   maxLength,
   showCounter,
+  pista,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   // Diseño 2 (BAL-4960): mismo texto largo, otro vestido.
@@ -164,6 +168,9 @@ export const TextArea: React.FC<TextAreaProps> = ({
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </p>
+        ) : pista ? (
+          // Diseño 1 (BAL-5261): la pista, en la línea del error.
+          <PistaD1 id={id}>{pista}</PistaD1>
         ) : (
           <span />
         )}

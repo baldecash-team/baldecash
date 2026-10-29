@@ -470,12 +470,13 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
     // Con el saludo bajo el documento, la pista sobra.
     const conSaludo = esV2 && field.type === 'document_number' && !!nombreDelSaludo(field, formValues);
-    // Pista: el `hint` de la BD gana. Sin él, el número de documento dice
-    // lo que pide su tipo ("8 números", "Entre 9 y 12 caracteres"…), con
-    // las mismas reglas que lo validan.
+    // Pista: el `hint` de la BD gana. Sin él, en Diseño 2 el número de
+    // documento dice lo que pide su tipo ("8 números", "Entre 9 y 12
+    // caracteres"…), con las mismas reglas que lo validan. Diseño 1
+    // (BAL-5261) muestra solo la pista configurada.
     const codigoTipo = field.prefill_config?.document_type_field || 'document_type';
     const pista = !esV2
-      ? null
+      ? field.hint || null
       : field.hint || (field.type === 'document_number'
         ? ayudaDelNumero(getDocumentTypeRules(
           codigoTipo,
@@ -486,7 +487,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
     // BAL-4960: un campo de texto con contador pinta él mismo la pista, en
     // la fila del contador (pista a la izquierda, número a la derecha).
-    const pistaEnElCampo = pistaVaEnElCampo(field, esV2);
+    // Diseño 1 (BAL-5261): la pinta siempre el campo, en la línea de su error.
+    const pistaEnElCampo = !esV2 || pistaVaEnElCampo(field, esV2);
 
     // Diseño 2: opcional plegado. Con valor (borrador) sale abierto.
     const plegado = esV2 && field.collapsed_optional === true && !field.required
@@ -540,7 +542,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
                 stepOrder={stepOrder}
                 onLocalErrorChange={esV2 ? reportarErrorLocal : undefined}
                 // BAL-4960: con contador, la pista va en su misma fila (la pinta el campo).
-                pista={pistaEnElCampo && !errorVisible && !conSaludo ? pista : null}
+                // Diseño 1: el campo decide (su error la reemplaza).
+                pista={!esV2 ? pista : pistaEnElCampo && !errorVisible && !conSaludo ? pista : null}
               />
               {/* Pista bajo el campo; si hay error, el error la reemplaza. */}
               {pista && !pistaEnElCampo && !errorVisible && !conSaludo && (

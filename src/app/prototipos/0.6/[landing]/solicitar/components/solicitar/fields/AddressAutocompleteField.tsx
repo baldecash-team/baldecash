@@ -21,6 +21,7 @@ import {
 } from '@/app/prototipos/0.6/components/diseno-2/campos/estilosV2';
 import { WizardField, resolveGeoUnits } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
+import { PistaD1 } from './PistaD1';
 import { useGooglePlacesAutocomplete } from '../../../hooks/useGooglePlacesAutocomplete';
 import { ParsedAddress } from '../../../../../types/googleMaps';
 
@@ -47,6 +48,8 @@ interface AddressAutocompleteFieldProps {
    */
   onFocus?: () => void;
   onBlur?: () => void;
+  /** Diseño 1 (BAL-5261): pista bajo el campo, en la línea del error; el error la reemplaza. */
+  pista?: string | null;
 }
 
 export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> = ({
@@ -55,6 +58,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   onLocalErrorChange,
   onFocus,
   onBlur,
+  pista,
 }) => {
   const { getFieldValue, getFieldError, updateField, updateFieldBatch } = useWizard();
   const [isFocused, setIsFocused] = useState(false);
@@ -533,12 +537,15 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
 
       {/* Error message - always reserve space for alignment in multi-column grids */}
       {!v2 && <div className="min-h-[20px]">
-        {displayError && (
+        {displayError ? (
           <p className="text-sm text-[#ef4444] flex items-center gap-1">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {displayError}
           </p>
-        )}
+        ) : pista ? (
+          // Diseño 1 (BAL-5261): la pista, en la línea del error.
+          <PistaD1 id={field.code}>{pista}</PistaD1>
+        ) : null}
       </div>}
 
       {/* Loading state for Google Maps */}
