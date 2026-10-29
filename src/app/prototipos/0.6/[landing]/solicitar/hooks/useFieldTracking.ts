@@ -9,11 +9,13 @@
  * Tracks:
  * - input_focus: when a field receives focus
  * - input_blur: when a field loses focus, with time_in_field_ms and had_value_on_blur
+ *   (+ value_length en los campos de números de la persona, BAL-5254)
  * - form_start: on the FIRST field focus in the entire wizard session
  */
 
 import { useCallback, useRef } from 'react';
 import { useEventTrackerOptional } from '../context/EventTrackerContext';
+import { CAMPOS_CON_LARGO_AL_SALIR } from '../utils/largoAlSalir';
 
 // Track if form_start has been sent (shared across all fields in the session)
 let formStartSent = false;
@@ -61,7 +63,7 @@ export function useFieldTracking(formStep?: number) {
   );
 
   const onFieldBlur = useCallback(
-    (fieldName: string, hasValue: boolean) => {
+    (fieldName: string, hasValue: boolean, valueLength?: number) => {
       if (!tracker) return;
 
       const focusTs = focusTimestamps.current.get(fieldName);
@@ -75,6 +77,10 @@ export function useFieldTracking(formStep?: number) {
           form_step: formStep,
           time_in_field_ms: timeInField,
           had_value_on_blur: hasValue,
+          // Solo en los campos de números (ver `largoAlSalir`).
+          ...(valueLength !== undefined && CAMPOS_CON_LARGO_AL_SALIR.has(fieldName)
+            ? { value_length: valueLength }
+            : {}),
         },
         fieldName
       );

@@ -12,6 +12,7 @@ import { isPersonNameField, sanitizeNameInput } from '../../../../../services/na
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useLayout } from '../../../../context/LayoutContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
+import { largoAlSalir } from '../../../utils/largoAlSalir';
 import { leadLockKey } from '../../../hooks/useLeadPrefill';
 import { useDatosMatricula } from '../../../../calculadora/utils/useDatosMatricula';
 import { resolverForma } from './formaDeLista';
@@ -238,7 +239,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     const hasValue = Array.isArray(currentValue)
       ? currentValue.length > 0
       : !!currentValue;
-    onFieldBlur(field.code, hasValue);
+    // BAL-5254: en celular y documento (de la persona y del familiar) también
+    // el largo de lo escrito; en los demás campos, como siempre.
+    const largo = largoAlSalir(field.code, currentValue);
+    if (largo === undefined) onFieldBlur(field.code, hasValue);
+    else onFieldBlur(field.code, hasValue, largo);
   }, [field.code, getFieldValue, onFieldBlur]);
 
   // Diseño 2: reenvía el error local del campo (DateInput, AddressAutocompleteField)
