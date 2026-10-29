@@ -18,6 +18,7 @@ import type { InsurancePlan } from '@/app/prototipos/0.6/[landing]/solicitar/typ
 import type { PlanesDeSeguro } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/sections/usePlanesDeSeguro';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { formatCuotaDeLanding, sufijoDeFrecuencia } from '@/app/prototipos/0.6/utils/formatCuota';
+import { TEXTO_INCLUIDO_EN_COMBO } from '@/app/prototipos/0.6/utils/comboIncluidos';
 
 function IconoDelPlan({ tipo }: { tipo: string }) {
   const Icono = tipo === 'seguro_robo' ? Lock : tipo === 'multiasistencia' ? HeartPulse : ShieldCheck;
@@ -41,7 +42,7 @@ export function textoDeElegidas(n: number): string {
 
 export interface ProteccionesV2Props
   extends Pick<PlanesDeSeguro, 'planes' | 'cargando' | 'elegidos' | 'alternar' | 'tipoDeEquipo'>,
-    Partial<Pick<PlanesDeSeguro, 'error' | 'reintentar'>> {
+    Partial<Pick<PlanesDeSeguro, 'error' | 'reintentar' | 'incluidos'>> {
   landing: string;
   frecuencia?: string | null;
   /**
@@ -63,7 +64,7 @@ export interface ProteccionesV2Props
   conTituloDeLaPagina?: boolean;
 }
 
-export function ProteccionesV2({ planes, cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange, avisoDelPlan, conTituloDeLaPagina = false }: ProteccionesV2Props) {
+export function ProteccionesV2({ planes, incluidos = [], cargando, error = false, reintentar, elegidos, alternar, tipoDeEquipo, landing, frecuencia, onDetalleAbiertoChange, avisoDelPlan, conTituloDeLaPagina = false }: ProteccionesV2Props) {
   const [detalle, setDetalle] = useState<InsurancePlan | null>(null);
   const analytics = useAnalytics();
 
@@ -76,7 +77,7 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
 
   // Sin planes (la landing no tiene, o es seminuevo) la sección no existe.
   // Con error sí: hay que avisar y dejar reintentar (sin esqueleto infinito).
-  if (!cargando && !error && planes.length === 0) return null;
+  if (!cargando && !error && planes.length === 0 && incluidos.length === 0) return null;
 
   const precio = (p: InsurancePlan) => `+S/${formatCuotaDeLanding(p.monthlyPrice, landing)}${sufijoDeFrecuencia(frecuencia)}`;
 
@@ -126,6 +127,30 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
           ))}
         </div>
       ) : (
+        <>
+        {/* S3/R7: lo que trae el combo, fijo, a S/0 y sin «Agregar». */}
+        {incluidos.length > 0 && (
+          <ul className="mt-4 flex flex-col gap-2" aria-label={TEXTO_INCLUIDO_EN_COMBO}>
+            {incluidos.map((plan) => (
+              <li
+                key={plan.id}
+                data-incluido-v2={plan.id}
+                className="flex items-center gap-3 rounded-xl border border-[var(--color-primary)] bg-[var(--d2-marca-suave)] px-3 py-3 sm:px-4"
+              >
+                <IconoDelPlan tipo={plan.insuranceType} />
+                <span className="min-w-0 flex-1 text-[15px] font-semibold leading-tight text-[var(--d2-texto)]">{plan.name}</span>
+                <span className="flex shrink-0 flex-col items-end">
+                  <span className="text-sm font-bold text-[var(--d2-texto)]">S/0</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--d2-ok-texto)]">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+                    {TEXTO_INCLUIDO_EN_COMBO}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {planes.length > 0 && (
         <ul className="mt-4 flex flex-col gap-2">
           {planes.map((plan) => {
             const elegido = elegidos.includes(plan.id);
@@ -186,6 +211,8 @@ export function ProteccionesV2({ planes, cargando, error = false, reintentar, el
             );
           })}
         </ul>
+        )}
+        </>
       )}
 
       <HojaSeguroV2
