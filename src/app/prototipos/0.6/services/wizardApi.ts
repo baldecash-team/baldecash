@@ -9,7 +9,7 @@ import { isValidEmail } from './emailValidation';
 import { errorDeFecha } from './fechaLimites';
 import { anotarOrigenDelError } from './origenDeErrores';
 import type { FiltroDeOpciones } from './filtroDeOpciones';
-import { textoSegunVinculo, vinculoDe } from '../utils/textoSegunVinculo';
+import { recordarNombresDelVinculo, textoSegunVinculo, vinculoDe } from '../utils/textoSegunVinculo';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -43,6 +43,8 @@ export interface WizardFieldOption {
   description?: string | null;
   icon?: string | null;
   visibility_conditions?: Record<string, string> | null;
+  /** BAL-5288: cómo se nombra la opción en los textos («tu mamá»). Solo si tiene. */
+  text_reference?: string | null;
 }
 
 export interface WizardFieldValidation {
@@ -364,6 +366,12 @@ function sumarVistaPrevia(params: URLSearchParams, previewKey?: string | null, o
   if (opciones?.borrador) params.set('draft', '1');
 }
 
+/** BAL-5288: recuerda cómo se nombra cada vínculo en los textos del formulario. */
+function conNombresDelVinculo(config: WizardConfig | null): WizardConfig | null {
+  recordarNombresDelVinculo(config?.steps);
+  return config;
+}
+
 /**
  * Obtiene la configuración del wizard para una landing.
  *
@@ -396,7 +404,7 @@ export async function getWizardConfig(
       throw new Error(`API error: ${response.status}`);
     }
 
-    return await response.json();
+    return conNombresDelVinculo(await response.json());
   } catch (error) {
     console.error('Error fetching wizard config:', error);
     return null;
@@ -432,7 +440,7 @@ export async function getWizardConfigById(
       throw new Error(`API error: ${response.status}`);
     }
 
-    return await response.json();
+    return conNombresDelVinculo(await response.json());
   } catch (error) {
     console.error('Error fetching wizard config by ID:', error);
     return null;

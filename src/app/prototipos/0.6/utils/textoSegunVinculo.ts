@@ -16,6 +16,12 @@
  * Los `value` son los de las opciones del campo en la BD (form_field_option
  * del campo 26). Un texto sin marcas sale idéntico: ningún otro formulario
  * cambia. Funciones puras, sin React.
+ *
+ * BAL-5288: cada opción puede traer «Cómo se nombra en los textos»
+ * (`text_reference`, p. ej. «tu mamá») desde admin2. Al cargar el formulario
+ * se recuerdan con `recordarNombresDelVinculo`; ese nombre manda. Si la opción
+ * no lo trae, vale el mapa fijo de arriba (y un vínculo nuevo sin nombre,
+ * «tu familiar»).
  */
 
 import type { WizardField, WizardStep } from '../services/wizardApi';
@@ -31,6 +37,37 @@ const NOMBRE_POR_VINCULO: Record<string, string> = {
 };
 const NOMBRE_SIN_VINCULO = 'tu familiar';
 
+/** Nombres que vinieron en las opciones del formulario cargado (BAL-5288). */
+let nombresDelFormulario: Record<string, string> = {};
+
+/**
+ * Recuerda el «cómo se nombra» de cada opción del vínculo que trae el
+ * formulario. Llamarla de nuevo (otro formulario) reemplaza lo anterior.
+ */
+export function recordarNombresDelVinculo(
+  steps: ReadonlyArray<Pick<WizardStep, 'fields'>> | null | undefined,
+): void {
+  const nombres: Record<string, string> = {};
+  for (const step of steps ?? []) {
+    for (const field of step.fields ?? []) {
+      if (field.code !== CAMPO_VINCULO) continue;
+      for (const opcion of field.options ?? []) {
+        const nombre = (opcion.text_reference ?? '').trim();
+        const valor = String(opcion.value ?? '').trim().toLowerCase();
+        if (nombre && valor) nombres[valor] = nombre;
+      }
+    }
+  }
+  nombresDelFormulario = nombres;
+}
+
+/** Cómo se nombra al familiar para ese vínculo. */
+export function nombreDelVinculo(vinculo?: string | null): string {
+  const clave = String(vinculo ?? '').trim().toLowerCase();
+  if (!clave) return NOMBRE_SIN_VINCULO;
+  return nombresDelFormulario[clave] ?? NOMBRE_POR_VINCULO[clave] ?? NOMBRE_SIN_VINCULO;
+}
+
 const MARCAS = /\{(de_tu_familiar|tu_familiar)\}/g;
 
 /** El vínculo elegido en los valores del formulario ('' si no hay). */
@@ -42,7 +79,7 @@ export function vinculoDe(formValues: Record<string, unknown> | null | undefined
 /** Reemplaza las marcas del texto según el vínculo. Sin marcas, el mismo texto. */
 export function textoSegunVinculo<T extends string | null | undefined>(texto: T, vinculo?: string | null): T {
   if (!texto || !texto.includes('{')) return texto;
-  const nombre = NOMBRE_POR_VINCULO[String(vinculo ?? '').trim().toLowerCase()] ?? NOMBRE_SIN_VINCULO;
+  const nombre = nombreDelVinculo(vinculo);
   return texto.replace(MARCAS, (_m, marca: string) => (marca === 'de_tu_familiar' ? `de ${nombre}` : nombre)) as T;
 }
 

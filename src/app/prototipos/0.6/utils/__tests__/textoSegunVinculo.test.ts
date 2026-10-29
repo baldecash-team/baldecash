@@ -159,3 +159,77 @@ describe('validateField nombra al familiar según el vínculo', () => {
     expect(validateField(campo({}), '', {}, undefined, true).error).toBe('Este campo es requerido');
   });
 });
+
+// ==================== BAL-5288: el nombre viene de la opción ====================
+import { nombreDelVinculo, recordarNombresDelVinculo } from '../textoSegunVinculo';
+import { getWizardConfig } from '../../services/wizardApi';
+
+function pasoConVinculo(opciones: Array<{ value: string; label: string; text_reference?: string | null }>) {
+  return {
+    fields: [
+      campo({ code: 'supporter_relationship', type: 'select', options: opciones }),
+      campo({ code: 'supporter_phone', label: 'Celular {de_tu_familiar}' }),
+    ],
+  };
+}
+
+describe('nombre de la opción (text_reference)', () => {
+  afterEach(() => recordarNombresDelVinculo([]));
+
+  it('sin nombres en las opciones vale el mapa fijo de siempre', () => {
+    recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre' }])]);
+    expect(textoSegunVinculo('Celular {de_tu_familiar}', 'madre')).toBe('Celular de tu mamá');
+    expect(nombreDelVinculo('abuelo')).toBe('tu abuelo(a)');
+  });
+
+  it('el nombre de la opción manda sobre el mapa fijo', () => {
+    recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre', text_reference: 'tu mami' }])]);
+    expect(textoSegunVinculo('Celular {de_tu_familiar}', 'madre')).toBe('Celular de tu mami');
+    expect(textoSegunVinculo('¿Cómo recibe {tu_familiar} sus ingresos?', 'madre')).toBe('¿Cómo recibe tu mami sus ingresos?');
+    // las que no traen nombre siguen con el de siempre
+    expect(textoSegunVinculo('Celular {de_tu_familiar}', 'padre')).toBe('Celular de tu papá');
+  });
+
+  it('una opción nueva («tio») usa su nombre; sin nombre, «tu familiar»', () => {
+    recordarNombresDelVinculo([pasoConVinculo([
+      { value: 'tio', label: 'Tío(a)', text_reference: 'tu tío(a)' },
+      { value: 'primo', label: 'Primo(a)', text_reference: '  ' },
+    ])]);
+    expect(textoSegunVinculo('Celular {de_tu_familiar}', 'tio')).toBe('Celular de tu tío(a)');
+    expect(textoSegunVinculo('Celular {de_tu_familiar}', 'primo')).toBe('Celular de tu familiar');
+  });
+
+  it('sin vínculo elegido sigue «tu familiar» aunque haya nombres', () => {
+    recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre', text_reference: 'tu mami' }])]);
+    expect(textoSegunVinculo('Celular {de_tu_familiar}', '')).toBe('Celular de tu familiar');
+  });
+
+  it('un formulario nuevo reemplaza los nombres del anterior', () => {
+    recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre', text_reference: 'tu mami' }])]);
+    recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre' }])]);
+    expect(nombreDelVinculo('madre')).toBe('tu mamá');
+  });
+
+  it('campoSegunVinculo y validateField usan el nombre de la opción', () => {
+    recordarNombresDelVinculo([pasoConVinculo([{ value: 'madre', label: 'Madre', text_reference: 'tu mami' }])]);
+    expect(campoSegunVinculo(campo({ label: 'Celular {de_tu_familiar}' }), 'madre').label).toBe('Celular de tu mami');
+    const f = campo({
+      code: 'supporter_phone', type: 'phone',
+      validations: [{ type: 'not_equals_field', value: 'phone', message: 'Ese es tu celular. Escribe el celular {de_tu_familiar}.' }],
+    });
+    expect(validateField(f, '987654321', { phone: '987654321', supporter_relationship: 'madre' }, undefined, true).error)
+      .toBe('Ese es tu celular. Escribe el celular de tu mami.');
+  });
+
+  it('getWizardConfig recuerda los nombres del formulario que carga', async () => {
+    const config = { steps: [pasoConVinculo([{ value: 'madre', label: 'Madre', text_reference: 'tu mami' }])] };
+    const original = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => config }) as unknown as typeof fetch;
+    try {
+      await getWizardConfig('home');
+      expect(nombreDelVinculo('madre')).toBe('tu mami');
+    } finally {
+      global.fetch = original;
+    }
+  });
+});
