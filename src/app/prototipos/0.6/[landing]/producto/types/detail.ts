@@ -210,6 +210,11 @@ export interface ComboInsurance {
   planId: number | string;
   name: string;
   price: number;
+  code?: string;
+  /** Vigencia del plan (12, 24, 36). Un combo puede traer el mismo seguro en dos plazos. */
+  durationMonths?: number | null;
+  /** 'seguro_robo' | 'garantia_extendida' | 'multiasistencia'. Es el "tipo" de R7. */
+  insuranceType?: string | null;
 }
 
 export interface ComboInfo {
@@ -222,8 +227,10 @@ export interface ComboInfo {
   thumbnailUrl?: string;
   microUrl?: string;
   accessories: ComboAccessory[];
-  /** Seguro incluido en el combo, o undefined si no aplica. */
+  /** Seguro incluido en el combo, o undefined si no aplica. Compat: es el primero de `insurances`. */
   insurance?: ComboInsurance;
+  /** TODOS los seguros del combo (S3), con sus versiones por plazo. */
+  insurances?: ComboInsurance[];
 }
 
 // ============================================
