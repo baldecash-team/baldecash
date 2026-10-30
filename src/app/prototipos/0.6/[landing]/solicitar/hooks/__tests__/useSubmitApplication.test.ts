@@ -9,6 +9,7 @@ import { calcularPrellenado, marcadoresDeBloqueo } from '../useLeadPrefill';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { readDemoApplication } from '../../utils/demoApplication';
 import { saveConsentStorage } from '../../utils/consentStorage';
+import { guardarVistaDePrueba } from '@/app/prototipos/0.6/utils/vistaDePrueba';
 import type { LeadPrefill } from '@/app/prototipos/0.6/services/leadPrefillApi';
 import type { WizardStep } from '../../../../services/wizardApi';
 
@@ -132,6 +133,12 @@ const mockCaptureException = jest.fn();
 jest.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
   captureMessage: jest.fn(),
+}));
+
+// «Probar en la web»: el aviso del envío simulado.
+const mockAvisarEnvioSimulado = jest.fn(async () => undefined);
+jest.mock('../../../../services/linkDePruebaApi', () => ({
+  avisarEnvioSimulado: (...args: unknown[]) => mockAvisarEnvioSimulado(...(args as [])),
 }));
 
 // Mock applicationApi
@@ -1324,6 +1331,62 @@ describe('useSubmitApplication', () => {
       // Tras enviar se borra SIEMPRE, tambien el cupon que llego por link.
       expect(mockClearCouponAfterSubmit).toHaveBeenCalled();
       expect(mockClearCoupon).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * «Probar en la web» (BAL-5367): una landing real abierta con el link de
+   * prueba del panel. El envío se simula como en la demo, también el
+   * anticipado, y se avisa a ws2 para la bitácora.
+   */
+  describe('vista de prueba', () => {
+    beforeEach(() => {
+      sessionStorage.clear();
+      guardarVistaDePrueba({ slug: 'test-landing', token: 'tok-prueba', venceEn: Date.now() + 3600_000, sembrar: false });
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it('no crea la solicitud: simula y registra el envío', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+      let ok = false;
+      await act(async () => { ok = await result.current.submit(); });
+      expect(ok).toBe(true);
+      expect(mockSubmitApplication).not.toHaveBeenCalled();
+      expect(mockAvisarEnvioSimulado).toHaveBeenCalledWith('tok-prueba');
+      const target = mockPush.mock.calls[0][0] as string;
+      const code = new URL(target, 'https://x').searchParams.get('code');
+      expect(code).toMatch(/^SOL-DEMO-/);
+      expect(readDemoApplication('test-landing', code)).not.toBeNull();
+    });
+
+    it('el envío anticipado también se simula y termina en la confirmación', async () => {
+      const { result } = renderHook(() => useSubmitApplication());
+      let ok = true;
+      await act(async () => { ok = await result.current.submit({ stayInWizard: true, conContrato: true }); });
+      expect(ok).toBe(false);
+      expect(mockSubmitApplication).not.toHaveBeenCalled();
+      expect(mockSaveEnvioAnticipadoHandoff).not.toHaveBeenCalled();
+      expect(mockReplace.mock.calls[0][0]).toContain('/confirmacion');
+    });
+
+    it('vencida, el envío vuelve a ser real', async () => {
+      guardarVistaDePrueba({ slug: 'test-landing', token: 'tok-prueba', venceEn: Date.now() - 1, sembrar: false });
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-1' });
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => { await result.current.submit(); });
+      expect(mockSubmitApplication).toHaveBeenCalled();
+      expect(mockAvisarEnvioSimulado).not.toHaveBeenCalled();
+    });
+
+    it('de otra landing no aplica', async () => {
+      guardarVistaDePrueba({ slug: 'otra', token: 'tok-prueba', venceEn: Date.now() + 3600_000, sembrar: false });
+      mockSubmitApplication.mockResolvedValueOnce({ success: true, application_code: 'APP-2' });
+      const { result } = renderHook(() => useSubmitApplication());
+      await act(async () => { await result.current.submit(); });
+      expect(mockSubmitApplication).toHaveBeenCalled();
     });
   });
 });

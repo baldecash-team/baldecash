@@ -13,6 +13,7 @@ import { usePreviewListener } from '../../hooks/usePreviewListener';
 import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { PreviewBanner } from '../../components/PreviewBanner';
+import { AbrirLinkDePrueba } from './AbrirLinkDePrueba';
 import MacBookNeoLanding from '../../components/product-landing/MacBookNeoLanding';
 import SeminuevosLanding from '../../components/product-landing/seminuevos/SeminuevosLanding';
 import { LeadLanding } from '../../components/lead/LeadLanding';
@@ -491,10 +492,17 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   );
 }
 
+/** Con `?t=` es un link de «Probar en la web» (BAL-5367); si no, la vista previa de siempre. */
+function PreviewOLinkDePrueba({ pathId }: PreviewPageClientProps) {
+  const token = useSearchParams().get('t');
+  if (token) return <AbrirLinkDePrueba token={token} />;
+  return <PreviewPageClientInner pathId={pathId} />;
+}
+
 export function PreviewPageClient({ pathId }: PreviewPageClientProps) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <PreviewPageClientInner pathId={pathId} />
+      <PreviewOLinkDePrueba pathId={pathId} />
     </Suspense>
   );
 }

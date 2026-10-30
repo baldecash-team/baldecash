@@ -23,6 +23,7 @@ import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/Game
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { readOtpHandoff, type OtpHandoff } from '../utils/otpHandoff';
 import { isDemoLanding, readDemoApplication } from '../utils/demoApplication';
+import { esVistaDePrueba } from '@/app/prototipos/0.6/utils/vistaDePrueba';
 import { reclamarEmisionDelEnvio } from '../utils/envioEmitido';
 import type { ApplicationStatusData } from './types/applicationStatus';
 import { getApplicationStatus } from '../../../services/applicationApi';
@@ -604,7 +605,8 @@ function ConfirmacionContent() {
     // Landings demo: la solicitud no existe en ws2. El submit dejó el detalle
     // armado en sessionStorage; se lee de ahí y no se consulta la API ni se
     // emite `application_submitted` (no hay solicitud que reportar).
-    if (isDemoLanding(landing)) {
+    // Lo mismo con un link de «Probar en la web» (BAL-5367).
+    if (isDemoLanding(landing) || esVistaDePrueba(landing)) {
       setApplicationData(readDemoApplication(landing, applicationCode));
       setIsLoadingStatus(false);
       return;
