@@ -12,6 +12,7 @@ import {
   MENSAJE_ENVIO_SIN_CONFIRMAR,
   ERROR_CODE_ENVIO_SIN_CONFIRMAR,
 } from './mensajeDelError';
+import { cabecerasDeVistaDePrueba } from '../utils/vistaDePrueba';
 
 /**
  * Tope del envío. Sin él, una conexión colgada deja a la persona mirando
@@ -268,6 +269,8 @@ export async function submitApplication(
       response = await fetch(`${API_BASE_URL}/public/form/submit`, {
         method: 'POST',
         // Don't set Content-Type header - browser will set it with boundary
+        // Vista de prueba (BAL-5367): segundo candado, ws2 rechaza el envío.
+        headers: cabecerasDeVistaDePrueba(),
         body: formData,
         ...(controlador ? { signal: controlador.signal } : {}),
       });

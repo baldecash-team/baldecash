@@ -41,6 +41,8 @@ import {
   saveDemoApplication,
   DEMO_SUBMIT_DELAY_MS,
 } from '../utils/demoApplication';
+import { leerVistaDePrueba } from '@/app/prototipos/0.6/utils/vistaDePrueba';
+import { avisarEnvioSimulado } from '../../../services/linkDePruebaApi';
 import { normalizeEmail } from '../../../services/emailValidation';
 import { termToMonths } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 import { datosDelFormulario, guardarDatosDelEnvio } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/datosDelEnvioV2';
@@ -493,7 +495,11 @@ export function useSubmitApplication(
         // detalle de la solicitud con lo que la persona seleccionó y llenó, se
         // deja en sessionStorage para /confirmacion y se navega al resumen.
         // No se hace POST a ws2: no existe solicitud real detrás de este código.
-        if (isDemoLanding(landing)) {
+        //
+        // Lo mismo desde un link de «Probar en la web» (BAL-5367), también en
+        // el envío anticipado. Ahí además se avisa a ws2 para la bitácora.
+        const vistaDePrueba = leerVistaDePrueba(landing);
+        if (isDemoLanding(landing) || vistaDePrueba) {
           setSubmitStage('processing');
           await new Promise((resolve) => setTimeout(resolve, DEMO_SUBMIT_DELAY_MS));
 
@@ -512,11 +518,15 @@ export function useSubmitApplication(
             })
           );
 
-          analytics.track('form_submit_success', {
-            product_count: allProducts.length,
-            accessory_count: selectedAccessories.length,
-            demo: true,
-          });
+          if (vistaDePrueba) {
+            await avisarEnvioSimulado(vistaDePrueba.token);
+          } else {
+            analytics.track('form_submit_success', {
+              product_count: allProducts.length,
+              accessory_count: selectedAccessories.length,
+              demo: true,
+            });
+          }
 
           if (slowTimeoutRef.current) {
             clearTimeout(slowTimeoutRef.current);
@@ -550,6 +560,13 @@ export function useSubmitApplication(
           succeeded = true;
 
           // Ni OTP ni KYC: ambos necesitan un `application_id` real en ws2.
+          // Envío anticipado: lo que sigue (contrato, KYC) necesita una
+          // solicitud de verdad, así que la prueba termina en la confirmación.
+          // `false` = «ya navegué», igual que una solicitud que nace cerrada.
+          if (stayInWizard) {
+            router.replace(routes.solicitarConfirmacion(landing, demoCode));
+            return false;
+          }
           router.push(routes.solicitarConfirmacion(landing, demoCode));
           return true;
         }

@@ -21,6 +21,7 @@ import { debeRenovarSesionAlEntrar } from './utils/renovacionDeSesion';
 import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
+import { FranjaVistaDePrueba, SembrarVistaDePrueba } from './components/VistaDePrueba';
 
 export default function WizardPreviewLayout({
   children,
@@ -69,6 +70,9 @@ export default function WizardPreviewLayout({
     <ProductProvider key={landing} landingSlug={landing}>
       <WizardConfigProvider slug={landing}>
         <WizardProvider landingSlug={landing}>
+          {/* «Probar en la web» (BAL-5367): siembra los datos y avisa que no se envía nada. */}
+          <SembrarVistaDePrueba landing={landing} />
+          <FranjaVistaDePrueba />
           {children}
         </WizardProvider>
       </WizardConfigProvider>
