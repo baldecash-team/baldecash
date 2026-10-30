@@ -3,12 +3,20 @@
 /**
  * Guía de campos de Diseño 2 (BAL-4959): lleva la vista al campo que falta.
  *
- * - **arrive**: al llegar a un paso, baja al primer campo obligatorio visible y
- *   vacío y lo resalta con un brillo. No mueve el cursor ni abre el teclado.
+ * - **arrive**: al llegar a un paso, resalta con un brillo el primer campo
+ *   obligatorio visible y vacío. No mueve el cursor ni abre el teclado.
  * - **goNextField**: al completar un campo de largo fijo (documento, celular),
- *   baja al siguiente pendiente. Mientras se escribe texto libre no hace nada.
- * - **goFin**: con todo completo, baja a "Continuar" y lo resalta.
+ *   resalta el siguiente pendiente. Mientras se escribe texto libre no hace nada.
+ * - **goFin**: con todo completo, resalta "Continuar".
  * - **Enter**: pasa al siguiente campo.
+ *
+ * BAL-5360 (Brenda y Haru): la guía YA NO MUEVE LA PÁGINA por su cuenta. Al
+ * completar un campo, la página bajaba sola al siguiente (o a "Continuar") y
+ * la persona perdía de vista lo que acababa de escribir. Decisión: arrive,
+ * goNextField y goFin solo resaltan, sin scroll (`resaltar(el, { mover: false })`).
+ * La página solo se mueve por un gesto de la persona: Enter (pide ir al
+ * siguiente campo, y el foco no puede quedar fuera de la vista) y "Continuar"
+ * con errores (`irAlPrimerErrorV2`, que sí lleva al primer error).
  *
  * Sirve para cualquier formulario de la BD: no conoce códigos de campo. Lee
  * los campos VISIBLES del DOM (`[data-campo]`, que pone `DynamicWizardStep`
@@ -72,7 +80,7 @@ export function siguientePendiente(campos: CampoDeLaGuia[], despuesDe?: string):
 
 /**
  * Campo de largo fijo: al completarlo ya no queda nada por escribir, así que
- * se puede bajar al siguiente sin interrumpir. Documento y celular por su tipo;
+ * se puede pasar al siguiente sin interrumpir. Documento y celular por su tipo;
  * cualquier otro si su largo mínimo y máximo coinciden.
  */
 export function esDeLargoFijo(field: Pick<WizardField, 'type' | 'min_length' | 'max_length'>): boolean {
@@ -117,14 +125,23 @@ export function estaALaVista(el: HTMLElement): boolean {
   return r.top >= altoCabecera() && r.bottom <= window.innerHeight - altoBarraInferior();
 }
 
+export interface OpcionesResaltar {
+  /**
+   * Si es `false`, solo pone el brillo: nunca mueve la página (la guía
+   * automática, BAL-5360). Por defecto `true`: si no se ve, lo trae a la vista.
+   */
+  mover?: boolean;
+}
+
 /**
- * Resalta un elemento y, SOLO si no se ve, lo trae a la vista lo justo.
- * No le da foco. Antes lo centraba siempre: al llenar un campo la página
- * bajaba de más aunque el siguiente ya se viera (Brenda, 27-oct, BAL-5206).
+ * Resalta un elemento y, SOLO si no se ve (y `mover` no es `false`), lo trae a
+ * la vista lo justo. No le da foco. Antes lo centraba siempre: al llenar un
+ * campo la página bajaba de más aunque el siguiente ya se viera (Brenda,
+ * 27-oct, BAL-5206).
  */
-export function resaltar(el: HTMLElement | null | undefined) {
+export function resaltar(el: HTMLElement | null | undefined, { mover = true }: OpcionesResaltar = {}) {
   if (!el) return;
-  if (!estaALaVista(el)) {
+  if (mover && !estaALaVista(el)) {
     const r = el.getBoundingClientRect();
     const limiteArriba = altoCabecera() + AIRE_ARRIBA_PX;
     const limiteAbajo = window.innerHeight - altoBarraInferior() - AIRE_ABAJO_PX;
@@ -266,15 +283,17 @@ export function useGuiaDeCampos({ contenedorRef, step, activa = true }: Opciones
     [contenedorRef],
   );
 
+  // arrive, goNextField y goFin: solo el brillo, sin mover la página (BAL-5360).
   const irA = useCallback(
     (destino: DestinoDeLaGuia) => {
+      const sinMover = { mover: false };
       if (destino.tipo === 'continuar') {
-        resaltar(botonContinuarVisible());
+        resaltar(botonContinuarVisible(), sinMover);
         return;
       }
       const el = contenedorDe(destino.codigo);
-      if (abrirSeccionDe(el)) window.setTimeout(() => resaltar(el), ESPERA_AL_ABRIR_SECCION_MS);
-      else resaltar(el);
+      if (abrirSeccionDe(el)) window.setTimeout(() => resaltar(el, sinMover), ESPERA_AL_ABRIR_SECCION_MS);
+      else resaltar(el, sinMover);
     },
     [contenedorDe],
   );
