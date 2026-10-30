@@ -3,18 +3,23 @@
 /**
  * Casilla simple de Diseño 2 (BAL-4960): "Autorizo a BaldeCash a verificar…".
  *
- * Decisión de Emilio (revisión F2): neutra al inicio, sea obligatoria u
- * opcional — fondo blanco, borde gris `#C9CEF0`, sin ámbar y sin una etiqueta
- * "Obligatorio" resaltada. Es la misma regla que la casilla de términos de
- * `LoQuieroModal` (`border-[var(--d2-borde-gris-2)] bg-[var(--d2-tarjeta)]` cuando no hay error):
- * - neutra: fondo blanco, borde gris;
- * - al intentar continuar sin marcarla (llega `error`): roja, se sacude una
- *   vez y dice el mensaje (el del validador: `required_message` o el genérico);
- * - marcada: verde suave con "¡Listo!".
+ * Diseño de Brenda (`bcConsent` del prototipo del 20-oct, casilla «Autorizo»
+ * del Paso 3). Emilio el 30-oct-2026 (BAL-5383) la pasó a este diseño; antes
+ * era neutra (blanca, borde gris) por una decisión de la revisión F2.
+ * Obligatoria:
+ * - sin marcar: ámbar (`--d2-aviso-*`), con un brillo que se expande dos
+ *   veces al llegar, «Necesario para continuar con tu solicitud.» y, en
+ *   escritorio, la etiqueta «Obligatorio»;
+ * - al intentar continuar sin marcarla (llega `error`): naranja, se sacude
+ *   cada vez y dice «Marca la casilla para continuar.» con `role="alert"` (o
+ *   el `required_message` del campo, si lo trae);
+ * - marcada: verde suave con «¡Listo! Ya puedes continuar.».
+ * Opcional (`required=false`): el prototipo no tiene una caja para la
+ * opcional, así que se queda neutra (blanca, borde gris) y verde al marcar.
  *
- * La sacudida respeta `prefers-reduced-motion` (keyframes en `globals.css`,
- * una sola vez para toda la página). El valor y el toggle son los de
- * `CheckboxField` ("true"/"false"): esto solo pinta.
+ * Brillo y sacudida respetan `prefers-reduced-motion` (keyframes en
+ * `globals.css`, una sola vez para toda la página). El valor y el toggle son
+ * los de `CheckboxField` ("true"/"false"): esto solo pinta.
  */
 
 import React, { useState } from 'react';
@@ -33,6 +38,10 @@ interface CasillaV2Props {
   required?: boolean;
 }
 
+/** Los mensajes genéricos del validador (`validateField`) para la casilla vacía. */
+const MENSAJES_GENERICOS = new Set(['Debes marcar esta casilla para continuar', 'Este campo es requerido']);
+const MENSAJE_ERROR_V2 = 'Marca la casilla para continuar.';
+
 export function CasillaV2({ id, label, checked, onToggle, error, helpText, tooltip, disabled = false, required = true }: CasillaV2Props) {
   const conError = !!error && !checked;
 
@@ -47,13 +56,15 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
     if (conError) setSacudidas((n) => n + 1);
   }
 
-  // Neutra al inicio (obligatoria u opcional, es la misma caja): decisión de
-  // Emilio en la revisión F2. Sin ámbar, sin distinguir `required` acá.
+  // Ámbar solo si es obligatoria; la opcional se queda neutra (BAL-5383).
+  const aviso = required && !checked && !conError;
   const caja = checked
     ? 'border-[var(--d2-ok)] bg-[var(--d2-ok-suave-3)]'
     : conError
       ? 'border-[var(--d2-error)] bg-[var(--d2-error-suave)]'
-      : 'border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)]';
+      : aviso
+        ? 'border-[var(--d2-aviso-borde)] bg-[var(--d2-aviso-suave)] d2-brillo-consentimiento'
+        : 'border-[var(--d2-borde-campo)] bg-[var(--d2-tarjeta)]';
   // La caja chica de la izquierda (la casilla en sí), como en `LoQuieroModal`.
   const cuadro = checked
     ? 'bg-[var(--d2-ok-relleno)] border-[var(--d2-ok)]'
@@ -61,22 +72,29 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
       ? 'bg-[var(--d2-tarjeta)] border-[var(--d2-error)]'
       : 'bg-[var(--d2-tarjeta)] border-[var(--d2-borde-casilla)]';
 
-  // Sin badge "Obligatorio": la caja no adelanta nada hasta que haya un error
-  // o se marque. `helpText` sigue siendo libre (lo trae el banco de campos).
-  const subtitulo = checked ? '¡Listo!' : conError ? error : helpText;
+  // El texto de error: el `required_message` del campo si lo trae; si llega el
+  // genérico del validador, el de Brenda.
+  const textoError = error && MENSAJES_GENERICOS.has(error) ? MENSAJE_ERROR_V2 : error;
+  const subtitulo = checked
+    ? required ? '¡Listo! Ya puedes continuar.' : '¡Listo!'
+    : conError
+      ? textoError
+      : required
+        ? 'Necesario para continuar con tu solicitud.'
+        : undefined;
 
   const colorSubtitulo = checked
     ? 'font-semibold text-[var(--d2-ok-texto)]'
     : conError
       ? 'font-bold text-[var(--d2-error-texto)]'
-      : 'text-[var(--d2-texto-suave)]';
+      : 'text-[var(--d2-aviso-texto)]';
 
   return (
-    <div id={id} data-casilla-v2={checked ? 'marcada' : conError ? 'error' : 'neutra'}>
+    <div id={id} data-casilla-v2={checked ? 'marcada' : conError ? 'error' : aviso ? 'aviso' : 'neutra'}>
       <label
         key={sacudidas}
         htmlFor={`${id}-casilla`}
-        className={`flex items-center gap-3 rounded-[14px] border-2 px-3 py-[11px] sm:px-4 sm:py-3 transition-colors duration-150 focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--color-primary)] focus-within:ring-offset-2 ${caja} ${
+        className={`flex items-center gap-3 rounded-[14px] border-2 px-3 py-[11px] md:px-4 md:py-3 transition-colors duration-150 focus-within:outline-none focus-within:ring-2 focus-within:ring-[var(--color-primary)] focus-within:ring-offset-2 ${caja} ${
           conError && sacudidas > 0 ? 'casilla-v2-sacudida' : ''
         } ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
       >
@@ -100,7 +118,7 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
         <span
           aria-hidden="true"
           data-caja-casilla
-          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition-colors duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-primary)] peer-focus-visible:ring-offset-2 sm:h-[22px] sm:w-[22px] ${cuadro}`}
+          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md border-2 transition-colors duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--color-primary)] peer-focus-visible:ring-offset-2 md:h-[22px] md:w-[22px] ${cuadro}`}
         >
           {checked && <Check className="h-3.5 w-3.5 text-white d2-check-in" strokeWidth={3} />}
         </span>
@@ -112,7 +130,7 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           anuncia solo con aparecer, sin depender de `aria-describedby`.
         */}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[14px] font-bold leading-[1.35] text-[var(--d2-texto)] sm:text-[15px]">
+          <span className="text-[14px] font-bold leading-[1.35] text-[var(--d2-texto)] md:text-[15px]">
             {label}
             {tooltip && (
               // En línea con el texto: con etiquetas largas el globo queda al
@@ -125,12 +143,32 @@ export function CasillaV2({ id, label, checked, onToggle, error, helpText, toolt
           {subtitulo && (
             <span
               role={conError ? 'alert' : undefined}
-              className={`text-[12.5px] leading-[1.35] sm:text-[13px] ${colorSubtitulo}`}
+              className={`text-[12.5px] leading-[1.35] md:text-[13px] ${colorSubtitulo}`}
             >
               {subtitulo}
             </span>
           )}
+          {/* La pista del banco de campos va debajo, como la nota gris de la casilla del prototipo. */}
+          {helpText && <span className="text-[12px] text-[var(--d2-texto-suave)]">{helpText}</span>}
         </span>
+        {/*
+          Etiqueta «Obligatorio» (`tagStyle` del prototipo): solo en escritorio
+          y mientras no esté marcada. Es decorativa: el input ya lleva
+          `aria-required`.
+        */}
+        {required && !checked && (
+          <span
+            aria-hidden="true"
+            data-etiqueta-obligatorio
+            className={`hidden flex-shrink-0 rounded-full px-[9px] py-1 text-[11.5px] font-bold tracking-[0.02em] md:inline-flex ${
+              conError
+                ? 'bg-[var(--d2-error-etiqueta)] text-[var(--d2-error-etiqueta-texto)]'
+                : 'bg-[var(--d2-aviso-etiqueta)] text-[var(--d2-aviso-texto)]'
+            }`}
+          >
+            Obligatorio
+          </span>
+        )}
       </label>
     </div>
   );

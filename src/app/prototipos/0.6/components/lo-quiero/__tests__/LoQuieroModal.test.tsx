@@ -303,7 +303,9 @@ describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () =>
     const casilla = await screen.findByRole('checkbox', { name: FRASE });
     const caja = document.querySelector('[data-terminos-v2]')!;
     expect(caja).toHaveAttribute('data-terminos-v2', 'neutra');
-    expect(caja).toHaveClass('border-[var(--d2-aviso-borde)]', 'bg-[var(--d2-aviso-suave)]', 'd2-brillo-consentimiento', 'rounded-[10px]', 'border-[1.5px]');
+    expect(caja).toHaveClass('border-[var(--d2-aviso-borde)]', 'bg-[var(--d2-aviso-suave)]', 'd2-brillo-consentimiento', 'rounded-[14px]', 'border-2');
+    // Como en el prototipo (BAL-5383): sin subtexto hasta que hay error.
+    expect(screen.queryByText('Necesario para continuar con tu solicitud.')).not.toBeInTheDocument();
 
     const continuar = await screen.findByRole('button', { name: /Continuar a mis datos/ });
     fireEvent.click(continuar);

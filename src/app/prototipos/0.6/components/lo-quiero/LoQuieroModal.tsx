@@ -852,16 +852,17 @@ function LoQuieroModalContent({
           <div className="flex flex-col gap-1.5">
             {/* Caja de Términos (prototipo de Brenda, `bcConsent`): ámbar con un
                 brillo al llegar, naranja y sacudida si intentan seguir sin
-                marcarla, verde al marcarla. Borde y radio del estándar del kit
-                (`CAJA_V2`: 1,5 px y 10 px). Con reduced-motion cambian solo
-                los colores (`globals.css`). */}
+                marcarla, verde al marcarla. Borde de 2 px y radio de 14 px
+                como en el prototipo (BAL-5383); el subtexto solo aparece con
+                el error, igual que en el prototipo. Con reduced-motion cambian
+                solo los colores (`globals.css`). */}
             <div
               data-terminos-v2={aceptaTerminos ? 'marcada' : errorTerminos ? 'error' : 'neutra'}
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest('a')) return;
                 alternarTerminos();
               }}
-              className={`flex items-center gap-3 rounded-[10px] border-[1.5px] px-3 py-[11px] md:px-4 md:py-3 cursor-pointer select-none transition-colors duration-150 ${
+              className={`flex items-center gap-3 rounded-[14px] border-2 px-3 py-[11px] md:px-4 md:py-3 cursor-pointer select-none transition-colors duration-150 ${
                 aceptaTerminos
                   ? 'border-[var(--d2-ok)] bg-[var(--d2-ok-suave-3)]'
                   : errorTerminos
@@ -888,7 +889,7 @@ function LoQuieroModalContent({
                 {aceptaTerminos && <Check className="w-3.5 h-3.5 text-white d2-check-in" strokeWidth={3} aria-hidden />}
               </button>
               <span className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span id="lo-quiero-terminos-texto" className="text-sm font-semibold leading-[1.3] text-[var(--d2-texto)]">
+                <span id="lo-quiero-terminos-texto" className="text-[13px] md:text-sm font-semibold leading-[1.3] text-[var(--d2-texto)]">
                   Acepto los{' '}
                   <a
                     href={routes.legal(landing, 'terminos-y-condiciones')}
