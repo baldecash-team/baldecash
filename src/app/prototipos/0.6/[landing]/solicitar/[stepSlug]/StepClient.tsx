@@ -1459,7 +1459,7 @@ function StepContent({ pantalla }: StepContentProps = {}) {
           <Footer data={footerData} landing={landing} agreementData={agreementData} />
           {/* La barra fija de celular no tapa el final del footer */}
           <BarraInferiorV2Spacer />
-          <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+          <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} diseno2 />
           {modalUnidadTomadaResumen}
           {avisoLinkEspecial}
           {/* M-2 (BAL-4969): el aviso del kit (status + aria-live, cerrar de

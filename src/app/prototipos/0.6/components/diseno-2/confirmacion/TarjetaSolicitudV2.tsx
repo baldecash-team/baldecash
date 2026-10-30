@@ -9,6 +9,9 @@
  * Prototipo: cabecera con degradado (160°) y el equipo, y debajo una lista
  * de filas «rótulo · valor» separadas por una línea: cuota mensual total
  * (20 px, color de marca), día de pago, entrega y regalo (cápsula verde).
+ * El interlineado es el `normal` del prototipo (BAL-5361): con el de
+ * Tailwind (`text-sm` = 20 px, `text-xl` = 28 px) cada fila salía ~6 px más
+ * alta que el diseño.
  */
 
 import React from 'react';
@@ -29,8 +32,8 @@ function Fila({ etiqueta, children, ultima }: { etiqueta: string; children: Reac
         ultima ? '' : 'border-b border-[var(--d2-chip)]'
       }`}
     >
-      <dt className="m-0 text-sm text-[var(--d2-texto-suave)]">{etiqueta}</dt>
-      <dd className="m-0 text-right text-sm font-semibold text-[var(--d2-texto)]">{children}</dd>
+      <dt className="m-0 text-sm leading-[normal] text-[var(--d2-texto-suave)]">{etiqueta}</dt>
+      <dd className="m-0 text-right text-sm font-semibold leading-[normal] text-[var(--d2-texto)]">{children}</dd>
     </div>
   );
 }
@@ -76,7 +79,7 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
             <span
               key={nombre}
               data-regalo
-              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave)] px-2.5 py-[3px] text-[13px] font-bold text-[var(--d2-ok-texto)]"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--d2-ok-suave)] px-2.5 py-[3px] text-[13px] leading-[normal] font-bold text-[var(--d2-ok-texto)]"
             >
               <Gift width={14} height={14} strokeWidth={2} aria-hidden />
               {nombre}
@@ -95,16 +98,16 @@ export function TarjetaSolicitudV2({ data, landingSlug, opciones }: TarjetaSolic
       <div className="flex items-center gap-3.5 bg-[linear-gradient(160deg,var(--d2-resumen-inicio)_0%,var(--d2-resumen-fin)_100%)] px-5 py-[18px]">
         <ImagenDelEquipo src={resumen.imagen} nombre={resumen.nombreEquipo} />
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span id="tarjeta-solicitud-v2" className="text-xs font-bold uppercase tracking-[0.05em] text-[var(--d2-texto-suave)]">
+          <span id="tarjeta-solicitud-v2" className="text-xs font-bold uppercase leading-[normal] tracking-[0.05em] text-[var(--d2-texto-suave)]">
             Tu solicitud
           </span>
-          <span className="line-clamp-2 text-base font-bold text-[var(--d2-texto)]">{resumen.nombreEquipo}</span>
+          <span className="line-clamp-2 text-base font-bold leading-[normal] text-[var(--d2-texto)]">{resumen.nombreEquipo}</span>
           <span className="text-[13.5px] text-[var(--d2-texto-2)]">{resumen.leyenda}</span>
         </span>
       </div>
       <dl className="m-0 flex flex-col px-5 pb-2.5 pt-1">
         <Fila etiqueta={resumen.rotuloCuota} ultima={filas.length === 0}>
-          <span className="text-xl font-bold tabular-nums text-[var(--color-primary-text)]">
+          <span className="text-xl font-bold leading-[normal] tabular-nums text-[var(--color-primary-text)]">
             {resumen.cuota}
             {resumen.sufijoCuota}
           </span>

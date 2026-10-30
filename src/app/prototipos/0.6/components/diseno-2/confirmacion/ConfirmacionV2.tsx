@@ -89,7 +89,7 @@ export function ConfirmacionV2({
   };
 
   return (
-    <div data-confirmacion-v2 className="bg-[var(--d2-fondo)] font-['Asap',_sans-serif] text-[var(--d2-texto)]">
+    <div data-confirmacion-v2 className="bg-[var(--d2-fondo)] font-['Asap',_sans-serif] leading-[normal] text-[var(--d2-texto)]">
       <CabeceraConfirmacionV2
         titulo={texto.titulo}
         subtitulo={texto.subtitulo}

@@ -2,9 +2,10 @@
  * F8 (BAL-4967): la píldora usa el `reference` real, y con reduced-motion no
  * hay confeti. BAL-5274: barra de pasos de Zona Estudiantes (4 o 5 pasos),
  * «Paso 2 de N…» y el botón que abre Zona Estudiantes en otra pestaña.
+ * BAL-5361: confeti mínimo, «SIGUIENTE PASO» y la copia fija en celular.
  */
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { CabeceraConfirmacionV2 } from '../CabeceraConfirmacionV2';
 
@@ -34,9 +35,11 @@ describe('CabeceraConfirmacionV2', () => {
     expect(screen.getByText(/Solicitud N\.° APP-2026-00123/)).toBeInTheDocument();
   });
 
-  it('sin reduced-motion: pinta las 26 piezas de confeti', () => {
+  it('sin reduced-motion: confeti mínimo (BAL-5361), 4 piezas que caen una sola vez', () => {
     const { container } = render(<CabeceraConfirmacionV2 titulo="t" numeroDeSolicitud="APP-1" />);
-    expect(container.querySelectorAll('[data-confeti-pieza]')).toHaveLength(26);
+    const piezas = container.querySelectorAll<HTMLElement>('[data-confeti-pieza]');
+    expect(piezas).toHaveLength(4);
+    piezas.forEach((p) => expect(p.style.animation).toMatch(/ 1$/));
   });
 
   it('sin Baldecito (BAL-5203): la píldora es lo primero de la cabecera', () => {
@@ -116,6 +119,38 @@ describe('CabeceraConfirmacionV2', () => {
     it('también va en los cierres (sin barra de pasos)', () => {
       render(<CabeceraConfirmacionV2 titulo="t" subtitulo="s" numeroDeSolicitud="APP-1" />);
       expect(screen.getByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ })).toBeInTheDocument();
+    });
+
+    it('lleva la etiqueta «SIGUIENTE PASO» y el brillo menta (BAL-5361)', () => {
+      render(<CabeceraConfirmacionV2 titulo="t" numeroDeSolicitud="APP-1" pasos={{ conInicial: false }} />);
+      const enlace = screen.getByRole('link', { name: /Sigue tu solicitud en Zona Estudiantes/ });
+      expect(enlace).toHaveClass('d2-ze-luz');
+      expect(within(enlace).getByText('SIGUIENTE PASO')).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('celular: la copia fija de abajo aparece solo cuando el botón ya salió por arriba', () => {
+      let avisar: (entradas: Array<Partial<IntersectionObserverEntry>>) => void = () => {};
+      const original = window.IntersectionObserver;
+      window.IntersectionObserver = jest.fn((cb: IntersectionObserverCallback) => {
+        avisar = (entradas) => cb(entradas as IntersectionObserverEntry[], {} as IntersectionObserver);
+        return { observe: jest.fn(), disconnect: jest.fn(), unobserve: jest.fn(), takeRecords: jest.fn() };
+      }) as unknown as typeof IntersectionObserver;
+      try {
+        const { container } = render(<CabeceraConfirmacionV2 titulo="t" numeroDeSolicitud="APP-1" />);
+        const fija = container.querySelector('[data-boton-zona-estudiantes-fijo]')!;
+        expect(fija).toHaveAttribute('data-ver', '0');
+        expect(fija).toHaveAttribute('aria-hidden', 'true');
+        expect(fija.querySelector('a')).toHaveAttribute('tabindex', '-1');
+        // Debajo de la pantalla (todavía no llegó): no aparece.
+        act(() => avisar([{ isIntersecting: false, boundingClientRect: { bottom: 900 } as DOMRect }]));
+        expect(fija).toHaveAttribute('data-ver', '0');
+        act(() => avisar([{ isIntersecting: false, boundingClientRect: { bottom: -10 } as DOMRect }]));
+        expect(fija).toHaveAttribute('data-ver', '1');
+        act(() => avisar([{ isIntersecting: true, boundingClientRect: { bottom: 300 } as DOMRect }]));
+        expect(fija).toHaveAttribute('data-ver', '0');
+      } finally {
+        window.IntersectionObserver = original;
+      }
     });
 
     it('avisa el clic (para el evento)', () => {
