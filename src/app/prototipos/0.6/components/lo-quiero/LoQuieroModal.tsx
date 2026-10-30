@@ -46,6 +46,7 @@ import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/u
 // (`formatCuotaDeLanding`: centavos en Family Farms, entera en el resto).
 import { formatCuotaDeLanding } from '@/app/prototipos/0.6/utils/formatCuota';
 import { readConsentStorage, saveConsentStorage } from '@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage';
+import { leerVistaDePrueba } from '@/app/prototipos/0.6/utils/vistaDePrueba';
 import { primerPasoRegular, slugDelPaso } from '@/app/prototipos/0.6/[landing]/solicitar/utils/primerPaso';
 import { useMesPrimeraCuota } from './useMesPrimeraCuota';
 import { guardarOrigenDiseno2 } from '@/app/prototipos/0.6/components/diseno-2/origenDiseno2';
@@ -477,8 +478,12 @@ function LoQuieroModalContent({
   }, [appliedCoupon, analytics, productoId]);
 
   // ── Términos ─────────────────────────────────────────────────────────────
-  // Arranca marcada si la persona ya había aceptado las dos en /solicitar.
+  // Arranca marcada si la persona ya había aceptado las dos en /solicitar, o
+  // si es la vista de prueba (el link las siembra, BAL-5381). Leer la vista
+  // antes borra una vencida con su casilla sembrada: así no queda marcada en
+  // una visita normal.
   const [aceptaTerminos, setAceptaTerminos] = useState(() => {
+    leerVistaDePrueba();
     const c = readConsentStorage(landing);
     return c.acceptTerms && c.acceptPrivacy;
   });

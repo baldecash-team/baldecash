@@ -23,7 +23,7 @@ import { clearWizardFormStorage } from '../../[landing]/solicitar/context/Wizard
 import { clearEnvioAnticipadoHandoff } from '../../[landing]/solicitar/utils/envioAnticipadoHandoff';
 import { clearDemoApplication } from '../../[landing]/solicitar/utils/demoApplication';
 import { armarEquipoDePrueba, cardDelEquipo } from '../../utils/equipoDePrueba';
-import { guardarVistaDePrueba } from '../../utils/vistaDePrueba';
+import { guardarVistaDePrueba, sembrarTerminosDePrueba } from '../../utils/vistaDePrueba';
 
 /** Saca el token de la barra: la URL completa viaja en cada hit de analítica. */
 function quitarTokenDeLaBarra(): void {
@@ -86,6 +86,7 @@ export function AbrirLinkDePrueba({ token }: { token: string }) {
         creadoPor: d.creado_por,
         venceTexto: d.vence_texto,
       });
+      sembrarTerminosDePrueba(slug);
       setPreviewMode(d.landing_id, d.preview_key, slug, {
         formId: d.form_id,
         borrador: d.borrador,

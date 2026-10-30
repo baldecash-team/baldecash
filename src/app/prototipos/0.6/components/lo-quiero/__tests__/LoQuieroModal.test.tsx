@@ -118,15 +118,24 @@ jest.mock('@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext', () 
 }));
 
 const mockGuardarConsent = jest.fn();
-jest.mock('@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage', () => ({
-  readConsentStorage: () => ({ acceptTerms: false, acceptPrivacy: false, acceptPromos: false }),
-  saveConsentStorage: (...args: unknown[]) => mockGuardarConsent(...args),
-}));
+// Lectura y guardado reales (localStorage se limpia en cada test, así que sin
+// sembrar nada la casilla arranca sin marcar); el guardado además se espía.
+jest.mock('@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage', () => {
+  const real = jest.requireActual('@/app/prototipos/0.6/[landing]/solicitar/utils/consentStorage');
+  return {
+    ...real,
+    saveConsentStorage: (...args: unknown[]) => {
+      mockGuardarConsent(...args);
+      return real.saveConsentStorage(...args);
+    },
+  };
+});
 
 jest.mock('../useMesPrimeraCuota', () => ({ useMesPrimeraCuota: () => null }));
 jest.mock('@/app/prototipos/0.6/components/diseno-2/origenDiseno2', () => ({ guardarOrigenDiseno2: jest.fn() }));
 
 import { LoQuieroModal } from '../LoQuieroModal';
+import { guardarVistaDePrueba, sembrarTerminosDePrueba } from '@/app/prototipos/0.6/utils/vistaDePrueba';
 import { DURACION_SALIDA_MS } from '@/app/prototipos/0.6/components/diseno-2/movimiento';
 
 function producto(over: Record<string, unknown> = {}) {
@@ -172,6 +181,32 @@ beforeEach(() => {
   mockTrackModal.mockClear();
   localStorage.clear();
   sessionStorage.clear();
+});
+
+describe('LoQuieroModal · términos en la vista de prueba (BAL-5381)', () => {
+  const vista = (venceEn: number) => ({ slug: 'pago-diferido', token: 'tok', venceEn, sembrar: false });
+
+  it('vista de prueba: la casilla de términos ya viene marcada', async () => {
+    guardarVistaDePrueba(vista(Date.now() + 60_000));
+    sembrarTerminosDePrueba('pago-diferido');
+    pintar();
+    const casilla = await screen.findByRole('checkbox', { name: FRASE });
+    expect(casilla).toHaveAttribute('aria-checked', 'true');
+    // Promociones no se acepta por la persona: queda sin marcar.
+    expect(screen.getByRole('checkbox', { name: /promociones/i })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('visita normal: la casilla arranca sin marcar', async () => {
+    pintar();
+    expect(await screen.findByRole('checkbox', { name: FRASE })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('vista de prueba vencida: lo sembrado se borra y la casilla arranca sin marcar', async () => {
+    guardarVistaDePrueba(vista(Date.now() - 1));
+    sembrarTerminosDePrueba('pago-diferido');
+    pintar();
+    expect(await screen.findByRole('checkbox', { name: FRASE })).toHaveAttribute('aria-checked', 'false');
+  });
 });
 
 describe('LoQuieroModal · casilla de términos (lista simple, BAL-4958)', () => {
