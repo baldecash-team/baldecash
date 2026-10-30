@@ -84,6 +84,10 @@
   /* Aviso (ámbar) */
   --d2-aviso-borde: #F2B632;           /* Términos sin marcar (brillo)      */
   --d2-aviso-suave: #FFF6D8;           /* Términos sin marcar               */
+  --d2-aviso-texto: #6B4E00;           /* «Necesario para continuar…»       */
+  --d2-aviso-etiqueta: #FFE7A0;        /* etiqueta «Obligatorio»            */
+  --d2-error-etiqueta: #FFD9C7;        /* etiqueta «Obligatorio» con error  */
+  --d2-error-etiqueta-texto: #8A2E08;  /* texto de esa etiqueta             */
   --d2-ambar-suave: oklch(98.7% 0.022 95.277);  /* = amber-50               */
   --d2-ambar-suave-2: oklch(96.2% 0.059 95.617);/* = amber-100              */
   --d2-ambar-borde: oklch(92.4% 0.12 95.746);   /* = amber-200              */
@@ -188,6 +192,10 @@
   /* Aviso */
   --d2-aviso-borde: #F2B632;
   --d2-aviso-suave: #2A220C;
+  --d2-aviso-texto: #F5CD6B;
+  --d2-aviso-etiqueta: #4A3A10;
+  --d2-error-etiqueta: #4A1F0E;
+  --d2-error-etiqueta-texto: #FFB59A;
   --d2-ambar-suave: #241C08;
   --d2-ambar-suave-2: #3A2C0A;
   --d2-ambar-borde: #6B5314;

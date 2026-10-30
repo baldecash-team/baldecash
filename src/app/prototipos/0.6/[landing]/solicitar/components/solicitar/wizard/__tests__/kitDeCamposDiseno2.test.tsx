@@ -380,29 +380,59 @@ describe('Casilla obligatoria en Diseño 2', () => {
     required: true,
   });
 
-  it('neutra al inicio (blanco, borde gris, sin ámbar ni «Obligatorio» resaltado) — decisión de Emilio', () => {
+  it('diseño de Brenda (BAL-5383): ámbar con brillo, naranja con sacudida, verde con «¡Listo!»', () => {
     const { container, unmount } = pintarV2(paso([CASILLA]));
     const casilla = container.querySelector('[data-casilla-v2]');
-    expect(casilla).toHaveAttribute('data-casilla-v2', 'neutra');
+    expect(casilla).toHaveAttribute('data-casilla-v2', 'aviso');
     const label = container.querySelector('label');
-    expect(label?.className).toContain('border-[var(--d2-borde-campo)]');
-    expect(label?.className).toContain('bg-[var(--d2-tarjeta)]');
-    expect(label?.className).not.toContain('#F2B632');
-    expect(label?.className).not.toContain('#FFF6D8');
-    expect(screen.queryByText('Obligatorio')).not.toBeInTheDocument();
+    expect(label).toHaveClass('border-2', 'rounded-[14px]', 'border-[var(--d2-aviso-borde)]', 'bg-[var(--d2-aviso-suave)]', 'd2-brillo-consentimiento');
+    expect(screen.getByText('Necesario para continuar con tu solicitud.')).toHaveClass('text-[var(--d2-aviso-texto)]');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // Etiqueta «Obligatorio»: solo escritorio (`md:`), decorativa.
+    const etiqueta = screen.getByText('Obligatorio');
+    expect(etiqueta).toHaveClass('hidden', 'md:inline-flex', 'bg-[var(--d2-aviso-etiqueta)]');
+    expect(etiqueta).toHaveAttribute('aria-hidden', 'true');
     unmount();
 
     formData = { work_verification_consent: { value: 'false', error: 'Marca la casilla para continuar.' } };
     const conError = pintarV2(paso([CASILLA]), true);
     expect(conError.container.querySelector('[data-casilla-v2]')).toHaveAttribute('data-casilla-v2', 'error');
+    const labelError = conError.container.querySelector('label');
+    expect(labelError).toHaveClass('border-[var(--d2-error)]', 'bg-[var(--d2-error-suave)]', 'casilla-v2-sacudida');
+    expect(labelError).not.toHaveClass('d2-brillo-consentimiento');
     expect(screen.getByRole('alert')).toHaveTextContent('Marca la casilla para continuar.');
-    expect(conError.container.querySelector('.casilla-v2-sacudida')).not.toBeNull();
+    expect(screen.getByRole('alert')).toHaveClass('font-bold', 'text-[var(--d2-error-texto)]');
+    expect(screen.getByText('Obligatorio')).toHaveClass('bg-[var(--d2-error-etiqueta)]', 'text-[var(--d2-error-etiqueta-texto)]');
     conError.unmount();
 
     formData = { work_verification_consent: { value: 'true' } };
     const marcada = pintarV2(paso([CASILLA]));
     expect(marcada.container.querySelector('[data-casilla-v2]')).toHaveAttribute('data-casilla-v2', 'marcada');
-    expect(screen.getByText('¡Listo!')).toBeInTheDocument();
+    expect(marcada.container.querySelector('label')).toHaveClass('border-[var(--d2-ok)]', 'bg-[var(--d2-ok-suave-3)]');
+    expect(screen.getByText('¡Listo! Ya puedes continuar.')).toHaveClass('font-semibold', 'text-[var(--d2-ok-texto)]');
+    expect(screen.queryByText('Obligatorio')).not.toBeInTheDocument();
+  });
+
+  it('el mensaje genérico del validador se muestra con el texto de Brenda; el required_message propio se respeta', () => {
+    formData = { work_verification_consent: { value: 'false', error: 'Debes marcar esta casilla para continuar' } };
+    const generico = pintarV2(paso([CASILLA]), true);
+    expect(screen.getByRole('alert')).toHaveTextContent('Marca la casilla para continuar.');
+    generico.unmount();
+
+    formData = { work_verification_consent: { value: 'false', error: 'Necesitamos tu autorización.' } };
+    pintarV2(paso([CASILLA]), true);
+    expect(screen.getByRole('alert')).toHaveTextContent('Necesitamos tu autorización.');
+  });
+
+  it('opcional: se queda neutra (sin ámbar, sin «Obligatorio» ni «Necesario…»)', () => {
+    const OPCIONAL = campo({ code: 'promos', label: 'Quiero recibir promociones', type: 'checkbox', required: false });
+    const { container } = pintarV2(paso([OPCIONAL]));
+    expect(container.querySelector('[data-casilla-v2]')).toHaveAttribute('data-casilla-v2', 'neutra');
+    const label = container.querySelector('label');
+    expect(label).toHaveClass('border-[var(--d2-borde-campo)]', 'bg-[var(--d2-tarjeta)]');
+    expect(label).not.toHaveClass('d2-brillo-consentimiento');
+    expect(screen.queryByText('Obligatorio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Necesario para continuar con tu solicitud.')).not.toBeInTheDocument();
   });
 
   it('al tocarla cambia el valor como siempre ("true"/"false")', () => {
