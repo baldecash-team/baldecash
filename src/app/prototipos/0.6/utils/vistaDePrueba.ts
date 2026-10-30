@@ -17,6 +17,7 @@
  */
 import { clearProductStorage } from '../[landing]/solicitar/context/ProductContext';
 import { clearWizardFormStorage } from '../[landing]/solicitar/context/WizardContext';
+import { clearConsentStorage, saveConsentStorage } from '../[landing]/solicitar/utils/consentStorage';
 
 const CLAVE = 'baldecash-vista-de-prueba';
 
@@ -68,6 +69,10 @@ export function salirDeVistaDePrueba(): void {
   try { localStorage.removeItem(CLAVE); } catch { /* sin storage */ }
   if (!v) return;
   // Nunca tumba a quien llama (el submit lee la marca justo antes de enviar).
+  // La casilla de términos que sembró el link (BAL-5381) no sobrevive a la
+  // prueba: una visita normal arranca con ella sin marcar. Va primero y aparte
+  // para que un fallo al borrar lo demás no la deje marcada.
+  clearConsentStorage(v.slug);
   try {
     clearWizardFormStorage(v.slug);
     clearProductStorage(v.slug);
@@ -94,6 +99,17 @@ export function leerVistaDePrueba(slug?: string | null, ahora: number = Date.now
 /** true si en esta landing el envío se simula. */
 export function esVistaDePrueba(slug?: string | null): boolean {
   return leerVistaDePrueba(slug) !== null;
+}
+
+/**
+ * BAL-5381: en la vista de prueba la casilla «Acepto los Términos y la
+ * Política de privacidad» (modal del carrito e intro de /solicitar) arranca
+ * marcada, para recorrer el formulario sin tocarla. Se guarda en las mismas
+ * claves que la casilla real; promociones queda sin marcar. Solo la llama el
+ * link de prueba y `salirDeVistaDePrueba` la borra.
+ */
+export function sembrarTerminosDePrueba(slug: string): void {
+  saveConsentStorage(slug, { acceptTerms: true, acceptPrivacy: true, acceptPromos: false });
 }
 
 export function marcarSembrada(): void {

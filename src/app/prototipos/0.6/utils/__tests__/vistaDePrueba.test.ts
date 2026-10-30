@@ -4,7 +4,7 @@
  */
 import {
   cabecerasDeVistaDePrueba, esVistaDePrueba, guardarVistaDePrueba, leerVistaDePrueba,
-  marcarSembrada, salirDeVistaDePrueba,
+  marcarSembrada, salirDeVistaDePrueba, sembrarTerminosDePrueba,
 } from '../vistaDePrueba';
 import { armarEquipoDePrueba, cardDelEquipo } from '../equipoDePrueba';
 import type { CatalogProduct } from '../../[landing]/catalogo/types/catalog';
@@ -13,6 +13,17 @@ const vigente = { slug: 'home', token: 'tok', venceEn: Date.now() + 60_000, semb
 
 describe('vistaDePrueba', () => {
   beforeEach(() => localStorage.clear());
+
+  it('BAL-5381: siembra términos y privacidad (no promociones) y Salir los borra', () => {
+    guardarVistaDePrueba(vigente);
+    sembrarTerminosDePrueba('home');
+    expect(localStorage.getItem('baldecash-home-wizard-acceptTerms')).toBe('true');
+    expect(localStorage.getItem('baldecash-home-wizard-acceptPrivacy')).toBe('true');
+    expect(localStorage.getItem('baldecash-home-wizard-acceptPromos')).toBe('false');
+    salirDeVistaDePrueba();
+    expect(localStorage.getItem('baldecash-home-wizard-acceptTerms')).toBeNull();
+    expect(localStorage.getItem('baldecash-home-wizard-acceptPrivacy')).toBeNull();
+  });
 
   it('vigente: simula en su landing y manda la cabecera', () => {
     guardarVistaDePrueba(vigente);
