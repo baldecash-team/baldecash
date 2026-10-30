@@ -47,3 +47,11 @@ it('sigue marcando el brillo aunque no se mueva', () => {
   resaltar(el);
   expect(el.getAttribute('data-guia')).toBe('brillo');
 });
+
+it('con mover: false solo pone el brillo, aunque el campo no se vea (BAL-5360)', () => {
+  const el = caja(900, 60);
+  resaltar(el, { mover: false });
+  expect(window.scrollBy).not.toHaveBeenCalled();
+  expect(el.scrollIntoView).not.toHaveBeenCalled();
+  expect(el.getAttribute('data-guia')).toBe('brillo');
+});
