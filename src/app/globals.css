@@ -438,6 +438,23 @@ html[data-bc-theme="light"] .gamer-theme-bg {
 /* Barra que se llena desde --d2-desde (0..1) hasta su ancho. */
 .d2-crece { transform-origin: left center; animation: d2Crece 0.7s ease-out 0.35s both; }
 .d2-crece-movil { transform-origin: left center; animation: d2Crece 0.7s ease-out 0.25s both; }
+/* «Enviando tu solicitud» (BAL-5361): el círculo y el paso en curso giran. */
+@keyframes d2EsperaGira { to { transform: rotate(360deg); } }
+.d2-espera-gira { animation: d2EsperaGira 0.8s linear infinite; }
+/* Confirmación (BAL-5361, pedido de Haru): «Sigue tu solicitud en Zona
+   Estudiantes» llama la atención sin ocupar más espacio. Borde menta de 2 px
+   con un brillo que nunca se apaga (respira cada 1,6 s) y un salto de 9 px
+   cada 1,1 s. Menta = color de ilustración, igual en los dos temas. */
+@keyframes d2ZeRespira {
+  from { box-shadow: 0 0 0 3px rgba(128, 226, 210, 0.45), 0 0 16px 4px rgba(128, 226, 210, 0.42), 0 10px 24px rgba(15, 20, 60, 0.28); }
+  to { box-shadow: 0 0 0 6px rgba(128, 226, 210, 0.7), 0 0 32px 10px rgba(128, 226, 210, 0.65), 0 12px 28px rgba(15, 20, 60, 0.3); }
+}
+@keyframes d2ZeSalto { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-9px); } }
+.d2-ze-luz {
+  box-sizing: border-box;
+  border: 2px solid #80E2D2;
+  animation: d2ZeRespira 1.6s ease-in-out infinite alternate, d2ZeSalto 1.1s ease-in-out infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .d2-pop, .d2-pop-lento, .d2-pop-modal, .d2-pop-modal-chico, .d2-pop-hoja,
@@ -445,8 +462,13 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   .d2-modal-entra, .d2-modal-sale,
   .d2-pulso-a, .d2-pulso-b, .d2-check-in, .d2-acc-entra, .d2-check-hecho, .d2-check-actual,
   .d2-crece, .d2-crece-movil, .d2-saludo,
-  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b {
+  .d2-brillo-consentimiento, .d2-sacudida-a, .d2-sacudida-b,
+  .d2-espera-gira, .d2-ze-luz {
     animation: none !important;
+  }
+  /* Sin salto ni respiración, pero el brillo queda prendido fijo. */
+  .d2-ze-luz {
+    box-shadow: 0 0 0 4px rgba(128, 226, 210, 0.55), 0 0 24px 6px rgba(128, 226, 210, 0.5), 0 10px 24px rgba(15, 20, 60, 0.28) !important;
   }
 }
 

@@ -622,7 +622,7 @@ export function usePasoDelWizard(opciones: {
           onComplete={handleCelebrationComplete}
         />
       )}
-      <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+      <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} diseno2={diseno2} />
       {modalUnidadTomada}
       {avisoLinkEspecial}
     </>

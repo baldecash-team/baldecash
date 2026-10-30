@@ -7,6 +7,11 @@
  * de los cierres: firmada, aprobada…), y el botón «Sigue tu solicitud en
  * Zona Estudiantes». Sin Baldecito (BAL-5203).
  *
+ * BAL-5361 (prototipo v56 del 30-oct): el botón lleva la etiqueta
+ * «SIGUIENTE PASO», borde menta con brillo y salto (`.d2-ze-luz`), y en
+ * celular, cuando ya no se ve, aparece el mismo botón fijo abajo (va encima,
+ * no ocupa espacio). Confeti mínimo: 4 papelitos que caen una vez.
+ *
  * El texto lo decide `textoCabeceraV2` (quien llama arma `titulo`/`subtitulo`
  * ya resueltos); esta pieza solo pinta. El confeti respeta
  * `prefers-reduced-motion` con `useMenosMovimiento` (`../movimiento`), la
@@ -14,10 +19,10 @@
  * pueden probar apagado.
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useMenosMovimiento } from '../movimiento';
-import { piezasDeConfeti } from './confeti';
+import { CAIDAS_CONFETI, piezasDeConfeti } from './confeti';
 import { PasosZonaEstudiantesV2 } from './PasosZonaEstudiantesV2';
 import { rotuloDelPaso, URL_ZONA_ESTUDIANTES } from './pasosZonaEstudiantes';
 
@@ -56,6 +61,8 @@ export function CabeceraConfirmacionV2({
   const reducido = useMenosMovimiento();
   const piezas = piezasDeConfeti(reducido);
   const numero = celular(pasos?.telefono);
+  const botonRef = useRef<HTMLAnchorElement>(null);
+  const botonFijoVisible = useBotonFueraDeVista(botonRef);
 
   return (
     <div
@@ -97,7 +104,7 @@ export function CabeceraConfirmacionV2({
                 borderRadius: p.borderRadius,
                 background: p.background,
                 opacity: 0,
-                animation: `confettiV2Caer ${p.duracion} linear ${p.demora} 3`,
+                animation: `confettiV2Caer ${p.duracion} linear ${p.demora} ${CAIDAS_CONFETI}`,
                 '--sway': p.sway,
               } as React.CSSProperties
             }
@@ -140,22 +147,74 @@ export function CabeceraConfirmacionV2({
       )}
 
       <a
+        ref={botonRef}
         href={URL_ZONA_ESTUDIANTES}
         target="_blank"
         rel="noopener noreferrer"
         onClick={onZonaEstudiantes}
         data-boton-zona-estudiantes
         // Celular: a todo el ancho (52 px, 15,5 px); computadora: al centro (54 px, 17 px).
-        className="relative mt-4 flex min-h-[52px] items-center justify-center gap-2 self-stretch whitespace-nowrap rounded-[14px] bg-[#FFFFFF] px-4 text-[15.5px] font-bold text-[var(--d2-boton-cabecera-texto)] no-underline shadow-[0_10px_24px_rgba(15,20,60,0.28)] md:mt-5 md:inline-flex md:min-h-[54px] md:self-center md:px-7 md:text-[17px]"
+        // `.d2-ze-luz` (globals.css): borde menta, brillo que respira y salto.
+        className="d2-ze-luz relative mt-4 flex min-h-[52px] items-center justify-center gap-2 self-stretch whitespace-nowrap rounded-[14px] bg-[#FFFFFF] px-4 text-[15.5px] font-bold text-[var(--d2-boton-cabecera-texto)] no-underline md:mt-5 md:inline-flex md:min-h-[54px] md:self-center md:px-7 md:text-[17px]"
       >
         Sigue tu solicitud en Zona Estudiantes
         <ArrowRight width={18} height={18} strokeWidth={2.2} aria-hidden />
+        <span
+          aria-hidden
+          data-etiqueta-siguiente-paso
+          className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#19C3A6] px-2.5 py-0.5 text-[10.5px] font-bold tracking-[0.05em] text-white shadow-[0_2px_6px_rgba(15,20,60,0.25)]"
+        >
+          SIGUIENTE PASO
+        </span>
       </a>
       <span className="relative mt-2 text-[13px] text-[color-mix(in_srgb,var(--d2-cabecera-texto)_80%,transparent)]">
         Ahí verás cada avance, sin volver a solicitar.
       </span>
+
+      {/* Celular: el mismo botón fijo abajo cuando el de arriba ya no se ve
+          (va encima, no ocupa espacio). Es una copia para la vista: fuera del
+          orden de tabulación y oculta a lectores; el de arriba es el que cuenta. */}
+      <div
+        data-boton-zona-estudiantes-fijo
+        data-ver={botonFijoVisible ? '1' : '0'}
+        aria-hidden
+        className={`fixed inset-x-0 bottom-0 z-[35] bg-[var(--d2-tarjeta)] px-4 pb-3.5 pt-2.5 shadow-[0_-8px_22px_rgba(30,34,48,0.14)] transition-transform duration-[250ms] ease-out motion-reduce:transition-none md:hidden ${
+          botonFijoVisible ? 'translate-y-0' : 'translate-y-[calc(100%+40px)]'
+        }`}
+      >
+        <a
+          href={URL_ZONA_ESTUDIANTES}
+          target="_blank"
+          rel="noopener noreferrer"
+          tabIndex={-1}
+          onClick={onZonaEstudiantes}
+          className="flex min-h-[52px] items-center justify-center gap-2 whitespace-nowrap rounded-[14px] bg-[var(--color-primary)] text-[15.5px] font-bold text-[var(--color-on-primary)] no-underline"
+        >
+          Sigue tu solicitud en Zona Estudiantes
+          <ArrowRight width={18} height={18} strokeWidth={2.2} aria-hidden />
+        </a>
+      </div>
     </div>
   );
+}
+
+/**
+ * `true` cuando el botón de la cabecera ya se fue por arriba de la pantalla
+ * (el prototipo lo prende con `bottom < 4`). Sin `IntersectionObserver`
+ * (tests, navegadores viejos) queda en `false`: no aparece el fijo.
+ */
+function useBotonFueraDeVista(ref: React.RefObject<HTMLElement | null>): boolean {
+  const [fuera, setFuera] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const observador = new IntersectionObserver(([entrada]) => {
+      setFuera(!entrada.isIntersecting && entrada.boundingClientRect.bottom < 4);
+    });
+    observador.observe(el);
+    return () => observador.disconnect();
+  }, [ref]);
+  return fuera;
 }
 
 export default CabeceraConfirmacionV2;

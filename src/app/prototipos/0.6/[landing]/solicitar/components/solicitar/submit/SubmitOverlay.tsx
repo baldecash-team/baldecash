@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Check, Send, FileUp, ShieldCheck, FileSignature, Truck } from 'lucide-react';
 import type { SubmitStage } from '../../../hooks/useSubmitApplication';
+import { EsperaEnvioV2 } from '@/app/prototipos/0.6/components/diseno-2/envio/EsperaEnvioV2';
 
 export interface PasoOverlay {
   /** Tiene que coincidir con el `stage` que lo pone en curso. */
@@ -27,6 +28,12 @@ interface SubmitOverlayProps {
   titulo?: string;
   subtitulo?: string;
   tituloProgreso?: string;
+  /**
+   * Diseño 2 (BAL-5361): la pantalla «Enviando tu solicitud» de Brenda
+   * (`EsperaEnvioV2`). Solo para el envío de la solicitud: con `pasos`
+   * propios (la firma del contrato) se ignora. Diseño 1 no cambia.
+   */
+  diseno2?: boolean;
 }
 
 // Steps matching the confirmation page style
@@ -61,9 +68,13 @@ function getStepStatus(
 }
 
 export const SubmitOverlay: React.FC<SubmitOverlayProps> = ({
-  isOpen, stage, pasos = STEPS, titulo, subtitulo, tituloProgreso = 'Progreso del envío',
+  isOpen, stage, pasos = STEPS, titulo, subtitulo, tituloProgreso = 'Progreso del envío', diseno2 = false,
 }) => {
   const isActive = isOpen && stage !== 'idle' && stage !== 'error';
+
+  if (diseno2 && pasos === STEPS) {
+    return isActive ? <EsperaEnvioV2 stage={stage} /> : null;
+  }
 
   return (
     <AnimatePresence>
