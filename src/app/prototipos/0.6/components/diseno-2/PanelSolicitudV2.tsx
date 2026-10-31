@@ -51,6 +51,7 @@ import { PRESION_V2 } from './campos/estilosV2';
 import { EVENTO_ABRIR_PLAZO_V2 } from './guardasV2';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { segurosIncluidosDelProducto } from '@/app/prototipos/0.6/utils/comboIncluidos';
+import { nombreDelEquipo } from '@/app/prototipos/0.6/[landing]/solicitar/utils/nombreDelEquipo';
 
 /** Escritorio (`lg`): ahí manda el panel; abajo de eso, la cabecera. */
 function esEscritorio(): boolean {
@@ -112,7 +113,9 @@ export function useDatosDelPanel(condicionesFijas: boolean) {
   const leyenda = principal
     ? [textoPlazo, inicialTotal > 0 ? `Inicial ${textoInicial}` : textoInicial].join(' · ')
     : '';
-  const nombre = productos.length > 1 ? `${productos.length} equipos` : principal?.shortName || principal?.name || '';
+  // El de la card del catálogo (`name`), no el `product.name` interno que
+  // viaja en `shortName` (BAL-5407).
+  const nombre = productos.length > 1 ? `${productos.length} equipos` : nombreDelEquipo(principal);
 
   const opcionesInicial = principal ? product.getInitialOptionsForProduct(principal.id) : [];
   const puedePlazo = layout.puedeCambiarPlazo && !condiciones.congelada && condiciones.termOptions.length > 1;
@@ -201,7 +204,7 @@ function ImagenEquipo({ datos, tam }: { datos: DatosDelPanel; tam: number }) {
   const { principal, productos } = datos;
   if (!principal) return null;
   if (productos.length === 1 && principal.image) {
-    return <Image src={principal.image} alt={principal.name} width={tam} height={tam} className="object-contain" style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%" }} />;
+    return <Image src={principal.image} alt={nombreDelEquipo(principal)} width={tam} height={tam} className="object-contain" style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "100%" }} />;
   }
   return <Package className="w-1/2 h-1/2 text-[var(--d2-icono-vacio)]" aria-hidden />;
 }

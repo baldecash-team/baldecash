@@ -25,6 +25,7 @@ import { useCondicionesDelPlan } from './useCondicionesDelPlan';
 import { segurosIncluidosDelProducto } from '@/app/prototipos/0.6/utils/comboIncluidos';
 import { FilasIncluidasEnCombo } from '../../upsell/SegurosIncluidosEnCombo';
 import Image from 'next/image';
+import { nombreDelEquipo } from '../../../utils/nombreDelEquipo';
 
 /**
  * Lo que mide la barra plegada con la imagen del producto puesta (48px de
@@ -275,7 +276,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               ) : mainProduct.image ? (
                 <Image
                   src={mainProduct.image}
-                  alt={mainProduct.name}
+                  alt={nombreDelEquipo(mainProduct)}
                   width={48}
                   height={48}
                   className="object-contain"
@@ -289,7 +290,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             {/* Product Info */}
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium text-neutral-800 truncate">
-                {allProducts.length > 1 ? `${allProducts.length} productos` : mainProduct.shortName}
+                {allProducts.length > 1 ? `${allProducts.length} productos` : nombreDelEquipo(mainProduct)}
                 {(hasAccessories || hasInsurance) && (
                   <span className="text-xs text-neutral-500 ml-1">
                     {hasAccessories && `+${selectedAccessories.length} acc.`}
@@ -356,7 +357,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           {product.image ? (
                             <Image
                               src={product.image}
-                              alt={product.name}
+                              alt={nombreDelEquipo(product)}
                               width={80}
                               height={80}
                               className="object-contain"
@@ -373,7 +374,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             {product.brand}
                           </p>
                           <p className="text-sm font-semibold text-neutral-800 mt-0.5">
-                            {product.name}
+                            {nombreDelEquipo(product)}
                           </p>
 
                           {product.specs && (
@@ -578,7 +579,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {product.image ? (
                     <Image
                       src={product.image}
-                      alt={product.name}
+                      alt={nombreDelEquipo(product)}
                       width={64}
                       height={64}
                       className="object-contain"
@@ -595,7 +596,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     {product.brand}
                   </p>
                   <p className="text-base font-semibold text-neutral-800">
-                    {product.name}
+                    {nombreDelEquipo(product)}
                   </p>
                   {product.specs && (
                     <p className="text-sm text-neutral-500 mt-0.5">

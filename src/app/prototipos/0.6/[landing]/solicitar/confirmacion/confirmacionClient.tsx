@@ -42,6 +42,7 @@ import { LoadingFallbackV2 } from '@/app/prototipos/0.6/components/diseno-2/conf
 import { hayEnvioADomicilio, pidenDireccion } from '@/app/prototipos/0.6/components/diseno-2/textosQueAplicanV2';
 import { textoDeEntrega, useDatosDelEnvioV2 } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/datosDelEnvioV2';
 import { useWizardConfigOptional } from '../context/WizardConfigContext';
+import { nombreParaConfirmacion, useNombresDelEnvio, type NombreEnviado } from '../utils/nombresDelEnvio';
 
 /**
  * Reads the wizard session UUID from localStorage.
@@ -139,7 +140,12 @@ const ES_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 export function buildReceivedData(
   applicationCode: string,
   applicationData: ApplicationStatusData | null,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  /**
+   * Nombres de la card que dejó el envío en esta pestaña (BAL-5407): el
+   * `/status` trae el `product.name` interno, no el nombre de venta.
+   */
+  nombresEnviados?: NombreEnviado[] | null
 ): ReceivedData {
   // Preferir `term` + `payment_frequency` (convención nueva). Fallback a `term_months`
   // mientras BE no haga el drop. Para no-mensual `term_months` legacy no representa
@@ -151,8 +157,9 @@ export function buildReceivedData(
   const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
 
   // Mapear productos desde API (v0.6.1: incluye variant info y initial payment)
+  const totalProductos = applicationData?.products?.length ?? 0;
   const products = applicationData?.products?.map((p) => ({
-    name: p.name,
+    name: nombreParaConfirmacion(p, totalProductos, nombresEnviados),
     type: p.type || undefined,
     brand: p.brand || undefined,
     image: p.image || '',
@@ -391,6 +398,8 @@ function RealConfirmationContent({
   // `useSyncExternalStore` (en el servidor, nada) para no romper la hidratación.
   const codigoReal = applicationData?.code ?? null;
   const datosDelEnvio = useDatosDelEnvioV2(diseno2 ? landing : null, codigoReal);
+  // Nombre de la card del catálogo, mismo criterio (BAL-5407), en los dos diseños.
+  const nombresEnviados = useNombresDelEnvio(landing, codigoReal);
 
   if (isLoading) {
     return diseno2 ? <LoadingFallbackV2 /> : <LoadingFallback />;
@@ -410,7 +419,7 @@ function RealConfirmationContent({
     );
   }
 
-  const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
+  const receivedData = buildReceivedData(applicationCode, applicationData, searchParams, nombresEnviados);
 
   const modoCierreKyc = modoCierreDelKyc(searchParams, landing);
 
