@@ -29,7 +29,14 @@ export interface ApplicationStatusData {
 
   // Products array (multiple products support)
   products?: Array<{
+    /** `product.name` interno de BD («PM1503CDA»), no el nombre de la card. */
     name: string;
+    /**
+     * Nombre de venta de la card del catálogo («Laptop PM1503CDA R5 16GB
+     * 512GB»). Hoy ws2 no lo manda; si lo manda, la confirmación lo prefiere
+     * sobre `name` (BAL-5407).
+     */
+    display_name?: string | null;
     /** Tipo del producto: 'laptop', 'celular', 'efectivo'… */
     type?: string | null;
     brand?: string | null;

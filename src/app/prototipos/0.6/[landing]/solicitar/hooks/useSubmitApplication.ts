@@ -46,6 +46,7 @@ import { avisarEnvioSimulado } from '../../../services/linkDePruebaApi';
 import { normalizeEmail } from '../../../services/emailValidation';
 import { termToMonths } from '@/app/prototipos/0.6/utils/plazoEnMeses';
 import { datosDelFormulario, guardarDatosDelEnvio } from '@/app/prototipos/0.6/components/diseno-2/confirmacion/datosDelEnvioV2';
+import { guardarNombresDelEnvio } from '../utils/nombresDelEnvio';
 
 /**
  * Los codigos de campo que llevan un correo. Se mantiene alineado con
@@ -685,6 +686,10 @@ export function useSubmitApplication(
           // Diseño 2 (BAL-5274): `/status` no los trae y el form se limpia
           // abajo. Solo se guardan en esta pestaña; el envío no cambia.
           guardarDatosDelEnvio(landing, result.application_code, datosDelFormulario(formData));
+          // Nombre de la card de cada equipo (BAL-5407): `/status` trae el
+          // `product.name` interno y la confirmación tiene que mostrar el mismo
+          // nombre que vio la persona en el catálogo.
+          guardarNombresDelEnvio(landing, result.application_code, allProducts);
 
           // La sesión de tracking NO se suelta acá: la confirmación es la que
           // emite `application_submitted` con el `application_code`, y tiene
