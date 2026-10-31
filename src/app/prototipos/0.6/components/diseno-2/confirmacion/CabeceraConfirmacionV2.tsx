@@ -10,7 +10,7 @@
  * BAL-5361 (prototipo v56 del 30-oct): el botón lleva la etiqueta
  * «SIGUIENTE PASO», borde menta con brillo y salto (`.d2-ze-luz`), y en
  * celular, cuando ya no se ve, aparece el mismo botón fijo abajo (va encima,
- * no ocupa espacio). Confeti mínimo: 4 papelitos que caen una vez.
+ * no ocupa espacio). Confeti: 24 papelitos que caen dos veces (BAL-5408).
  *
  * El texto lo decide `textoCabeceraV2` (quien llama arma `titulo`/`subtitulo`
  * ya resueltos); esta pieza solo pinta. El confeti respeta

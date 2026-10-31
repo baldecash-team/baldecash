@@ -1,15 +1,15 @@
 /**
  * F8 (BAL-4967): el confeti de la cabecera, apagado con
- * `prefers-reduced-motion`. BAL-5361: confeti mínimo, que cae una vez. BAL-5401: 12 piezas.
+ * `prefers-reduced-motion`. BAL-5361: confeti mínimo, que cae una vez. BAL-5401: 12 piezas. BAL-5408: 24.
  */
 import { piezasDeConfeti, TOTAL_PIEZAS_CONFETI, COLORES_CONFETI, CAIDAS_CONFETI } from '../confeti';
 
 describe('piezasDeConfeti', () => {
-  it('arma 12 piezas sin reduced-motion, y caen una sola vez', () => {
+  it('arma 24 piezas sin reduced-motion, y caen dos veces', () => {
     const piezas = piezasDeConfeti(false);
-    expect(piezas).toHaveLength(12);
-    expect(TOTAL_PIEZAS_CONFETI).toBe(12);
-    expect(CAIDAS_CONFETI).toBe(1);
+    expect(piezas).toHaveLength(24);
+    expect(TOTAL_PIEZAS_CONFETI).toBe(24);
+    expect(CAIDAS_CONFETI).toBe(2);
   });
 
   it('las 4 primeras son las piezas del prototipo de Brenda (v56)', () => {

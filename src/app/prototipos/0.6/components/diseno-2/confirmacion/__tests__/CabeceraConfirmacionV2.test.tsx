@@ -35,11 +35,11 @@ describe('CabeceraConfirmacionV2', () => {
     expect(screen.getByText(/Solicitud N\.° APP-2026-00123/)).toBeInTheDocument();
   });
 
-  it('sin reduced-motion: confeti mínimo (BAL-5361), 4 piezas que caen una sola vez', () => {
+  it('sin reduced-motion: 24 piezas (BAL-5408) que caen dos veces', () => {
     const { container } = render(<CabeceraConfirmacionV2 titulo="t" numeroDeSolicitud="APP-1" />);
     const piezas = container.querySelectorAll<HTMLElement>('[data-confeti-pieza]');
-    expect(piezas).toHaveLength(4);
-    piezas.forEach((p) => expect(p.style.animation).toMatch(/ 1$/));
+    expect(piezas).toHaveLength(24);
+    piezas.forEach((p) => expect(p.style.animation).toMatch(/ 2$/));
   });
 
   it('sin Baldecito (BAL-5203): la píldora es lo primero de la cabecera', () => {
